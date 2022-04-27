@@ -1,0 +1,21 @@
+{
+  "name": "rollup",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo no test set && exit 1",
+    "dev": "rollup --watch --config rollup.config.js --environment BUILD:development",
+    "build": "rollup --config rollup.config.js --environment BUILD:production"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "rollup": "^2.68.0",
+    "@rollup/plugin-typescript": "^8.3.1",
+    "rollup-plugin-terser": "^7.0.2",
+    "@types/p5": "^1.4.0",
+    "@types/matter-js": "^0.17.7"
+  }
+}

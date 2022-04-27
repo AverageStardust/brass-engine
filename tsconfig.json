@@ -1,0 +1,22 @@
+{
+    "include": [
+        "./src/*",
+    ],
+    "compilerOptions": {
+        "types": [
+            "p5/global",
+            "matter-js"
+        ],
+        "allowUmdGlobalAccess": true,
+        "esModuleInterop": true,
+        "target": "ES5",
+        "module": "ES2020",
+        "lib": ["ES2020", "DOM"],
+        "removeComments": true,
+        "downlevelIteration": true,
+        "forceConsistentCasingInFileNames": true,
+        "strict": true,
+        "noImplicitThis": false,
+        "skipLibCheck": true
+    }
+}
