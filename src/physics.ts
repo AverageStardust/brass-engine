@@ -71,21 +71,13 @@ export function update(delta: number) {
     lastDelta = delta;
 
     for (const [key, ray] of rays.entries()) {
-        const { hit, point, body } = ray.cast(delta, true);
-        if (!hit) continue;
+        const { body, point } = ray.cast(delta);
+        ray.position = point.copy();
 
-        ray.position = Vector2.fromObj(point);
+        if (!body) continue;
+
         ray.triggerSensors({ body: body as MaterialBodyAbstract, self: ray, points: [point] });
-
-        Matter.Events.trigger(body, "collisionActive", {
-            pairs: [{
-                body: ray,
-                self: body as MaterialBodyAbstract,
-                point: Vector2.fromObj(point)
-            }]
-        });
-
-        rays.delete(key);
+        ray.destroy();
     }
 }
 
@@ -119,6 +111,7 @@ export function drawColliders(weight = 0.5, g = defaultDrawTarget) {
 
 export abstract class BodyAbstract {
     private sensors: CollisionCallback[] = [];
+    alive = true;
 
     constructor() {
         enforceInit("creating a body");
@@ -142,21 +135,26 @@ export abstract class BodyAbstract {
 
     addSensor(callback: CollisionCallback) {
         this.sensors.push(callback);
+        return this;
     }
 
     removeSensor(callback: CollisionCallback) {
         const index = [].findIndex((sensor) => sensor === callback);
 
         this.sensors.splice(index, 1);
+        return this;
     }
 
     triggerSensors(collision: Collision) {
         this.sensors.forEach((callback) => callback(collision));
+        return this;
     }
 
     abstract rotate(rotation: number): this;
     abstract applyForce(force: Vertex2, position?: Vertex2): this
-    abstract destroy(): void;
+    destroy() {
+        this.alive = false;
+    }
 
     protected validateCollisionIndex(index: number): CollisionFitlerCategory {
         if (typeof index !== "number" ||
@@ -286,7 +284,7 @@ abstract class MaterialBodyAbstract extends BodyAbstract {
     }
 
     set collidesWith(category: number | number[]) {
-        this.body.collisionFilter.mask = 0xFFFFFFFF;
+        this.body.collisionFilter.mask = 0;
         if (Array.isArray(category)) {
             category.map((subCategory) => this.setCollidesWith(subCategory));
         } else {
@@ -297,10 +295,10 @@ abstract class MaterialBodyAbstract extends BodyAbstract {
     private setCollidesWith(category: number) {
         this.validateCollisionIndex(category);
 
-        if (category < 0) { // unsets mask bit of category
-            (this.body.collisionFilter.mask as number) &= ~(1 << -category);
-        } else { // sets mask bit of category
+        if (category >= 0) { // sets mask bit of category
             (this.body.collisionFilter.mask as number) |= 1 << category;
+        } else { // unsets mask bit of category
+            (this.body.collisionFilter.mask as number) &= ~(1 << -category);
         }
 
         return this;
@@ -319,6 +317,7 @@ abstract class MaterialBodyAbstract extends BodyAbstract {
     }
 
     destroy() {
+        super.destroy();
         const categoryIndex = this.collisionCategoryToIndex(this.body.collisionFilter.category);
         bodies[categoryIndex].delete(this.body.id);
         Matter.World.remove(world, this.body);
@@ -390,8 +389,8 @@ export class GridBody extends MaterialBodyAbstract {
             this.buildParts(grid, minX, minY, maxX, maxY);
 
             Matter.Body.translate(this.body, {
-                x: this.body.bounds.min.x + this.x,
-                y: this.body.bounds.min.y + this.y
+                x: (this.body.bounds.min.x + (this.x - minX * this.gridScale) * spaceScale),
+                y: (this.body.bounds.min.y + (this.y - minY * this.gridScale) * spaceScale)
             });
         } else {
             let angle = this.options.angle ?? 0;
@@ -401,7 +400,7 @@ export class GridBody extends MaterialBodyAbstract {
             }
             this.buildParts(grid, minX, minY, maxX, maxY);
             Matter.Body.setAngle(this.body, angle);
-            Matter.Body.setPosition(this.body, { x: this.x, y: this.y });
+            Matter.Body.setPosition(this.body, { x: this.x * spaceScale, y: this.y * spaceScale });
         }
     }
 
@@ -460,17 +459,21 @@ export class GridBody extends MaterialBodyAbstract {
 
         const parts: InternalMatterBody[] = [];
 
+        const scaleProduct = this.gridScale * spaceScale;
         for (const [key, strip] of stripMap.entries()) {
             const
                 x = key % this.width,
                 y = Math.floor(key / this.width);
 
-            const scaleProduct = this.gridScale * spaceScale;
             const part = createRectBodyFast(x * scaleProduct, y * scaleProduct,
                 strip.width * scaleProduct, strip.height * scaleProduct) as InternalMatterBody;
             part.__brassBody__ = this;
             parts.push(part);
         }
+
+        const cornerPart = createRectBodyFast(minX * scaleProduct, minY * scaleProduct, 0.01, 0.01) as InternalMatterBody;
+        cornerPart.__brassBody__ = this;
+        parts.push(cornerPart);
 
         this.options.parts = parts;
         const body = Matter.Body.create(this.options);
@@ -550,7 +553,7 @@ export class RayBody extends BodyAbstract {
     private width: number;
     private mask: CollisionFitlerMask;
 
-    constructor(x: number, y: number, width: number = 0.1, options: { velocity?: Vertex2, mask?: number }) {
+    constructor(x: number, y: number, width: number = 0.1, options: { velocity?: Vertex2, mask?: number } = {}) {
         super();
         this.position = new Vector2(x, y);
         this.velocity = Vector2.fromObj(options.velocity ?? { x: 0, y: 0 });
@@ -601,6 +604,7 @@ export class RayBody extends BodyAbstract {
     set collisionCategory(_: number) { }
 
     set collidesWith(category: number | number[]) {
+        this.mask = 0 as CollisionFitlerMask;
         if (Array.isArray(category)) {
             category.map((subCategory) => this.setCollidesWith(subCategory));
         } else {
@@ -611,12 +615,10 @@ export class RayBody extends BodyAbstract {
     private setCollidesWith(category: number) {
         this.validateCollisionIndex(category);
 
-        if (category < 0) {
-            // unsets mask bit of category
-            this.mask = (this.mask & (~(1 << -category))) as CollisionFitlerMask;
-        } else {
-            // sets mask bit of category
-            this.mask = (this.mask | 1 << category) as CollisionFitlerMask;
+        if (category >= 0) { // sets mask bit of category
+            (this.mask as number) |= 1 << category;
+        } else { // unsets mask bit of category
+            (this.mask as number) &= ~(1 << -category);
         }
 
         return this;
@@ -627,54 +629,79 @@ export class RayBody extends BodyAbstract {
         return this;
     }
 
-    applyForce() { return this; }
+    applyForce() {
+        throw Error("RayBody can't have forces applyed");
+        return this;
+    }
 
     destroy() {
+        super.destroy();
         rays.delete(this.id);
     }
 
-    cast(delta: number, real = false, roughDistance = false, maxSteps = 20): {
-        point: Vector2; progress: number; body: MaterialBodyAbstract | null, hit: boolean;
+    cast(delta: number, steps = 20): {
+        point: Vector2,
+        dist: Number,
+        body: null | MaterialBodyAbstract
     } {
-        const start = this.position;
-        const end = Matter.Vector.add(this.position, Matter.Vector.mult(this.velocity, delta));
-
-        const candidates: MaterialBodyAbstract[] = [];
+        const testBrassBodies: MaterialBodyAbstract[] = [];
 
         for (let i = 0; i < 32; i++) {
             if (!(this.mask & (1 << i))) continue;
-            candidates.concat(...bodies[i as CollisionFilterIndex].values());
+            testBrassBodies.push(...Array.from(bodies[i as CollisionFilterIndex].values()));
         }
 
-        const candidateBodies = candidates.map((candidate) => candidate.body);
+        const testBodies = testBrassBodies.map((brassBody) => brassBody.body);
 
-        const matterStart = Matter.Vector.create(start.x * spaceScale, start.y * spaceScale);
-        let testJump = 0.25, testProgress = 0.5;
-        let hits: Matter.ICollision[] = [];
-        let testPoint: Vector2 | null = null;
+        const timeSteps = (delta / 1000 * 60);
+        const displacment = this.velocity.copy().multScalar(spaceScale * timeSteps);
+        const start = this.position.copy().multScalar(spaceScale);
 
-        for (let i = 0; i < maxSteps; i++) {
-            testPoint = new Vector2(start.x, start.y).mix(end, testProgress);
-            const matterTestPoint = Matter.Vector.create(testPoint.x * spaceScale, testPoint.y * spaceScale);
-            hits = Matter.Query.ray(candidateBodies, matterStart, matterTestPoint, this.width * spaceScale);
+        let testPoint = 1,
+            testJump = 0.5,
+            hits: Matter.ICollision[] = [],
+            hitEnd = displacment.copy().multScalar(testPoint).add(start),
+            hitPoint = 1;
+        for (let i = 0; i < steps; i++) {
+            const end = displacment.copy().multScalar(testPoint).add(start);
+            const currentHits = Matter.Query.ray(testBodies, start, end, this.width);
+            if (currentHits.length < 1) {
+                if (i === 0) break;
+                testPoint += testJump;
+                testJump /= 2;
+            } else if (currentHits.length === 1) {
+                hits = currentHits;
+                hitPoint = testPoint;
+                hitEnd = end;
 
-            if (hits.length < 1) {
-                testProgress += testJump;
-            } else if (hits.length === 1 && roughDistance) {
-                break;
+                testPoint -= testJump;
+                testJump /= 2;
             } else {
-                testProgress -= testJump;
+                if (currentHits.length !== 1) {
+                    hits = currentHits;
+                    hitPoint = testPoint;
+                    hitEnd = end;
+                }
+                testPoint -= testJump;
+                testJump /= 2;
             }
-            testJump *= 0.5;
         }
 
-        if (real) this.position = Vector2.fromObj(end);
+        if (hits.length > 1) {
+            hits = hits.sort((a, b) => start.distSq(a.bodyA.position) - start.distSq(b.bodyA.position));
+        }
+
+        let hitBody: null | MaterialBodyAbstract;
+        if (hits.length === 0) {
+            hitBody = null;
+        } else {
+            hitBody = (hits[0].parentA as InternalMatterBody).__brassBody__;
+        }
 
         return {
-            point: testPoint ?? start,
-            progress: testProgress,
-            body: (hits[0]?.bodyA as InternalMatterBody).__brassBody__ ?? null,
-            hit: hits.length > 0
-        }
+            point: hitEnd.divScalar(spaceScale),
+            dist: this.velocity.mag * timeSteps * hitPoint,
+            body: hitBody
+        };
     }
 }

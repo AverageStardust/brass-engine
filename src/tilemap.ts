@@ -1,10 +1,8 @@
 import { defaultDrawTarget, DrawTarget } from "./drawTarget";
 import { getExactTime, getTime } from "./time";
-import { assertCompileTime, assertRunTime, cloneDynamicArray, createDynamicArray, createFastGraphics, decodeDynamicTypedArray, DynamicArray, DynamicArrayType, DynamicTypedArray, DynamicTypedArrayType, encodeDynamicTypedArray, Pool } from "./common";
+import { assertCompileTime, cloneDynamicArray, createDynamicArray, createFastGraphics, decodeDynamicTypedArray, DynamicArray, DynamicArrayType, DynamicTypedArray, DynamicTypedArrayType, encodeDynamicTypedArray, Pool } from "./common";
 import { defaultViewpoint } from "./viewpoint";
 import p5 from "p5";
-//import { createBody } from "./physics";
-import { Vertex2 } from "./vector3";
 import { GridBody } from "./physics";
 
 

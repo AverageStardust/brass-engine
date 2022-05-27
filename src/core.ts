@@ -59,7 +59,7 @@ export function init(options: InitOptions = {}) {
         setDefaultViewport(options.viewpoint);
     }
 
-    maxTimeDelta = options.maxTimeDelta ?? 100;
+    maxTimeDelta = options.maxTimeDelta ?? (1000 / 30);
     updateTime();
 
     const useSound = options.sound ?? p5.SoundFile !== undefined;
