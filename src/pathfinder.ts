@@ -1,8 +1,8 @@
-import { assertRunTime, MappedHeap, Opaque } from "./common";
+import { expect, MappedHeap, Opaque } from "./common";
 import { defaultDrawTarget } from "./drawTarget";
 import { Tilemap } from "./tilemap";
 import { getExactTime, getTime } from "./time";
-import { Vector2, Vertex2, Vertex3 } from "./vector3";
+import { Vector2, Vertex2 } from "./vector3";
 
 
 
@@ -30,6 +30,9 @@ enum PathSituationType {
     Succeed
 }
 
+// state of one agent's pathfinding goals
+// allows async pathfinding
+// T changes for different algorithms internal state
 type PathSituation<T> = {
     start: Vector2;
     end: Vector2;
@@ -79,6 +82,8 @@ export function update() {
 
 
 
+// class that finds paths for a group of agents to one goal
+// this pathfinding system is optimized for groups with one collective goal
 abstract class PathfinderAbstract {
 
     protected readonly width: number;
@@ -99,6 +104,8 @@ abstract class PathfinderAbstract {
     protected readonly pheromones: Int32Array | null;
 
     goal: null | Vector2;
+    // confidence controls if only leaders or the whole hard tries to make paths
+    // when the pathfinder is struggling this causes a few leaders to try harder and show others the way 
     protected confidence = 0.5;
     protected agents: PathAgent[];
     protected waitingAgent: number;
@@ -119,6 +126,7 @@ abstract class PathfinderAbstract {
         this.pheromoneDecayTime = options.pheromoneDecayTime ?? 150000;
         this.pheromoneStrength = options.pheromoneStrength ?? 0.5;
 
+        // pheromones make agents follow each other to find the same goal
         this.pheromoneTime = getTime();
         if (options.pheromones !== false) {
             const zeroPheromone = this.pheromoneTime - this.pheromoneDecayTime;
@@ -161,6 +169,8 @@ abstract class PathfinderAbstract {
         }
         this.goal = newGoal;
 
+        // check all agents that are on route
+        // if their new goal is far from their current goal, recompute
         for (const agent of this.agents) {
             if (agent.path.length <= 0) continue;
 
@@ -178,6 +188,7 @@ abstract class PathfinderAbstract {
     }
 
     confidenceDelta(delta: number) {
+        // due to good or bad results change the confidence of the group
         this.confidence = Math.min(Math.max(this.confidence + delta, 0), 1);
     }
 
@@ -315,8 +326,8 @@ abstract class PathfinderAbstract {
     }
 
     protected attemptAgentPartCompute(agent: PathAgent) {
-        assertRunTime(this.goal !== null);
-        assertRunTime(agent.position !== null);
+        expect(this.goal !== null);
+        expect(agent.position !== null);
 
         // garbage is from computing parts of the path outside of the whole path context
         // don't compute part if there will be too much garbage
@@ -370,8 +381,8 @@ abstract class PathfinderAbstract {
     }
 
     protected attemptAgentWholeCompute(agent: PathAgent) {
-        assertRunTime(this.goal !== null);
-        assertRunTime(agent.position !== null);
+        expect(this.goal !== null);
+        expect(agent.position !== null);
 
         const pathSituation = this.computePath(agent.position, this.goal, this.pathingRuntimeLimit);
 
@@ -742,6 +753,7 @@ class PathAgent {
         g.noStroke();
         g.fill(fillColor);
 
+        // add current postion to path, only for drawing
         this.path.unshift(this.position);
 
         for (let i = 0; i < this.path.length; i++) {
@@ -757,6 +769,7 @@ class PathAgent {
             const offsetA = offsetForward.copy().rotate(-HALF_PI);
             const offsetB = offsetForward.copy().rotate(HALF_PI);
 
+            // draw arrow from one path point to another
             g.triangle(
                 node.x + offsetA.x, node.y + offsetA.y,
                 nextNode.x, nextNode.y,
@@ -764,6 +777,7 @@ class PathAgent {
             );
         }
 
+        // remove current postion from path, it was only there for drawing
         this.path.shift();
 
         g.pop();

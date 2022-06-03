@@ -22,6 +22,10 @@ export {
 } from "./core";
 
 export {
+    Lighter
+} from "./lighting";
+
+export {
     loadImageEarly,
     loadImageLate,
     loadImageDynamic,
@@ -46,7 +50,8 @@ export {
     emitSingle,
     draw as drawParticles,
 
-    Particle
+    ParticleAbstract,
+    VelocityParticleAbstract
 } from "./particle";
 
 export {
@@ -80,6 +85,6 @@ export {
 export * from "./vector3";
 
 export {
-    StaticViewpoint,
+    ClassicViewpoint,
     Viewpoint
 } from "./viewpoint";

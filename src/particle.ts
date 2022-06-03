@@ -6,48 +6,12 @@ import { defaultViewpoint } from "./viewpoint";
 
 
 
-type ParticleClass = new (position: Vector2) => ParticleAbstract;
+type ParticleClass = new (position: Vector2, ...rest: any[]) => ParticleAbstract;
 
 
 
 const particles = new Map<symbol, ParticleAbstract>();
 let particleLimit = 300;
-
-
-
-export function setParticleLimit(limit: number) {
-    particleLimit = limit;
-}
-
-export function emit(classVar: ParticleClass, amount: number, position: Vector2, ...data: any[]) {
-    // percent of limit filled
-    const limitFilled = particles.size / particleLimit;
-    // spawn less when near/over limit
-    amount *= Math.max(0.1, 1 - Math.pow(limitFilled * 0.9, 6));
-
-    while (amount > 1 || amount > Math.random()) {
-        emitParticle(classVar, position, data);
-
-        amount--;
-    }
-}
-
-export function emitSingle(classVar: ParticleClass, position: Vector2, ...data: any[]) {
-    // percent of limit filled
-    const limitFilled = particles.size / particleLimit;
-    // don't spawn less when over limit
-    if (limitFilled > 1 &&
-        limitFilled > 1 + Math.random()) return;
-
-    emitParticle(classVar, position, data);
-}
-
-function emitParticle(classVar: ParticleClass, position: Vector2, data: any[]) {
-    // @ts-ignore because we can't know the arguments needed by an unknown particle class
-    const particle = new classVar(position, ...data);
-
-    particles.set(Symbol(), particle);
-}
 
 
 
@@ -88,6 +52,7 @@ export function draw(v = defaultViewpoint, g = defaultDrawTarget) {
     }
 }
 
+// removes old particles when too many are in the scene
 function removeParticles(amount: number) {
     // particles stored as [key, value] in array and sorted
     const sortedParticles = [...particles.entries()]
@@ -101,9 +66,44 @@ function removeParticles(amount: number) {
     }
 }
 
+export function setParticleLimit(limit: number) {
+    particleLimit = limit;
+}
+
+export function emit(classVar: ParticleClass, amount: number, position: Vector2, ...data: any[]) {
+    // percent of limit filled
+    const limitFilled = particles.size / particleLimit;
+    // spawn less when near/over limit
+    amount *= Math.max(0.1, 1 - Math.pow(limitFilled * 0.9, 6));
+
+    while (amount > 1 || amount > Math.random()) {
+        emitParticle(classVar, position, data);
+
+        amount--;
+    }
+}
+
+export function emitSingle(classVar: ParticleClass, position: Vector2, ...data: any[]) {
+    // percent of limit filled
+    const limitFilled = particles.size / particleLimit;
+    // don't spawn less when over limit
+    if (limitFilled > 1 &&
+        limitFilled > 1 + Math.random()) return;
+
+    emitParticle(classVar, position, data);
+}
+
+function emitParticle(classVar: ParticleClass, position: Vector2, data: any[]) {
+    const particle = new classVar(position, ...data);
+
+    particles.set(Symbol(), particle);
+}
 
 
-abstract class ParticleAbstract {
+
+// named abstract because update() *should* be replaced
+// class may be extended in JS where abstact class may not be honored
+export class ParticleAbstract {
 
     position: Vector2;
     radius = 1;
@@ -115,7 +115,7 @@ abstract class ParticleAbstract {
         this.spawnTime = getTime();
     }
 
-    abstract update(delta: number): void
+    update(delta: number) { }
 
     draw(g = defaultDrawTarget) {
         g.noStroke();
@@ -127,7 +127,8 @@ abstract class ParticleAbstract {
         return this.spawnTime + this.lifetime <= getTime();
     }
 
-    abstract kill(): void
+    // what to do when particle dies, nothing by default
+    kill() { }
 
     get age() {
         return (getTime() - this.spawnTime) / this.lifetime;
@@ -136,20 +137,20 @@ abstract class ParticleAbstract {
 
 
 
-export class Particle extends ParticleAbstract {
+// named abstract because update() *should* be replaced
+export class VelocityParticleAbstract extends ParticleAbstract {
     protected velocity: Vector2;
 
-    constructor(position: Vector2) {
+    constructor(position: Vector2, velocity = new Vector2()) {
         super(position);
-        this.velocity = new Vector2();
+        this.velocity = velocity;
     }
 
-    update(delta: number) { }
-
-    protected updatePosition(delta: number) {
+    protected updateKinomatics(delta: number) {
         this.position.add(this.velocity.copy().multScalar(delta));
     }
 
+    // simple collision without matter.js
     protected collide(tilemap: Tilemap) {
         const { x, y } = this.position.copy().divScalar(tilemap.tileSize);
         const radius = this.radius / tilemap.tileSize;
@@ -195,6 +196,4 @@ export class Particle extends ParticleAbstract {
             this.velocity.y = 0;
         }
     }
-
-    kill() { }
 }

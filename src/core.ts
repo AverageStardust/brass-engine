@@ -1,7 +1,7 @@
 import p5 from "p5";
 import { Vector2 } from "./vector3";
 import { init as initLoader, loaded } from "./loader";
-import { defaultViewpoint, earlyResizeViewpoints, lateResizeViewpoints, setDefaultViewport, StaticViewpoint, updateViewpoints, ViewpointAbstract } from "./viewpoint";
+import { setDefaultViewport, ClassicViewpoint, updateViewpoints, ViewpointAbstract } from "./viewpoint";
 import { defaultDrawTarget, DrawTarget, setDefaultDrawTarget } from "./drawTarget";
 import { update as updateTime } from "./time";
 import { drawLoading } from "./ui";
@@ -54,7 +54,7 @@ export function init(options: InitOptions = {}) {
     }
 
     if (options.viewpoint === undefined) {
-        setDefaultViewport(new StaticViewpoint(1, new Vector2(width / 2, height / 2)));
+        setDefaultViewport(new ClassicViewpoint(1, new Vector2(width / 2, height / 2)));
     } else {
         setDefaultViewport(options.viewpoint);
     }
@@ -128,16 +128,12 @@ function defaultGlobalDraw() {
 }
 
 export function resize(width: number, height: number) {
+    // may be called from windowResized(), just let bad call bass
     if (!inited) return;
 
-    const v = defaultViewpoint,
-        g = defaultDrawTarget;
-
-    earlyResizeViewpoints(g);
+    const g = defaultDrawTarget;
 
     g.resizeCanvas(width, height, true);
-
-    lateResizeViewpoints(g);
 }
 
 export function update(delta?: number) {

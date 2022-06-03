@@ -191,12 +191,10 @@ export abstract class BodyAbstract {
 abstract class MaterialBodyAbstract extends BodyAbstract {
     body!: InternalMatterBody;
 
-    constructor(body: null | Matter.Body) {
+    constructor(body: Matter.Body) {
         super();
 
-        if (body !== null) {
-            this.setBody(body);
-        }
+        this.setBody(body);
     }
 
     protected setBody(body: Matter.Body) {
@@ -364,7 +362,7 @@ export class GridBody extends MaterialBodyAbstract {
     constructor(width: number, height: number, grid: ArrayLike<any>,
         options: Matter.IBodyDefinition = {}, gridScale = 1, chunkSize = 16) {
 
-        super(null);
+        super(Matter.Body.create({}));
         options.isStatic ??= true;
 
         let bodyOffset = { x: 0, y: 0 };

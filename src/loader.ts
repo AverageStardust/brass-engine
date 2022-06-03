@@ -1,5 +1,5 @@
 import p5 from "p5";
-import { assertCompileTime, createFastGraphics } from "./common";
+import { expect, createFastGraphics } from "./common";
 import { FieldDeclaration, TilemapWorld } from "./tilemap";
 
 
@@ -135,7 +135,7 @@ function handleAsset(assetEntry: QueuedAsset, data: any) {
     }
 
     if (assetEntry.type === "world") {
-        assertCompileTime(assetEntry.fields !== undefined);
+        expect(assetEntry.fields !== undefined);
         data = parseWorldJson(assetEntry.fields, data);
     }
 

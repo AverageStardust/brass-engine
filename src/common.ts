@@ -4,7 +4,7 @@ import p5 from "p5";
 
 export type Opaque<T, S> = T & { __opaque__: S };
 
-export type ColorArgs = [string] | number[] | [p5.Color];
+export type ColorArgs = [string] | [number] | [number, number] | [number, number, number] | [number, number, number, number] | [p5.Color];
 
 export type DynamicTypedArrayType = "int8" | "int16" | "int32" | "uint8" | "uint16" | "uint32" | "float32" | "float64";
 export type DynamicArrayType = "any" | DynamicTypedArrayType;
@@ -27,12 +27,13 @@ const arrayConstructors = {
 
 
 
-export function assertRunTime(condition: boolean): asserts condition {
-    if (!condition) throw Error(`Assertion failed`);
+export function assert(condition: boolean, message = "Assertion failed"): asserts condition {
+    if (!condition) throw Error(message);
 }
 
-export function assertCompileTime(condition: boolean): asserts condition { }
-
+export function expect(condition: boolean, message = "Expectation failed"): asserts condition {
+    if (!condition) console.error(message);
+}
 
 
 export function createColor(...colArgs: ColorArgs) {

@@ -1,6 +1,6 @@
 import { defaultDrawTarget, DrawTarget } from "./drawTarget";
 import { getExactTime, getTime } from "./time";
-import { assertCompileTime, cloneDynamicArray, createDynamicArray, createFastGraphics, decodeDynamicTypedArray, DynamicArray, DynamicArrayType, DynamicTypedArray, DynamicTypedArrayType, encodeDynamicTypedArray, Pool } from "./common";
+import { expect, cloneDynamicArray, createDynamicArray, createFastGraphics, decodeDynamicTypedArray, DynamicArray, DynamicArrayType, DynamicTypedArray, DynamicTypedArrayType, encodeDynamicTypedArray, Pool } from "./common";
 import { defaultViewpoint } from "./viewpoint";
 import p5 from "p5";
 import { GridBody } from "./physics";
@@ -386,7 +386,7 @@ export class Tilemap {
 
     clearCaches() {
         if (this.tileCacheMode === "never") return; // thus
-        assertCompileTime(this.tileCachePool !== null);
+        expect(this.tileCachePool !== null);
 
         for (const cache of this.tileCaches) {
             if (cache === null) continue;
@@ -429,7 +429,7 @@ export class Tilemap {
                 alwaysCache = true;
             case "check":
                 // this.tileCacheMode !== "never" thus
-                assertCompileTime(this.tileCachePool !== null);
+                expect(this.tileCachePool !== null);
 
                 this.padTileCache(alwaysCache, v, g);
 
@@ -474,7 +474,7 @@ export class Tilemap {
     }
 
     private padTileCache(alwaysCache: boolean, v = defaultViewpoint, g = defaultDrawTarget) {
-        assertCompileTime(this.tileCachePool !== null);
+        expect(this.tileCachePool !== null);
 
         const viewArea = v.getViewArea(g);
 
@@ -524,7 +524,7 @@ export class Tilemap {
     }
 
     private canCacheChunk(chunkX: number, chunkY: number) {
-        assertCompileTime(this.canCacheTile !== null);
+        expect(this.canCacheTile !== null);
 
         const chunkIndex = chunkX + chunkY * (this.height / this.tileCacheSize);
         const initCacheValue = this.cacheableChunks[chunkIndex];
@@ -549,7 +549,7 @@ export class Tilemap {
     }
 
     private drawTileCache(chunkX: number, chunkY: number, g: DrawTarget) {
-        assertCompileTime(this.tileCachePool !== null);
+        expect(this.tileCachePool !== null);
 
         const tileCacheIndex = chunkX + chunkY * (this.width / this.tileCacheSize);
 
@@ -624,7 +624,7 @@ export class Tilemap {
         const tileCache = this.tileCaches[tileCacheIndex];
 
         if (tileCache == null) return; // thus
-        assertCompileTime(this.tileCachePool !== null);
+        expect(this.tileCachePool !== null);
 
         this.tileCachePool.release(tileCache);
         this.tileCaches[tileCacheIndex] = null;
