@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo no test set && exit 1",
     "dev": "rollup --watch --config rollup.config.js --environment BUILD:development",
-    "build": "rollup --config rollup.config.js --environment BUILD:production"
+    "build": "rollup --config rollup.config.js --environment BUILD:production",
+    "example": "browser-sync start --config bs-config.js"
   },
   "keywords": [],
   "author": "",

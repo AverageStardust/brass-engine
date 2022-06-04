@@ -70,7 +70,7 @@ export function update(delta: number) {
     Matter.Engine.update(engine, delta, delta / lastDelta);
     lastDelta = delta;
 
-    for (const [key, ray] of rays.entries()) {
+    for (const [_, ray] of rays.entries()) {
         const { body, point } = ray.cast(delta);
         ray.position = point.copy();
 

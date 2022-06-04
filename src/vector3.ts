@@ -1,5 +1,5 @@
 // author WD_STEVE
-// version 3.3.0
+// version 3.3.1
 // JS only
 
 export type Vertex2 = { x: number, y: number };
@@ -24,7 +24,11 @@ export class Vector2 {
 		return new Vector2(obj.x, obj.y);
 	}
 
-	static fromMagDir(mag: number, dir: number) {
+	static fromDir(dir: number) {
+		return new Vector2(Math.cos(dir), Math.sin(dir));
+	}
+
+	static fromDirMag(dir: number, mag: number) {
 		return new Vector2(mag * Math.cos(dir), mag * Math.sin(dir));
 	}
 
