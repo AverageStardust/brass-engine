@@ -16,29 +16,6 @@ type SparseFieldData = { [name: `${number},${number}`]: any };
 type SparseableDynamicArray = { sparse: true, data: SparseFieldData } | { sparse: false, data: DynamicArray };
 type SolidFieldType = { sparse: false, data: Uint8Array };
 
-interface TilemapOptions {
-    tileSize?: number;
-    // name and data type stored for every tile
-    // field IDs are stored under their name as properties
-    fields?: FieldDeclaration
-
-    body?: boolean | Matter.IBodyDefinition;
-    autoMaintainBody?: boolean;
-
-    tileCacheMode?: "never" | "check" | "always";
-    tileCacheSize?: number; // tiles per cache chunk
-    tileCacheResolution?: number; // pixels per tile in cache
-    tileCacheDecayTime?: number; // milliseconds until unseen cache is deleted
-    tileCachePadding?: number; // tiles off-screen should chunks will be rendered
-    tileCachePaddingTime?: number; // milliseconds used on off-screen chunks rendering
-    tileCachePoolInitalSize?: number; // how many tile caches to create on initalization
-
-    getTileData?: (x: number, y: number) => any;
-    drawTile?: (data: any, x: number, y: number, g: DrawTarget) => void;
-    canCacheTile?: (data: any) => boolean;
-    isSolidTile?: (data: any) => boolean;
-}
-
 interface TilemapWorldFields {
     [name: string]: {
         type: "sparse";
@@ -53,15 +30,6 @@ interface TilemapWorldFields {
     }))
 }
 
-interface TilemapWorldTileset {
-    firstId: number;
-    tiles: {
-        [id: number]: {
-            [name: string]: any;
-        }
-    };
-}
-
 export interface TilemapWorld {
     width: number;
     height: number;
@@ -72,14 +40,49 @@ export interface TilemapWorld {
     fields: TilemapWorldFields;
 }
 
+interface TilemapWorldTileset {
+    firstId: number;
+    tiles: {
+        [id: number]: {
+            [name: string]: any;
+        }
+    };
+}
 
-interface TileCache {
+interface TilemapAbstractOptions {
+    tileSize?: number;
+    // name and data type stored for every tile
+    // field IDs are stored under their name as properties
+    fields?: FieldDeclaration
+
+    body?: boolean | Matter.IBodyDefinition;
+    autoMaintainBody?: boolean;
+    
+    getTileData?: (x: number, y: number) => any;
+    isTileSolid?: (data: any) => boolean;
+}
+
+interface TilemapOptions extends TilemapAbstractOptions {
+    drawCacheMode?: "never" | "check" | "always";
+    drawCacheChunkSize?: number; // tiles per cache chunk
+    drawCacheTileResolution?: number; // pixels per tile in chunk cache
+    drawCacheDecayTime?: number; // milliseconds until unseen chunk is deleted
+    drawCachePadding?: number; // tiles off-screen should chunks will be rendered
+    drawCachePaddingTime?: number; // milliseconds used on off-screen chunks rendering
+    drawCachePoolInitalSize?: number; // how many tile caches to create on initalization
+
+    drawTile?: (data: any, x: number, y: number, g: DrawTarget) => void;
+    canCacheTile?: (data: any) => boolean;
+}
+
+interface P5CacheChunk {
     g: p5.Graphics;
     lastUsed: number;
 }
 
 
-const tilemapList: Tilemap[] = [];
+
+const tilemapList: TilemapAbstract[] = [];
 
 
 
@@ -89,37 +92,24 @@ export function update() {
     }
 }
 
-export class Tilemap {
+abstract class TilemapAbstract {
     readonly width: number;
     readonly height: number;
 
     readonly tileSize: number;
-    private readonly fields: SparseableDynamicArray[];
-    private readonly fieldTypes: FieldDeclaration
-    private readonly fieldIds: { [name: string]: number };
+    protected readonly fields: SparseableDynamicArray[];
+    protected readonly fieldTypes: FieldDeclaration
+    protected readonly fieldIds: { [name: string]: number };
 
     private readonly hasBody: boolean;
-    readonly body: GridBody | null;
     private readonly autoMaintainBody: boolean;
+    readonly body: GridBody | null;
     private bodyValid: boolean;
 
-    readonly tileCacheMode: "never" | "check" | "always"
-    readonly tileCacheSize: number;
-    private readonly tileCacheResolution: number;
-    private readonly tileCacheDecayTime: number;
-    private readonly tileCachePadding: number;
-    private readonly tileCachePaddingTime: number;
+    protected readonly getTileData: (x: number, y: number) => any;
+    private readonly isTileSolid: ((data: any) => boolean) | null;
 
-    private readonly getTileData: (x: number, y: number) => any;
-    private readonly drawTile: (data: any, x: number, y: number, g: DrawTarget) => void;
-    private readonly canCacheTile: ((data: any) => boolean) | null;
-    private readonly isSolidTile: ((data: any) => boolean) | null;
-
-    private readonly tileCachePool: Pool<TileCache> | null;
-    private readonly tileCaches: (TileCache | null)[];
-    private readonly cacheableChunks: (boolean | null)[];
-
-    constructor(width: number, height: number, options: TilemapOptions = {}) {
+    constructor(width: number, height: number, options: TilemapAbstractOptions = {}) {
         this.width = width;
         this.height = height;
         this.tileSize = options.tileSize ?? 1;
@@ -146,65 +136,20 @@ export class Tilemap {
             this[upperFieldName] = this.fields.length;
             this.fieldIds[fieldName] = this.fields.length;
 
-            this.fields.push(this.createEmptyField(fieldType));
+            this.fields.push(this.createField(fieldType));
         }
 
         this.hasBody = !!options.body;
         this.autoMaintainBody = options.autoMaintainBody ?? true;
 
-        // get tile cache properties
-        this.tileCacheMode = options.tileCacheMode ?? "never";
-        this.tileCacheSize = options.tileCacheSize ??
-            (this.tileCacheMode === "never" ? 1 : 4);
-        this.tileCacheResolution = options.tileCacheResolution ?? 64;
-        this.tileCacheDecayTime = options.tileCacheDecayTime ?? 5000;
-        this.tileCachePadding = options.tileCachePadding ?? 0;
-        this.tileCachePaddingTime = options.tileCachePaddingTime ?? 3;
-
-        if (this.width / this.tileCacheSize % 1 !== 0 ??
-            this.height / this.tileCacheSize % 1 !== 0) {
-            throw Error("Tilemap width and height must be a multiple of tileCacheSize");
-        }
-
-        const tileCacheSize = this.width * this.height
-            / this.tileCacheSize / this.tileCacheSize;
-
-        if (this.tileCacheMode === "never") {
-            this.tileCachePool = null;
-            this.tileCaches = [];
-            this.cacheableChunks = [];
-        } else {
-            const tileCachePixelSize = this.tileCacheResolution * this.tileCacheSize;
-            const tileCachePoolInitalSize = options.tileCachePoolInitalSize ??
-                Math.ceil(defaultDrawTarget.width * defaultDrawTarget.height / tileCachePixelSize / tileCachePixelSize);
-
-            this.tileCachePool = new Pool(tileCachePoolInitalSize, false,
-                () => ({
-                    g: createFastGraphics(tileCachePixelSize, tileCachePixelSize),
-                    lastUsed: getTime()
-                }),
-                ({ g }) => ({ g, lastUsed: getTime() }));
-            // graphical cahce of chunks
-            this.tileCaches = Array(tileCacheSize).fill(null);
-            // cache what chunks can be graphicly cached
-            this.cacheableChunks = Array(tileCacheSize).fill(null);
-        }
-
         this.getTileData = options.getTileData ?? this.get;
-        this.drawTile = options.drawTile ?? this.defaultDrawTile;
-        this.canCacheTile = options.canCacheTile ?? null;
-        this.isSolidTile = options.isSolidTile ?? null;
-
-        if (this.canCacheTile === null &&
-            this.tileCacheMode === "check") {
-            throw Error("tileCacheMode of \"check\" requires canCacheTile function in options");
-        }
+        this.isTileSolid = options.isTileSolid ?? null;
 
         // @ts-ignore because this._SOLIDFIELD is always defined
         const solidField = this.fields[this._SOLIDFIELD] as SolidFieldType;
 
-        if (this.isSolidTile !== null) {
-            const nullTileSolid = this.isSolidTile(this.getTileData(0, 0)) ? 1 : 0;
+        if (this.isTileSolid !== null) {
+            const nullTileSolid = this.isTileSolid(this.getTileData(0, 0)) ? 1 : 0;
 
             solidField.data.fill(nullTileSolid);
         }
@@ -223,16 +168,58 @@ export class Tilemap {
         tilemapList.push(this);
     }
 
-    viewBody(g = defaultDrawTarget) {
-        if (this.body === null) return;
+    maintain() {
+        if (this.autoMaintainBody) this.maintainBody();
+    }
 
-        throw "WIP";
+    maintainBody(minX?: number, minY?: number, maxX?: number, maxY?: number) {
+        if (this.body === null ||
+            this.bodyValid) return;
 
-        // const corner = this.body;
+        // @ts-ignore because this._SOLIDFIELD is always defined
+        const solidField = this.fields[this._SOLIDFIELD] as SolidFieldType;
 
-        // g.translate(corner.x, corner.y);
+        this.body.buildBody(solidField.data, minX, minY, maxX, maxY);
 
-        // g.rotate(this.body.angle);
+        this.bodyValid = true;
+    }
+
+    get(x: number, y: number, fieldId = 0) {
+        if (!this.validateCoord(x, y)) return undefined;
+
+        const field = this.fields[fieldId];
+
+        if (field.sparse) {
+            const value = field.data[`${x},${y}`];
+            if (value === undefined) return null;
+            return value;
+        }
+
+        return field.data[x + y * this.width];
+    }
+
+    set(value: any, x: number, y: number, fieldId = 0) {
+        if (!this.validateCoord(x, y)) return false;
+
+        const field = this.fields[fieldId];
+
+        if (field.sparse) {
+            field.data[`${x},${y}`] = value;
+        } else {
+            field.data[x + y * this.width] = value;
+        }
+
+        this.clearCacheAtTile(x, y);
+        this.updateSolidAtTile(x, y);
+
+        return true;
+    }
+
+    getSolid(x: number, y: number) {
+        // @ts-ignore because this._SOLIDFIELD is always defined
+        const solid = this.get(x, y, this._SOLIDFIELD);
+        if (solid === undefined) return undefined;
+        return Boolean(solid);
     }
 
     export(): TilemapWorld {
@@ -331,9 +318,26 @@ export class Tilemap {
 
         for (let x = 0; x < world.width; x++) {
             for (let y = 0; y < world.height; y++) {
-                this.updateSolidData(x, y);
+                this.updateSolidAtTile(x, y);
             }
         }
+    }
+
+    private updateSolidAtTile(x: number, y: number) {
+        if (this.isTileSolid === null) return;
+
+        // @ts-ignore because this._SOLIDFIELD is always defined
+        const solidField = this.fields[this._SOLIDFIELD] as SolidFieldType;
+        const isSolid = this.isTileSolid(this.getTileData(x, y));
+        const solidIndex = x + y * this.width;
+
+        if (this.body !== null) {
+            if (!!solidField.data[solidIndex] !== isSolid) {
+                this.bodyValid = false;
+            }
+        }
+
+        solidField.data[solidIndex] = isSolid ? 1 : 0;
     }
 
     clearFields() {
@@ -343,33 +347,17 @@ export class Tilemap {
             if (fieldId === this._SOLIDFIELD) continue;
             const fieldType = this.fieldTypes[fieldName]
 
-            this.fields[fieldId] = this.createEmptyField(fieldType);
+            this.fields[fieldId] = this.createField(fieldType);
         }
 
         for (let x = 0; x < this.width; x++) {
             for (let y = 0; y < this.height; y++) {
-                this.updateSolidData(x, y);
+                this.updateSolidAtTile(x, y);
             }
         }
     }
 
-    maintain() {
-        if (this.autoMaintainBody) this.maintainBody();
-    }
-
-    maintainBody(minX?: number, minY?: number, maxX?: number, maxY?: number) {
-        if (this.body === null ||
-            this.bodyValid) return;
-
-        // @ts-ignore because this._SOLIDFIELD is always defined
-        const solidField = this.fields[this._SOLIDFIELD] as SolidFieldType;
-
-        this.body.buildBody(solidField.data, minX, minY, maxX, maxY);
-
-        this.bodyValid = true;
-    }
-
-    private createEmptyField(type: SparseableDynamicArrayType): SparseableDynamicArray {
+    private createField(type: SparseableDynamicArrayType): SparseableDynamicArray {
         if (type === "sparse") {
             return {
                 sparse: true,
@@ -384,16 +372,81 @@ export class Tilemap {
         }
     }
 
-    clearCaches() {
-        if (this.tileCacheMode === "never") return; // thus
-        expect(this.tileCachePool !== null);
+    abstract clearCaches(): void;
+    abstract clearCacheAtTile(tileX: number, tileY: number): void;
 
-        for (const cache of this.tileCaches) {
-            if (cache === null) continue;
-            this.tileCachePool.release(cache);
+    validateCoord(x: number, y: number) {
+        return x >= 0 && x < this.width && y >= 0 && y < this.height;
+    }
+
+    get area() {
+        return this.width * this.height;
+    }
+}
+
+export class Tilemap extends TilemapAbstract {
+    readonly drawCacheMode: "never" | "check" | "always"
+    readonly drawCacheChunkSize: number;
+    private readonly drawCacheTileResolution: number;
+    private readonly drawCacheDecayTime: number;
+    private readonly drawCachePadding: number;
+    private readonly drawCachePaddingTime: number;
+
+    private readonly drawTile: (data: any, x: number, y: number, g: DrawTarget) => void;
+    private readonly canCacheTile: ((data: any) => boolean) | null;
+
+    private readonly chunkPool: Pool<P5CacheChunk> | null;
+    private readonly chunks: (P5CacheChunk | null)[];
+    private readonly cacheableChunks: (boolean | null)[];
+
+    constructor(width: number, height: number, options: TilemapOptions = {}) {
+        super(width, height, options);
+
+        // get tile cache properties
+        this.drawCacheMode = options.drawCacheMode ?? "never";
+        this.drawCacheChunkSize = options.drawCacheChunkSize ??
+            (this.drawCacheMode === "never" ? 1 : 4);
+        this.drawCacheTileResolution = options.drawCacheTileResolution ?? 64;
+        this.drawCacheDecayTime = options.drawCacheDecayTime ?? 5000;
+        this.drawCachePadding = options.drawCachePadding ?? 0;
+        this.drawCachePaddingTime = options.drawCachePaddingTime ?? 3;
+
+        if (this.width / this.drawCacheChunkSize % 1 !== 0 ??
+            this.height / this.drawCacheChunkSize % 1 !== 0) {
+            throw Error("Tilemap width and height must be a multiple of drawCacheChunkSize");
         }
-        this.tileCaches.fill(null);
-        this.cacheableChunks.fill(null);
+
+        const drawCacheChunkSize = this.width * this.height
+            / this.drawCacheChunkSize / this.drawCacheChunkSize;
+
+        if (this.drawCacheMode === "never") {
+            this.chunkPool = null;
+            this.chunks = [];
+            this.cacheableChunks = [];
+        } else {
+            const tileCachePixelSize = this.drawCacheTileResolution * this.drawCacheChunkSize;
+            const drawCachePoolInitalSize = options.drawCachePoolInitalSize ??
+                Math.ceil(defaultDrawTarget.width * defaultDrawTarget.height / tileCachePixelSize / tileCachePixelSize);
+
+            this.chunkPool = new Pool(drawCachePoolInitalSize, false,
+                () => ({
+                    g: createFastGraphics(tileCachePixelSize, tileCachePixelSize),
+                    lastUsed: getTime()
+                }),
+                ({ g }) => ({ g, lastUsed: getTime() }));
+            // graphical cahce of chunks
+            this.chunks = Array(drawCacheChunkSize).fill(null);
+            // cache what chunks can be graphicly cached
+            this.cacheableChunks = Array(drawCacheChunkSize).fill(null);
+        }
+
+        this.drawTile = options.drawTile ?? this.defaultDrawTile;
+        this.canCacheTile = options.canCacheTile ?? null;
+
+        if (this.canCacheTile === null &&
+            this.drawCacheMode === "check") {
+            throw Error("drawCacheMode of \"check\" requires canCacheTile function in options");
+        }
     }
 
     draw(v = defaultViewpoint, g = defaultDrawTarget) {
@@ -406,18 +459,18 @@ export class Tilemap {
         viewArea.maxY = Math.min(this.height, viewArea.maxY / this.tileSize);
 
         // round to nearest tile cache chunk (or nearest tile if caching is off)
-        viewArea.minX = Math.floor(viewArea.minX / this.tileCacheSize);
-        viewArea.minY = Math.floor(viewArea.minY / this.tileCacheSize);
-        viewArea.maxX = Math.ceil(viewArea.maxX / this.tileCacheSize);
-        viewArea.maxY = Math.ceil(viewArea.maxY / this.tileCacheSize);
+        viewArea.minX = Math.floor(viewArea.minX / this.drawCacheChunkSize);
+        viewArea.minY = Math.floor(viewArea.minY / this.drawCacheChunkSize);
+        viewArea.maxX = Math.ceil(viewArea.maxX / this.drawCacheChunkSize);
+        viewArea.maxY = Math.ceil(viewArea.maxY / this.drawCacheChunkSize);
 
         push();
         scale(this.tileSize);
 
         let alwaysCache = false;
-        switch (this.tileCacheMode) {
+        switch (this.drawCacheMode) {
             default:
-                throw Error(`tileCacheMode should be "never", "check" or "always" not (${this.tileCacheMode})`);
+                throw Error(`drawCacheMode should be "never", "check" or "always" not (${this.drawCacheMode})`);
 
             case "never":
                 this.drawTiles(
@@ -428,31 +481,31 @@ export class Tilemap {
             case "always":
                 alwaysCache = true;
             case "check":
-                // this.tileCacheMode !== "never" thus
-                expect(this.tileCachePool !== null);
+                // this.drawCacheMode !== "never" thus
+                expect(this.chunkPool !== null);
 
-                this.padTileCache(alwaysCache, v, g);
+                this.padChunks(alwaysCache, v, g);
 
                 // loop through every tile cache chunk
                 for (let x = viewArea.minX; x < viewArea.maxX; x++) {
                     for (let y = viewArea.minY; y < viewArea.maxY; y++) {
                         if (alwaysCache || this.canCacheChunk(x, y)) {
                             // maintain and draw tile cache
-                            this.drawTileCache(x, y, g);
+                            this.drawChunk(x, y, g);
                         } else {
                             // clear tile cache
-                            const cacheIndex = x + y * (this.width / this.tileCacheSize);
-                            const tileCache = this.tileCaches[cacheIndex];
+                            const cacheIndex = x + y * (this.width / this.drawCacheChunkSize);
+                            const tileCache = this.chunks[cacheIndex];
                             if (tileCache !== null) {
-                                this.tileCachePool.release(tileCache);
-                                this.tileCaches[cacheIndex] = null;
+                                this.chunkPool.release(tileCache);
+                                this.chunks[cacheIndex] = null;
                             }
                             // draw directly
                             this.drawTiles(
-                                Math.max(viewArea.minX * this.tileCacheSize, x * this.tileCacheSize),
-                                Math.max(viewArea.minY * this.tileCacheSize, y * this.tileCacheSize),
-                                Math.min(viewArea.maxX * this.tileCacheSize, (x + 1) * this.tileCacheSize),
-                                Math.min(viewArea.maxY * this.tileCacheSize, (y + 1) * this.tileCacheSize), g);
+                                Math.max(viewArea.minX * this.drawCacheChunkSize, x * this.drawCacheChunkSize),
+                                Math.max(viewArea.minY * this.drawCacheChunkSize, y * this.drawCacheChunkSize),
+                                Math.min(viewArea.maxX * this.drawCacheChunkSize, (x + 1) * this.drawCacheChunkSize),
+                                Math.min(viewArea.maxY * this.drawCacheChunkSize, (y + 1) * this.drawCacheChunkSize), g);
                         }
                     }
                 }
@@ -460,12 +513,12 @@ export class Tilemap {
                 this.cacheableChunks.fill(null);
 
                 // delete old, unseen, tile cache chunks to save memory
-                for (let i = 0; i < this.tileCaches.length; i++) {
-                    const tileCache = this.tileCaches[i];
+                for (let i = 0; i < this.chunks.length; i++) {
+                    const tileCache = this.chunks[i];
                     if (tileCache !== null &&
-                        getTime() - tileCache.lastUsed > this.tileCacheDecayTime) {
-                        this.tileCachePool.release(tileCache);
-                        this.tileCaches[i] = null;
+                        getTime() - tileCache.lastUsed > this.drawCacheDecayTime) {
+                        this.chunkPool.release(tileCache);
+                        this.chunks[i] = null;
                     }
                 }
         }
@@ -473,44 +526,44 @@ export class Tilemap {
         pop();
     }
 
-    private padTileCache(alwaysCache: boolean, v = defaultViewpoint, g = defaultDrawTarget) {
-        expect(this.tileCachePool !== null);
+    private padChunks(alwaysCache: boolean, v = defaultViewpoint, g = defaultDrawTarget) {
+        expect(this.chunkPool !== null);
 
         const viewArea = v.getViewArea(g);
 
         // add padding and lock drawing to inside tile map
         viewArea.minX = Math.max(0,
-            viewArea.minX / this.tileSize - this.tileCachePadding);
+            viewArea.minX / this.tileSize - this.drawCachePadding);
         viewArea.minY = Math.max(0,
-            viewArea.minY / this.tileSize - this.tileCachePadding);
+            viewArea.minY / this.tileSize - this.drawCachePadding);
         viewArea.maxX = Math.min(this.width,
-            viewArea.maxX / this.tileSize + this.tileCachePadding);
+            viewArea.maxX / this.tileSize + this.drawCachePadding);
         viewArea.maxY = Math.min(this.height,
-            viewArea.maxY / this.tileSize + this.tileCachePadding);
+            viewArea.maxY / this.tileSize + this.drawCachePadding);
 
         // round to nearest tile cache chunk
-        viewArea.minX = Math.floor(viewArea.minX / this.tileCacheSize);
-        viewArea.minY = Math.floor(viewArea.minY / this.tileCacheSize);
-        viewArea.maxX = Math.ceil(viewArea.maxX / this.tileCacheSize);
-        viewArea.maxY = Math.ceil(viewArea.maxY / this.tileCacheSize);
+        viewArea.minX = Math.floor(viewArea.minX / this.drawCacheChunkSize);
+        viewArea.minY = Math.floor(viewArea.minY / this.drawCacheChunkSize);
+        viewArea.maxX = Math.ceil(viewArea.maxX / this.drawCacheChunkSize);
+        viewArea.maxY = Math.ceil(viewArea.maxY / this.drawCacheChunkSize);
 
-        const endTime = getExactTime() + this.tileCachePaddingTime;
+        const endTime = getExactTime() + this.drawCachePaddingTime;
         let rush = false;
 
         // loop through every tile cache chunk
         for (let x = viewArea.minX; x < viewArea.maxX; x++) {
             for (let y = viewArea.minY; y < viewArea.maxY; y++) {
-                const cacheIndex = x + y * (this.width / this.tileCacheSize);
-                let tileCache = this.tileCaches[cacheIndex];
+                const cacheIndex = x + y * (this.width / this.drawCacheChunkSize);
+                let tileCache = this.chunks[cacheIndex];
 
                 // skip drawn chunks
                 if (tileCache === null) {
                     if (!rush && (alwaysCache || this.canCacheChunk(x, y))) {
-                        tileCache = this.tileCachePool.get();
-                        this.tileCaches[cacheIndex] = tileCache;
+                        tileCache = this.chunkPool.get();
+                        this.chunks[cacheIndex] = tileCache;
 
                         // maintain and draw tile cache
-                        this.updateTileCache(x, y, tileCache);
+                        this.renderChunk(x, y, tileCache);
 
                         // stop when time runs out
                         if (getExactTime() > endTime) rush = true;
@@ -526,15 +579,15 @@ export class Tilemap {
     private canCacheChunk(chunkX: number, chunkY: number) {
         expect(this.canCacheTile !== null);
 
-        const chunkIndex = chunkX + chunkY * (this.height / this.tileCacheSize);
+        const chunkIndex = chunkX + chunkY * (this.height / this.drawCacheChunkSize);
         const initCacheValue = this.cacheableChunks[chunkIndex];
 
         if (initCacheValue !== null) return initCacheValue;
 
-        for (let x = 0; x < this.tileCacheSize; x++) {
-            for (let y = 0; y < this.tileCacheSize; y++) {
-                const worldX = x + chunkX * this.tileCacheSize,
-                    worldY = y + chunkY * this.tileCacheSize;
+        for (let x = 0; x < this.drawCacheChunkSize; x++) {
+            for (let y = 0; y < this.drawCacheChunkSize; y++) {
+                const worldX = x + chunkX * this.drawCacheChunkSize,
+                    worldY = y + chunkY * this.drawCacheChunkSize;
                 const data = this.getTileData(worldX, worldY);
 
                 if (!this.canCacheTile(data)) {
@@ -548,40 +601,17 @@ export class Tilemap {
         return true;
     }
 
-    private drawTileCache(chunkX: number, chunkY: number, g: DrawTarget) {
-        expect(this.tileCachePool !== null);
-
-        const tileCacheIndex = chunkX + chunkY * (this.width / this.tileCacheSize);
-
-        let tileCache = this.tileCaches[tileCacheIndex];
-        if (tileCache === null ||
-            getTime() - tileCache.lastUsed > this.tileCacheDecayTime) {
-            // create new tile cache
-            if (tileCache === null) {
-                tileCache = this.tileCachePool.get();
-                this.tileCaches[tileCacheIndex] = tileCache;
-            }
-
-            this.updateTileCache(chunkX, chunkY, tileCache);
-        }
-
-        // draw tile cache to screen
-        g.image(tileCache.g,
-            chunkX * this.tileCacheSize, chunkY * this.tileCacheSize,
-            this.tileCacheSize, this.tileCacheSize);
-    }
-
-    private updateTileCache(chunkX: number, chunkY: number, tileCache: TileCache) {
+    private renderChunk(chunkX: number, chunkY: number, tileCache: P5CacheChunk) {
         const cache = tileCache.g;
 
         cache.push();
         cache.clear(0, 0, 0, 0);
-        cache.scale(this.tileCacheResolution);
+        cache.scale(this.drawCacheTileResolution);
 
-        for (let x = 0; x < this.tileCacheSize; x++) {
-            for (let y = 0; y < this.tileCacheSize; y++) {
-                const worldX = x + chunkX * this.tileCacheSize,
-                    worldY = y + chunkY * this.tileCacheSize;
+        for (let x = 0; x < this.drawCacheChunkSize; x++) {
+            for (let y = 0; y < this.drawCacheChunkSize; y++) {
+                const worldX = x + chunkX * this.drawCacheChunkSize,
+                    worldY = y + chunkY * this.drawCacheChunkSize;
 
                 const data = this.getTileData(worldX, worldY);
                 this.drawTile(data, x, y, cache);
@@ -591,6 +621,30 @@ export class Tilemap {
         cache.pop();
     }
 
+    private drawChunk(chunkX: number, chunkY: number, g: DrawTarget) {
+        expect(this.chunkPool !== null);
+
+        const tileCacheIndex = chunkX + chunkY * (this.width / this.drawCacheChunkSize);
+
+        let tileCache = this.chunks[tileCacheIndex];
+        if (tileCache === null ||
+            getTime() - tileCache.lastUsed > this.drawCacheDecayTime) {
+            // create new tile cache
+            if (tileCache === null) {
+                tileCache = this.chunkPool.get();
+                this.chunks[tileCacheIndex] = tileCache;
+            }
+
+            this.renderChunk(chunkX, chunkY, tileCache);
+        }
+
+        // draw tile cache to screen
+        g.image(tileCache.g,
+            chunkX * this.drawCacheChunkSize, chunkY * this.drawCacheChunkSize,
+            this.drawCacheChunkSize, this.drawCacheChunkSize);
+    }
+
+    // draw tiles when they are not chunked
     private drawTiles(minX: number, minY: number, maxX: number, maxY: number, g: DrawTarget) {
         g.push();
 
@@ -618,78 +672,27 @@ export class Tilemap {
         g.text(String(data), x + 0.5001, y + 0.5001);
     }
 
-    clearTileCache(tileX: number, tileY: number) {
-        const tileCacheIndex = Math.floor(tileX / this.tileCacheSize) +
-            Math.floor(tileY / this.tileCacheSize) * (this.width / this.tileCacheSize);
-        const tileCache = this.tileCaches[tileCacheIndex];
+    clearCaches() {
+        if (this.drawCacheMode === "never") return; // thus
+        expect(this.chunkPool !== null);
+
+        for (const cache of this.chunks) {
+            if (cache === null) continue;
+            this.chunkPool.release(cache);
+        }
+        this.chunks.fill(null);
+        this.cacheableChunks.fill(null);
+    }
+
+    clearCacheAtTile(tileX: number, tileY: number) {
+        const tileCacheIndex = Math.floor(tileX / this.drawCacheChunkSize) +
+            Math.floor(tileY / this.drawCacheChunkSize) * (this.width / this.drawCacheChunkSize);
+        const tileCache = this.chunks[tileCacheIndex];
 
         if (tileCache == null) return; // thus
-        expect(this.tileCachePool !== null);
+        expect(this.chunkPool !== null);
 
-        this.tileCachePool.release(tileCache);
-        this.tileCaches[tileCacheIndex] = null;
-    }
-
-    getSolid(x: number, y: number) {
-        // @ts-ignore because this._SOLIDFIELD is always defined
-        const solid = this.get(x, y, this._SOLIDFIELD);
-        if (solid === undefined) return undefined;
-        return Boolean(solid);
-    }
-
-    get(x: number, y: number, fieldId = 0) {
-        if (!this.validateCoord(x, y)) return undefined;
-
-        const field = this.fields[fieldId];
-
-        if (field.sparse) {
-            const value = field.data[`${x},${y}`];
-            if (value === undefined) return null;
-            return value;
-        }
-
-        return field.data[x + y * this.width];
-    }
-
-    set(value: any, x: number, y: number, fieldId = 0) {
-        if (!this.validateCoord(x, y)) return false;
-
-        const field = this.fields[fieldId];
-
-        if (field.sparse) {
-            field.data[`${x},${y}`] = value;
-        } else {
-            field.data[x + y * this.width] = value;
-        }
-
-        this.clearTileCache(x, y);
-        this.updateSolidData(x, y);
-
-        return true;
-    }
-
-    private updateSolidData(x: number, y: number) {
-        if (this.isSolidTile === null) return;
-
-        // @ts-ignore because this._SOLIDFIELD is always defined
-        const solidField = this.fields[this._SOLIDFIELD] as SolidFieldType;
-        const isSolid = this.isSolidTile(this.getTileData(x, y));
-        const solidIndex = x + y * this.width;
-
-        if (this.body !== null) {
-            if (!!solidField.data[solidIndex] !== isSolid) {
-                this.bodyValid = false;
-            }
-        }
-
-        solidField.data[solidIndex] = isSolid ? 1 : 0;
-    }
-
-    validateCoord(x: number, y: number) {
-        return x >= 0 && x < this.width && y >= 0 && y < this.height;
-    }
-
-    get area() {
-        return this.width * this.height;
+        this.chunkPool.release(tileCache);
+        this.chunks[tileCacheIndex] = null;
     }
 }

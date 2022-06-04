@@ -48,7 +48,7 @@ function setup() {
 				items: this.get(x, y, this.ITEMS)
 			};
 		},
-		isSolidTile: ({
+		isTileSolid: ({
 			surface,
 			items
 		}) => {
