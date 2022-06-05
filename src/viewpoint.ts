@@ -1,4 +1,4 @@
-import { defaultDrawTarget } from "./drawTarget";
+import { getDefaultDrawTarget } from "./drawTarget";
 import { getTime } from "./time";
 import { Vector2 } from "./vector3";
 
@@ -20,7 +20,7 @@ interface ViewpointOptions extends AbstractViewpointOptions {
 
 
 
-export let defaultViewpoint: ViewpointAbstract;
+let defaultViewpoint: ViewpointAbstract;
 const viewpointList: ViewpointAbstract[] = [];
 
 
@@ -31,11 +31,13 @@ export function updateViewpoints(delta: number) {
     }
 }
 
-export function setDefaultViewport(viewport: ViewpointAbstract) {
-    if (defaultViewpoint !== undefined) {
-        throw Error("Found more than one default viewpoint");
-    }
-    defaultViewpoint = viewport;
+export function setDefaultViewpoint(viewpoint: ViewpointAbstract) {
+    defaultViewpoint = viewpoint;
+}
+
+export function getDefaultViewpoint() {
+    if (defaultViewpoint === undefined) throw Error("Could not find default viewpoint; maybe run Brass.init() first");
+    return defaultViewpoint;
 }
 
 
@@ -70,7 +72,7 @@ export abstract class ViewpointAbstract {
     // camera
     abstract update(delta: number): void;
 
-    view(g = defaultDrawTarget) {
+    view(g = getDefaultDrawTarget().getP5Albedo()) {
         const screenCenter = this.getEffectiveScreenCenter(g);
         g.translate(screenCenter.x, screenCenter.y);
 
@@ -82,7 +84,7 @@ export abstract class ViewpointAbstract {
         g.translate(-this.shakePosition.x, -this.shakePosition.y);
     }
 
-    getViewArea(g = defaultDrawTarget) {
+    getViewArea(g = getDefaultDrawTarget().getP5Albedo()) {
         const translation = this.effectiveTranslation;
         const edgeDistance = this.getEffectiveScreenCenter(g)
             .divScalar(this.effectiveScale);
@@ -100,7 +102,7 @@ export abstract class ViewpointAbstract {
         this.translation.add(worldTraslation);
     }
 
-    screenToWorld(screenCoord: Vector2, g = defaultDrawTarget) {
+    screenToWorld(screenCoord: Vector2, g = getDefaultDrawTarget().getP5Albedo()) {
         const coord = screenCoord.copy();
 
         const screenCenter = this.getEffectiveScreenCenter(g);
@@ -116,7 +118,7 @@ export abstract class ViewpointAbstract {
         return coord;
     }
 
-    protected getEffectiveScreenCenter(g = defaultDrawTarget) {
+    protected getEffectiveScreenCenter(g = getDefaultDrawTarget().getP5Albedo()) {
         if (this.integerTranslation) {
             return new Vector2(Math.round(g.width / 2), Math.round(g.height / 2));
         }
@@ -177,7 +179,7 @@ export class ClassicViewpoint extends ViewpointAbstract {
         super(scale, translation, options);
     }
 
-    view(g = defaultDrawTarget) {
+    view(g = getDefaultDrawTarget().getP5Albedo()) {
         g.scale(this.effectiveScale);
 
         const translation = this.effectiveTranslation;

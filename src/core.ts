@@ -1,8 +1,8 @@
 import p5 from "p5";
 import { Vector2 } from "./vector3";
 import { init as initLoader, loaded } from "./loader";
-import { setDefaultViewport, ClassicViewpoint, updateViewpoints, ViewpointAbstract } from "./viewpoint";
-import { defaultDrawTarget, DrawTarget, setDefaultDrawTarget } from "./drawTarget";
+import { setDefaultViewpoint, ClassicViewpoint, updateViewpoints, ViewpointAbstract } from "./viewpoint";
+import { DrawTargetAbstract, resize as resizeDrawTargets, init as initDrawTarget } from "./drawTarget";
 import { update as updateTime } from "./time";
 import { drawLoading } from "./ui";
 import { update as updateParticles } from "./particle";
@@ -11,14 +11,13 @@ import { init as initPhysics, update as updatePhysics } from "./physics";
 import { update as updateTilemaps } from "./tilemap";
 
 
-
 interface Timewarp {
     duration: number;
     rate: number;
 }
 
 interface InitOptions {
-    drawTarget?: DrawTarget;
+    drawTarget?: DrawTargetAbstract | p5.Graphics;
     viewpoint?: ViewpointAbstract;
 
     maxTimeDelta?: number;
@@ -37,26 +36,12 @@ const timewarpList: Timewarp[] = [];
 
 
 export function init(options: InitOptions = {}) {
-    if (options.drawTarget === undefined) {
-        if (!("p5" in globalThis)) {
-            throw Error("Failed to find draw target because p5 is not loaded");
-        }
-        if (!("createCanvas" in globalThis)) {
-            throw Error("Failed to find draw target because p5 is not in global mode");
-        }
-        if (!("setup" in globalThis)) {
-            throw Error("Failed to find draw target because p5 does not seem to be running in global mode; if it is create a global setup function");
-        }
-        createCanvas(windowWidth, windowHeight);
-        setDefaultDrawTarget(globalThis as unknown as p5);
-    } else {
-        setDefaultDrawTarget(options.drawTarget);
-    }
+    initDrawTarget(options.drawTarget);
 
     if (options.viewpoint === undefined) {
-        setDefaultViewport(new ClassicViewpoint(1, new Vector2(width / 2, height / 2)));
+        setDefaultViewpoint(new ClassicViewpoint(1, new Vector2(width / 2, height / 2)));
     } else {
-        setDefaultViewport(options.viewpoint);
+        setDefaultViewpoint(options.viewpoint);
     }
 
     maxTimeDelta = options.maxTimeDelta ?? (1000 / 30);
@@ -89,7 +74,7 @@ export function init(options: InitOptions = {}) {
 
 function enforceInit(action: string) {
     if (inited) return;
-    throw Error(`Brass Core must be initialized before ${action}; Run Brass.init()`);
+    throw Error(`Brass must be initialized before ${action}; Run Brass.init()`);
 }
 
 function defaultGlobalDraw() {
@@ -131,9 +116,7 @@ export function resize(width: number, height: number) {
     // may be called from windowResized(), just let bad call bass
     if (!inited) return;
 
-    const g = defaultDrawTarget;
-
-    g.resizeCanvas(width, height, true);
+    resizeDrawTargets(width, height);
 }
 
 export function update(delta?: number) {

@@ -1,7 +1,7 @@
 import p5 from "p5";
-import { defaultDrawTarget } from "./drawTarget";
+import { getDefaultDrawTarget } from "./drawTarget";
 import { ColorArgs, createColor, createFastGraphics } from "./common";
-import { defaultViewpoint } from "./viewpoint";
+import { getDefaultViewpoint } from "./viewpoint";
 
 
 
@@ -26,7 +26,7 @@ export class Lighter {
 	}
 
 	// light
-	begin(v = defaultViewpoint, g = defaultDrawTarget) {
+	begin(v = getDefaultViewpoint(), g = getDefaultDrawTarget().getP5Albedo()) {
 		const size = this.getLightMapSize(g);
 
 		if (this._lightMap === null) {
@@ -50,7 +50,7 @@ export class Lighter {
 		return this;
 	}
 
-	end(g = defaultDrawTarget) {
+	end(g = getDefaultDrawTarget().getP5Albedo()) {
 		g.push();
 		g.resetMatrix();
 
@@ -97,7 +97,7 @@ export class Lighter {
 		return this;
 	}
 
-	private getLightMapSize(g = defaultDrawTarget) {
+	private getLightMapSize(g = getDefaultDrawTarget().getP5Albedo()) {
 		return {
 			x: Math.ceil(g.width * this.resolution),
 			y: Math.ceil(g.height * this.resolution)

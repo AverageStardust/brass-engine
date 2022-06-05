@@ -85,6 +85,13 @@ export {
 export * from "./vector3";
 
 export {
+    setDefaultDrawTarget,
+    getDefaultDrawTarget
+} from "./drawTarget";
+
+export {
     ClassicViewpoint,
-    Viewpoint
+    Viewpoint,
+    setDefaultViewpoint,
+    getDefaultViewpoint
 } from "./viewpoint";

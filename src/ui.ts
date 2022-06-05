@@ -1,4 +1,4 @@
-import { defaultDrawTarget } from "./drawTarget";
+import { getDefaultDrawTarget } from "./drawTarget";
 import { loadFraction, loadProgress } from "./loader";
 import { getTime } from "./time";
 
@@ -44,7 +44,7 @@ function pickLoadingTip() {
 
 
 
-export function drawFPS(g = defaultDrawTarget) {
+export function drawFPS(g = getDefaultDrawTarget().getP5Albedo()) {
     g.push();
     g.resetMatrix();
 
@@ -102,7 +102,7 @@ export function drawFPS(g = defaultDrawTarget) {
     g.pop();
 }
 
-export function drawLoading(g = defaultDrawTarget) {
+export function drawLoading(g = getDefaultDrawTarget().getP5Albedo()) {
     g.push();
     g.resetMatrix();
 
