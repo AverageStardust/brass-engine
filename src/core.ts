@@ -112,13 +112,6 @@ function defaultGlobalDraw() {
     globalThis.brassDraw(simTime);
 }
 
-export function resize(width: number, height: number) {
-    // may be called from windowResized(), just let bad call bass
-    if (!inited) return;
-
-    resizeDrawTargets(width, height);
-}
-
 export function update(delta?: number) {
     enforceInit("updating Brass");
 

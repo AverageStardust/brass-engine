@@ -15,7 +15,6 @@ export {
 
 export {
     init,
-    resize,
     update,
 
     timewarp,
@@ -85,6 +84,7 @@ export {
 export * from "./vector3";
 
 export {
+    resize,
     setDefaultDrawTarget,
     getDefaultDrawTarget
 } from "./drawTarget";
