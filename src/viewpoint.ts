@@ -25,6 +25,14 @@ const viewpointList: ViewpointAbstract[] = [];
 
 
 
+export function init(viewpoint: ViewpointAbstract | undefined) {
+    if (viewpoint === undefined) {
+        setDefaultViewpoint(new ClassicViewpoint(1, new Vector2(0, 0)));
+    } else {
+        setDefaultViewpoint(viewpoint);
+    }
+}
+
 export function updateViewpoints(delta: number) {
     for (const viewpoint of viewpointList) {
         viewpoint.update(delta);
@@ -39,8 +47,6 @@ export function getDefaultViewpoint() {
     if (defaultViewpoint === undefined) throw Error("Could not find default viewpoint; maybe run Brass.init() first");
     return defaultViewpoint;
 }
-
-
 
 export abstract class ViewpointAbstract {
     scale: number

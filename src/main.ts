@@ -16,8 +16,8 @@ export {
 export {
     init,
     update,
-
     timewarp,
+    getRegl
 } from "./core";
 
 export {

@@ -3,10 +3,10 @@ import { terser } from "rollup-plugin-terser";
 
 const banner = 
 `// library : Brass Engine
-// version : 0.13.5
+// version : 0.14.0
 // author  : WD_STEVE
 // required: p5
-// optional: p5.sound, matter.js
+// optional: p5.sound, matter.js, regl.js
 `;
 
 const rawOutput = {

@@ -7,7 +7,6 @@ export type P5DrawTargetLayer = p5.Graphics | p5;
 
 
 
-let inited = false;
 let defaultDrawTarget: DrawTargetAbstract;
 let screenWidth: number, screenHeight: number;
 const drawTargetList: DrawTargetAbstract[] = [];
@@ -38,8 +37,6 @@ export function init(drawTarget?: DrawTargetAbstract | p5.Graphics) {
         screenHeight = drawTarget.height;
         defaultDrawTarget = new P5DrawTarget(1, drawTarget);
     }
-
-    inited = true;
 }
 
 export function setDefaultDrawTarget(drawTarget: DrawTargetAbstract) {

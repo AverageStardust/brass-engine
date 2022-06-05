@@ -1,8 +1,8 @@
 import p5 from "p5";
-import { Vector2 } from "./vector3";
+import REGL from "./regl";
 import { init as initLoader, loaded } from "./loader";
-import { setDefaultViewpoint, ClassicViewpoint, updateViewpoints, ViewpointAbstract } from "./viewpoint";
-import { DrawTargetAbstract, resize as resizeDrawTargets, init as initDrawTarget } from "./drawTarget";
+import { init as initViewpoint, updateViewpoints, ViewpointAbstract } from "./viewpoint";
+import { DrawTargetAbstract, init as initDrawTarget } from "./drawTarget";
 import { update as updateTime } from "./time";
 import { drawLoading } from "./ui";
 import { update as updateParticles } from "./particle";
@@ -24,6 +24,7 @@ interface InitOptions {
 
     sound?: boolean;
     matter?: boolean | Partial<Matter.IEngineDefinition>;
+    regl?: boolean;
 }
 
 
@@ -31,33 +32,40 @@ interface InitOptions {
 let inited = false;
 let runningPhysics = false;
 let maxTimeDelta = 100;
+let regl: REGL.Regl | null = null;
 const timewarpList: Timewarp[] = [];
 
 
 
 export function init(options: InitOptions = {}) {
     initDrawTarget(options.drawTarget);
-
-    if (options.viewpoint === undefined) {
-        setDefaultViewpoint(new ClassicViewpoint(1, new Vector2(width / 2, height / 2)));
-    } else {
-        setDefaultViewpoint(options.viewpoint);
-    }
+    initViewpoint(options.viewpoint);
 
     maxTimeDelta = options.maxTimeDelta ?? (1000 / 30);
     updateTime();
 
-    const useSound = options.sound ?? p5.SoundFile !== undefined;
-    initLoader(useSound);
+    initLoader(options.sound ?? false);
+    if (options.sound === undefined && p5.SoundFile !== undefined) {
+        console.warn("p5.sound.js has been found; Enable or disable sound in Brass.init()");
+    }
 
-    if (options.matter ||
-        globalThis.Matter !== undefined) {
+    if (options.matter ?? false) {
         runningPhysics = true;
         if(typeof options.matter === "object") {
             initPhysics(options.matter);
         } else {
             initPhysics();
         }
+    }
+    if (options.matter === undefined && globalThis.Matter !== undefined) {
+        console.warn("matter.js has been found; Enable or disable matter in Brass.init()");
+    }
+
+    if (options.regl ?? false) {
+        regl = createREGL();
+    }
+    if (options.regl === undefined && globalThis.createREGL !== undefined) {
+        console.warn("regl.js has been found; Enable or disable regl in Brass.init()");
     }
 
     if (!("draw" in globalThis)) {
@@ -70,6 +78,12 @@ export function init(options: InitOptions = {}) {
     }
 
     inited = true;
+}
+
+export function getRegl(): REGL.Regl {
+    enforceInit("accessing regl");
+    if (regl === null) throw Error("Could not access regl; Include regl.js and enable it in Brass.init()");
+    return regl;
 }
 
 function enforceInit(action: string) {
