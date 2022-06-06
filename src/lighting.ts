@@ -26,7 +26,7 @@ export class Lighter {
 	}
 
 	// light
-	begin(v = getDefaultViewpoint(), g = getDefaultDrawTarget().getP5Albedo()) {
+	begin(v = getDefaultViewpoint(), g = getDefaultDrawTarget().maps.albedo) {
 		const size = this.getLightMapSize(g);
 
 		if (this._lightMap === null) {
@@ -50,7 +50,7 @@ export class Lighter {
 		return this;
 	}
 
-	end(g = getDefaultDrawTarget().getP5Albedo()) {
+	end(g = getDefaultDrawTarget().maps.albedo) {
 		g.push();
 		g.resetMatrix();
 
@@ -97,7 +97,7 @@ export class Lighter {
 		return this;
 	}
 
-	private getLightMapSize(g = getDefaultDrawTarget().getP5Albedo()) {
+	private getLightMapSize(g = getDefaultDrawTarget().maps.albedo) {
 		return {
 			x: Math.ceil(g.width * this.resolution),
 			y: Math.ceil(g.height * this.resolution)

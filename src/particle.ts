@@ -30,7 +30,7 @@ export function update(delta: number) {
     }
 }
 
-export function draw(v = getDefaultViewpoint(), g = getDefaultDrawTarget().getP5Albedo()) {
+export function draw(v = getDefaultViewpoint(), g = getDefaultDrawTarget().maps.albedo) {
     const viewArea = v.getViewArea(g);
 
     for (const [_, particle] of particles.entries()) {
@@ -117,7 +117,7 @@ export class ParticleAbstract {
 
     update(delta: number) { }
 
-    draw(g = getDefaultDrawTarget().getP5Albedo()) {
+    draw(g = getDefaultDrawTarget().maps.albedo) {
         g.noStroke();
         g.fill(255, 0, 255);
         g.circle(0, 0, 2);

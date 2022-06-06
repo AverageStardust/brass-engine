@@ -45,12 +45,6 @@ export function createFastGraphics(width: number, height: number, renderer?: p5.
     return new FastGraphics(width, height, renderer, pInst) as unknown as p5.Graphics;
 }
 
-export function domCanvasToP5Canvas(canvas: HTMLCanvasElement) {
-    // @ts-ignore because I have no idea why the typing is like this, it is wrong
-    const renderer = new p5.Renderer(canvas) as p5.RENDERER;
-    return createFastGraphics(canvas.width, canvas.height, renderer);
-}
-
 // 99% evil hacks
 class FastGraphics extends p5.Element {
     width: number;

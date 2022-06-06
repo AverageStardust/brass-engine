@@ -84,6 +84,8 @@ export {
 export * from "./vector3";
 
 export {
+    DrawTarget,
+    P5DrawTarget,
     resize,
     setDefaultDrawTarget,
     getDefaultDrawTarget

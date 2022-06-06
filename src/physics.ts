@@ -60,7 +60,7 @@ function handleActiveCollisions({ pairs }: Matter.IEventCollision<Matter.Engine>
 
 function enforceInit(action: string) {
     if (inited) return;
-    throw Error(`Physics must be enabled in Brass.init() before ${action}`);
+    throw Error(`Matter must be enabled in Brass.init() before ${action}`);
 }
 
 export function update(delta: number) {
@@ -81,7 +81,7 @@ export function update(delta: number) {
     }
 }
 
-export function drawColliders(weight = 0.5, g = getDefaultDrawTarget().getP5Albedo()) {
+export function drawColliders(weight = 0.5, g = getDefaultDrawTarget().maps.albedo) {
     g.push();
     g.noFill();
     g.stroke(0, 255, 0);

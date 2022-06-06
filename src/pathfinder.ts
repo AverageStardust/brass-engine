@@ -745,7 +745,7 @@ class PathAgent {
         this.leadership = leadership;
     }
 
-    drawPath(thickness = 0.2, fillColor = "red", g = getDefaultDrawTarget().getP5Albedo()) {
+    drawPath(thickness = 0.2, fillColor = "red", g = getDefaultDrawTarget().maps.albedo) {
         if (this.position === null) return;
 
         g.push();

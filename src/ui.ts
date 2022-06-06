@@ -44,7 +44,7 @@ function pickLoadingTip() {
 
 
 
-export function drawFPS(g = getDefaultDrawTarget().getP5Albedo()) {
+export function drawFPS(g = getDefaultDrawTarget().maps.albedo) {
     g.push();
     g.resetMatrix();
 
@@ -102,7 +102,7 @@ export function drawFPS(g = getDefaultDrawTarget().getP5Albedo()) {
     g.pop();
 }
 
-export function drawLoading(g = getDefaultDrawTarget().getP5Albedo()) {
+export function drawLoading(g = getDefaultDrawTarget().maps.albedo) {
     g.push();
     g.resetMatrix();
 

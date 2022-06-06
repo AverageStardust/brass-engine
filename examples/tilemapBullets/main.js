@@ -27,7 +27,8 @@ function setup() {
 	viewpoint = new Brass.Viewpoint(64);
 
 	Brass.init({
-		viewpoint
+		viewpoint,
+		matter: true
 	});
 
 	createPlayer();
@@ -79,10 +80,6 @@ function createPlayer() {
 		velocity: Brass.Vector2.fromDirMag(random(TWO_PI), random(0.1, 0.3))
 	});
 	player.addSensor(() => createPlayer());
-}
-
-function windowResized() {
-	Brass.resize(window.innerWidth, window.innerHeight);
 }
 
 function brassUpdate(delta) {}

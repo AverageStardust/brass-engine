@@ -2,7 +2,7 @@ import p5 from "p5";
 import REGL from "./regl";
 import { init as initLoader, loaded } from "./loader";
 import { init as initViewpoint, updateViewpoints, ViewpointAbstract } from "./viewpoint";
-import { DrawTargetAbstract, init as initDrawTarget } from "./drawTarget";
+import { init as initDrawTarget, resize } from "./drawTarget";
 import { update as updateTime } from "./time";
 import { drawLoading } from "./ui";
 import { update as updateParticles } from "./particle";
@@ -17,7 +17,7 @@ interface Timewarp {
 }
 
 interface InitOptions {
-    drawTarget?: DrawTargetAbstract | p5.Graphics;
+    drawTarget?: p5.Graphics;
     viewpoint?: ViewpointAbstract;
 
     maxTimeDelta?: number;
@@ -51,7 +51,7 @@ export function init(options: InitOptions = {}) {
 
     if (options.matter ?? false) {
         runningPhysics = true;
-        if(typeof options.matter === "object") {
+        if (typeof options.matter === "object") {
             initPhysics(options.matter);
         } else {
             initPhysics();
@@ -75,6 +75,10 @@ export function init(options: InitOptions = {}) {
         } else {
             throw Error("Brass Core has filled the place of the global draw() function but was expecting to see brassUpdate() and brassDraw() instead");
         }
+    }
+
+    if (!("windowResized" in globalThis)) {
+        globalThis.windowResized = () => resize;
     }
 
     inited = true;
@@ -134,7 +138,7 @@ export function update(delta?: number) {
     }
 
     updateTime();
-    if(runningPhysics) updatePhysics(delta);
+    if (runningPhysics) updatePhysics(delta);
     updateViewpoints(delta);
     updateTilemaps();
     updatePathfinders();
