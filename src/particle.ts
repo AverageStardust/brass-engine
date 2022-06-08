@@ -1,4 +1,4 @@
-import { getDefaultDrawTarget } from "./drawTarget";
+import { getP5DrawTarget } from "./drawTarget";
 import { Tilemap } from "./tilemap";
 import { getTime } from "./time";
 import { Vector2, Vertex2 } from "./vector3";
@@ -30,7 +30,7 @@ export function update(delta: number) {
     }
 }
 
-export function draw(v = getDefaultViewpoint(), g = getDefaultDrawTarget().maps.albedo) {
+export function draw(v = getDefaultViewpoint(), g = getP5DrawTarget("p5Default").maps.canvas) {
     const viewArea = v.getViewArea(g);
 
     for (const [_, particle] of particles.entries()) {
@@ -117,7 +117,7 @@ export class ParticleAbstract {
 
     update(delta: number) { }
 
-    draw(g = getDefaultDrawTarget().maps.albedo) {
+    draw(g = getP5DrawTarget("p5Default").maps.canvas) {
         g.noStroke();
         g.fill(255, 0, 255);
         g.circle(0, 0, 2);

@@ -1,8 +1,7 @@
 import p5 from "p5";
-import REGL from "./regl";
 import { init as initLoader, loaded } from "./loader";
 import { init as initViewpoint, updateViewpoints, ViewpointAbstract } from "./viewpoint";
-import { init as initDrawTarget, resize } from "./drawTarget";
+import { DrawTarget, init as initDrawTarget, resize } from "./drawTarget";
 import { update as updateTime } from "./time";
 import { drawLoading } from "./ui";
 import { update as updateParticles } from "./particle";
@@ -17,7 +16,8 @@ interface Timewarp {
 }
 
 interface InitOptions {
-    drawTarget?: p5.Graphics;
+    sketch?: p5;
+    drawTarget?: p5.Graphics | DrawTarget<any>;
     viewpoint?: ViewpointAbstract;
 
     maxTimeDelta?: number;
@@ -30,64 +30,63 @@ interface InitOptions {
 
 
 let inited = false;
-let runningPhysics = false;
+let sketch: p5;
 let maxTimeDelta = 100;
-let regl: REGL.Regl | null = null;
 const timewarpList: Timewarp[] = [];
+let runningPhysics = false;
 
 
 
 export function init(options: InitOptions = {}) {
-    initDrawTarget(options.drawTarget);
+    if (options.sound === undefined && p5.SoundFile !== undefined) {
+        console.warn("p5.sound.js has been found; Enable or disable sound in Brass.init()");
+    }
+    if (options.matter === undefined && globalThis.Matter !== undefined) {
+        console.warn("matter.js has been found; Enable or disable matter in Brass.init()");
+    }
+    if (options.regl === undefined && globalThis.createREGL !== undefined) {
+        console.warn("regl.js has been found; Enable or disable regl in Brass.init()");
+    }
+
+    if (options.sketch) {
+        sketch = options.sketch;
+    } else {
+        if (!("p5" in globalThis)) {
+            throw Error("Can't find p5.js, it is required for Brass");
+        }
+        if (!("setup" in globalThis)) {
+            throw Error("Can't seem to find p5; If you are running in instance mode pass the sketch into Brass.init()");
+        }
+        sketch = globalThis as unknown as p5;
+    }
+
+    initDrawTarget(sketch, options.regl ?? false, options.drawTarget);
+
     initViewpoint(options.viewpoint);
 
     maxTimeDelta = options.maxTimeDelta ?? (1000 / 30);
     updateTime();
 
     initLoader(options.sound ?? false);
-    if (options.sound === undefined && p5.SoundFile !== undefined) {
-        console.warn("p5.sound.js has been found; Enable or disable sound in Brass.init()");
-    }
 
-    if (options.matter ?? false) {
-        runningPhysics = true;
+    runningPhysics = options.matter !== undefined;
+    if (runningPhysics) {
         if (typeof options.matter === "object") {
             initPhysics(options.matter);
         } else {
             initPhysics();
         }
     }
-    if (options.matter === undefined && globalThis.Matter !== undefined) {
-        console.warn("matter.js has been found; Enable or disable matter in Brass.init()");
+
+    if (sketch.draw === undefined) {
+        sketch.draw = defaultGlobalDraw;
     }
 
-    if (options.regl ?? false) {
-        regl = createREGL();
-    }
-    if (options.regl === undefined && globalThis.createREGL !== undefined) {
-        console.warn("regl.js has been found; Enable or disable regl in Brass.init()");
-    }
-
-    if (!("draw" in globalThis)) {
-        if ("brassUpdate" in globalThis && "brassDraw" in globalThis) {
-            // @ts-ignore because this is outside of the Brass engine and its type-checking
-            globalThis.draw = defaultGlobalDraw;
-        } else {
-            throw Error("Brass Core has filled the place of the global draw() function but was expecting to see brassUpdate() and brassDraw() instead");
-        }
-    }
-
-    if (!("windowResized" in globalThis)) {
-        globalThis.windowResized = () => resize;
+    if (sketch.windowResized === undefined) {
+        sketch.windowResized = () => resize(window.innerWidth, window.innerHeight);
     }
 
     inited = true;
-}
-
-export function getRegl(): REGL.Regl {
-    enforceInit("accessing regl");
-    if (regl === null) throw Error("Could not access regl; Include regl.js and enable it in Brass.init()");
-    return regl;
 }
 
 function enforceInit(action: string) {
@@ -122,12 +121,12 @@ function defaultGlobalDraw() {
     // move leftover realTime into simTime
     simTime += realTime;
 
-    // @ts-ignore because this is outside of the Brass engine and its type-checking
-    globalThis.brassUpdate(simTime);
+    // @ts-ignore because this is outside of Brass engine and can't be type checked
+    if (sketch.brassUpdate !== undefined) sketch.brassUpdate(simTime);
     update(simTime);
 
-    // @ts-ignore because this is outside of the Brass engine and its type-checking
-    globalThis.brassDraw(simTime);
+    // @ts-ignore because this is outside of Brass engine and can't be type checked
+    if (sketch.brassDraw !== undefined) sketch.brassDraw(simTime);
 }
 
 export function update(delta?: number) {

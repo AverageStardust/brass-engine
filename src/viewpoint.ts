@@ -1,4 +1,4 @@
-import { getDefaultDrawTarget } from "./drawTarget";
+import { getP5DrawTarget } from "./drawTarget";
 import { getTime } from "./time";
 import { Vector2 } from "./vector3";
 
@@ -78,7 +78,7 @@ export abstract class ViewpointAbstract {
     // camera
     abstract update(delta: number): void;
 
-    view(g = getDefaultDrawTarget().maps.albedo) {
+    view(g = getP5DrawTarget("p5Default").maps.canvas) {
         const screenCenter = this.getEffectiveScreenCenter(g);
         g.translate(screenCenter.x, screenCenter.y);
 
@@ -90,7 +90,7 @@ export abstract class ViewpointAbstract {
         g.translate(-this.shakePosition.x, -this.shakePosition.y);
     }
 
-    getViewArea(g = getDefaultDrawTarget().maps.albedo) {
+    getViewArea(g = getP5DrawTarget("p5Default").maps.canvas) {
         const translation = this.effectiveTranslation;
         const edgeDistance = this.getEffectiveScreenCenter(g)
             .divScalar(this.effectiveScale);
@@ -108,7 +108,7 @@ export abstract class ViewpointAbstract {
         this.translation.add(worldTraslation);
     }
 
-    screenToWorld(screenCoord: Vector2, g = getDefaultDrawTarget().maps.albedo) {
+    screenToWorld(screenCoord: Vector2, g = getP5DrawTarget("p5Default").maps.canvas) {
         const coord = screenCoord.copy();
 
         const screenCenter = this.getEffectiveScreenCenter(g);
@@ -124,7 +124,7 @@ export abstract class ViewpointAbstract {
         return coord;
     }
 
-    protected getEffectiveScreenCenter(g = getDefaultDrawTarget().maps.albedo) {
+    protected getEffectiveScreenCenter(g = getP5DrawTarget("p5Default").maps.canvas) {
         if (this.integerTranslation) {
             return new Vector2(Math.round(g.width / 2), Math.round(g.height / 2));
         }
@@ -185,7 +185,7 @@ export class ClassicViewpoint extends ViewpointAbstract {
         super(scale, translation, options);
     }
 
-    view(g = getDefaultDrawTarget().maps.albedo) {
+    view(g = getP5DrawTarget("p5Default").maps.canvas) {
         g.scale(this.effectiveScale);
 
         const translation = this.effectiveTranslation;

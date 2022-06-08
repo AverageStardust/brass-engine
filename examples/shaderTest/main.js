@@ -1,19 +1,13 @@
-function setup() {
-	noCanvas();
+let regl, drawTri;
 
+function setup() {
 	Brass.init({
 		regl: true
 	});
-
-	const regl = Brass.getRegl();
+	regl = Brass.getRegl();
 
 	// regl test examples on regl's site
-	regl.clear({
-		color: [0, 0, 0, 1],
-		depth: 1
-	});
-
-	regl({
+	drawTri = regl({
 		frag: `
 		precision mediump float;
 		uniform vec4 color;
@@ -41,13 +35,26 @@ function setup() {
 		},
 
 		count: 3
-	})();
+	});
+
+	displayTri();
+}
+
+function displayTri() {
+	regl.clear({
+		color: [0, 0, 0, 1],
+		depth: 1,
+		stencil: 0
+	});
+	drawTri();
+	Brass.displayRegl();
 }
 
 function windowResized() {
 	Brass.resize(window.innerWidth, window.innerHeight);
+	displayTri();
 }
 
-function brassUpdate(delta) { }
-
-function brassDraw() { }
+function draw() {
+	circle(mouseX, mouseY, 32);
+}

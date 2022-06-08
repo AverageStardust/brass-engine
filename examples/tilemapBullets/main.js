@@ -82,8 +82,6 @@ function createPlayer() {
 	player.addSensor(() => createPlayer());
 }
 
-function brassUpdate(delta) {}
-
 function brassDraw() {
 	viewpoint.target = player.position;
 	viewpoint.view();

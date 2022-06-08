@@ -1,4 +1,4 @@
-import p5, { RENDERER } from "p5";
+import p5 from "p5";
 
 
 
@@ -58,20 +58,19 @@ class FastGraphics extends p5.Element {
     constructor(width: number, height: number, renderer: p5.RENDERER = P2D, pInst?: p5) {
         const canvas = document.createElement("canvas");
 
-        // @ts-ignore
-        super(canvas, pInst);
+        super(canvas as any, pInst);
 
-        // @ts-ignore
+        // @ts-ignore because this is all hacks
         this._glAttributes = {};
         for (var p in p5.prototype) {
-            // @ts-ignore
+            // @ts-ignore because this is all hacks
             if (!this[p]) {
-                // @ts-ignore
+                // @ts-ignore because this is all hacks
                 if (typeof p5.prototype[p] === "function") {
-                    // @ts-ignore
+                    // @ts-ignore because this is all hacks
                     this[p] = p5.prototype[p].bind(this);
                 } else {
-                    // @ts-ignore
+                    // @ts-ignore because this is all hacks
                     this[p] = p5.prototype[p];
                 }
             }
@@ -79,7 +78,7 @@ class FastGraphics extends p5.Element {
 
         this.pInst = (pInst ?? window) as p5;
 
-        // @ts-ignore
+        // @ts-ignore because this is all hacks
         p5.prototype._initializeInstanceVariables.apply(this);
         this.canvas = canvas;
         this.width = width;
@@ -87,10 +86,10 @@ class FastGraphics extends p5.Element {
         this._pixelDensity = this.pInst.pixelDensity();
 
         if (renderer === WEBGL) {
-            // @ts-ignore
+            // @ts-ignore because this is all hacks
             this._renderer = new p5.RendererGL(this.canvas, this, false);
         } else {
-            // @ts-ignore
+            // @ts-ignore because this is all hacks
             this._renderer = new p5.Renderer2D(this.canvas, this, false);
         }
 
@@ -106,9 +105,9 @@ class FastGraphics extends p5.Element {
     }
 
     remove() {
-        // @ts-ignore
+        // @ts-ignore because this is all hacks
         for (var elt_ev in this._events) {
-            // @ts-ignore
+            // @ts-ignore because this is all hacks
             this.elt.removeEventListener(elt_ev, this._events[elt_ev]);
         }
     }

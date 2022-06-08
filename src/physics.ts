@@ -1,5 +1,5 @@
 import { Opaque } from "./common";
-import { getDefaultDrawTarget } from "./drawTarget";
+import { getP5DrawTarget } from "./drawTarget";
 import { Vector2, Vertex2, watchVector } from "./vector3";
 
 
@@ -81,7 +81,7 @@ export function update(delta: number) {
     }
 }
 
-export function drawColliders(weight = 0.5, g = getDefaultDrawTarget().maps.albedo) {
+export function drawColliders(weight = 0.5, g = getP5DrawTarget("p5Default").maps.canvas) {
     g.push();
     g.noFill();
     g.stroke(0, 255, 0);

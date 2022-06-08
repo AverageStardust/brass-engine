@@ -1,5 +1,5 @@
 import p5 from "p5";
-import { getDefaultDrawTarget } from "./drawTarget";
+import { getP5DrawTarget } from "./drawTarget";
 import { ColorArgs, createColor, createFastGraphics } from "./common";
 import { getDefaultViewpoint } from "./viewpoint";
 
@@ -26,7 +26,7 @@ export class Lighter {
 	}
 
 	// light
-	begin(v = getDefaultViewpoint(), g = getDefaultDrawTarget().maps.albedo) {
+	begin(v = getDefaultViewpoint(), g = getP5DrawTarget("p5Default").maps.canvas) {
 		const size = this.getLightMapSize(g);
 
 		if (this._lightMap === null) {
@@ -50,7 +50,7 @@ export class Lighter {
 		return this;
 	}
 
-	end(g = getDefaultDrawTarget().maps.albedo) {
+	end(g = getP5DrawTarget("p5Default").maps.canvas) {
 		g.push();
 		g.resetMatrix();
 
@@ -97,7 +97,7 @@ export class Lighter {
 		return this;
 	}
 
-	private getLightMapSize(g = getDefaultDrawTarget().maps.albedo) {
+	private getLightMapSize(g = getP5DrawTarget("p5Default").maps.canvas) {
 		return {
 			x: Math.ceil(g.width * this.resolution),
 			y: Math.ceil(g.height * this.resolution)

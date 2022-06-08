@@ -1,8 +1,8 @@
 import typescript from "@rollup/plugin-typescript";
 import { terser } from "rollup-plugin-terser";
 
-const banner = 
-`// library : Brass Engine
+const banner =
+    `// library : Brass Engine
 // version : 0.14.0
 // author  : WD_STEVE
 // required: p5
@@ -15,10 +15,10 @@ const rawOutput = {
     name: "Brass",
     file: './dist/brass.js',
     globals: { p5: "p5" },
-    sourcemap: true,
+    sourcemap: true
 };
 
-const minOutput = {
+const minifyOutput = {
     banner,
     format: "iife",
     name: "Brass",
@@ -35,7 +35,9 @@ const minOutput = {
 
 export default {
     input: "./src/main.ts",
-    output: (process.env.BUILD === "development") ? [rawOutput] : [rawOutput, minOutput],
+    output: (process.env.BUILD === "development") ?
+        [rawOutput] :
+        [rawOutput, minifyOutput],
     external: ["p5"],
     plugins: [
         typescript()

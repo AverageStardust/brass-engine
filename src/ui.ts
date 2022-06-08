@@ -1,4 +1,4 @@
-import { getDefaultDrawTarget } from "./drawTarget";
+import { getP5DrawTarget } from "./drawTarget";
 import { loadFraction, loadProgress } from "./loader";
 import { getTime } from "./time";
 
@@ -44,7 +44,7 @@ function pickLoadingTip() {
 
 
 
-export function drawFPS(g = getDefaultDrawTarget().maps.albedo) {
+export function drawFPS(g = getP5DrawTarget("p5Default").maps.canvas) {
     g.push();
     g.resetMatrix();
 
@@ -102,7 +102,7 @@ export function drawFPS(g = getDefaultDrawTarget().maps.albedo) {
     g.pop();
 }
 
-export function drawLoading(g = getDefaultDrawTarget().maps.albedo) {
+export function drawLoading(g = getP5DrawTarget("p5Default").maps.canvas) {
     g.push();
     g.resetMatrix();
 

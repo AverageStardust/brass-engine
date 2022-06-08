@@ -1,8 +1,8 @@
-import { getDefaultDrawTarget, P5DrawTargetMap } from "./drawTarget";
+import p5 from "p5";
+import { getP5DrawTarget, P5DrawTargetMap } from "./drawTarget";
 import { getExactTime, getTime } from "./time";
 import { expect, cloneDynamicArray, createDynamicArray, createFastGraphics, decodeDynamicTypedArray, DynamicArray, DynamicArrayType, DynamicTypedArray, DynamicTypedArrayType, encodeDynamicTypedArray, Pool } from "./common";
 import { getDefaultViewpoint } from "./viewpoint";
-import p5 from "p5";
 import { GridBody } from "./physics";
 
 
@@ -343,7 +343,7 @@ abstract class TilemapAbstract {
     clearFields() {
         for (const fieldName in this.fieldIds) {
             const fieldId = this.fieldIds[fieldName];
-            // @ts-ignore
+            // @ts-ignore because this._SOLIDFIELD is always defined
             if (fieldId === this._SOLIDFIELD) continue;
             const fieldType = this.fieldTypes[fieldName]
 
@@ -449,7 +449,7 @@ export class Tilemap extends TilemapAbstract {
         }
     }
 
-    draw(v = getDefaultViewpoint(), g = getDefaultDrawTarget().maps.albedo) {
+    draw(v = getDefaultViewpoint(), g = getP5DrawTarget("p5Default").maps.canvas) {
         const viewArea = v.getViewArea(g);
 
         // lock drawing to inside tile map
@@ -526,7 +526,7 @@ export class Tilemap extends TilemapAbstract {
         pop();
     }
 
-    private padChunks(alwaysCache: boolean, v = getDefaultViewpoint(), g = getDefaultDrawTarget().maps.albedo) {
+    private padChunks(alwaysCache: boolean, v = getDefaultViewpoint(), g = getP5DrawTarget("p5Default").maps.canvas) {
         expect(this.chunkPool !== null);
 
         const viewArea = v.getViewArea(g);
@@ -658,7 +658,7 @@ export class Tilemap extends TilemapAbstract {
         g.pop();
     }
 
-    private defaultDrawTile(data: any, x: number, y: number, g = getDefaultDrawTarget().maps.albedo) {
+    private defaultDrawTile(data: any, x: number, y: number, g = getP5DrawTarget("p5Default").maps.canvas) {
         g.noStroke();
 
         const brightness = (x + y) % 2 * 255;

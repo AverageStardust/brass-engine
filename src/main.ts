@@ -16,8 +16,7 @@ export {
 export {
     init,
     update,
-    timewarp,
-    getRegl
+    timewarp
 } from "./core";
 
 export {
@@ -63,6 +62,7 @@ export {
     PolyBody,
     GridBody,
     RayBody,
+
     drawColliders
 } from "./physics";
 
@@ -86,9 +86,19 @@ export * from "./vector3";
 export {
     DrawTarget,
     P5DrawTarget,
+    ReglDrawTarget,
+
+    setDrawTarget,
+    hasDrawTarget,
+    getDrawTarget,
+    getP5DrawTarget,
+    getReglDrawTarget,
+    
     resize,
-    setDefaultDrawTarget,
-    getDefaultDrawTarget
+    getRegl,
+    refreshRegl,
+    refreshReglFast,
+    displayRegl
 } from "./drawTarget";
 
 export {

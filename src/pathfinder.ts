@@ -1,5 +1,5 @@
 import { expect, MappedHeap, Opaque } from "./common";
-import { getDefaultDrawTarget } from "./drawTarget";
+import { getP5DrawTarget } from "./drawTarget";
 import { Tilemap } from "./tilemap";
 import { getExactTime, getTime } from "./time";
 import { Vector2, Vertex2 } from "./vector3";
@@ -745,7 +745,7 @@ class PathAgent {
         this.leadership = leadership;
     }
 
-    drawPath(thickness = 0.2, fillColor = "red", g = getDefaultDrawTarget().maps.albedo) {
+    drawPath(thickness = 0.2, fillColor = "red", g = getP5DrawTarget("p5Default").maps.canvas) {
         if (this.position === null) return;
 
         g.push();
