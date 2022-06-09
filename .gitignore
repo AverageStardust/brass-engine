@@ -2,4 +2,3 @@ node_modules
 dist/
 .rollup.cache/
 tsconfig.tsbuildinfo
-package-lock.json
