@@ -85,7 +85,7 @@ async function runAllTests(baseURL) {
 
 async function runTest(name, ...args) {
 	try {
-		runTestUnprotected(name, ...args);
+		await runTestUnprotected(name, ...args);
 		console.log(`Passed test: ${name}`);
 	} catch (err) {
 		console.log(`Failed test: ${name}`);
@@ -117,7 +117,6 @@ async function runTestUnprotected(name, url, capabilities) {
 	await driver.wait(documentInitialised, 30000);
 
 	await driver.quit();
-	console.log(typeof driver)
 }
 
 init();
