@@ -117,6 +117,7 @@ async function runTestUnprotected(name, url, capabilities) {
 	await driver.wait(documentInitialised, 30000);
 
 	await driver.quit();
+	console.log(typeof driver)
 }
 
 init();
