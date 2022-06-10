@@ -14,6 +14,8 @@ export {
 } from "./common";
 
 export {
+    setTestStatus,
+    getTestStatus,
     init,
     update,
     timewarp

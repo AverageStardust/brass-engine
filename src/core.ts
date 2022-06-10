@@ -30,12 +30,27 @@ interface InitOptions {
 
 
 let inited = false;
+let errorStatus: true | string | null = null;
 let sketch: p5;
 let maxTimeDelta = 100;
 const timewarpList: Timewarp[] = [];
 let runningPhysics = false;
 
 
+
+window.addEventListener("load", () => {
+    window.addEventListener("error", (error) => setTestStatus(error.message));
+});
+
+export function setTestStatus(status: boolean | string) {
+    if (status === false) return;
+    if (errorStatus !== null && errorStatus !== true) return;
+    errorStatus = status;
+}
+
+export function getTestStatus() {
+    return errorStatus;
+}
 
 export function init(options: InitOptions = {}) {
     if (options.sound === undefined && p5.SoundFile !== undefined) {

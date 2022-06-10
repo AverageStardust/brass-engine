@@ -12,6 +12,7 @@ const chromeCapabilities = {
 	"version": "92.0",
 	"platform": "Windows 10",
 	"resolution": "1024x768",
+    "unexpectedAlertBehaviour": "accept",
 	"build": "Brass"
 }
 const firefoxCapabilities = {
@@ -19,6 +20,7 @@ const firefoxCapabilities = {
 	"version": "101.0",
 	"platform": "Windows 10",
 	"resolution": "1024x768",
+    "unexpectedAlertBehaviour": "accept",
 	"build": "Brass"
 }
 const safariCapabilities = {
@@ -26,6 +28,7 @@ const safariCapabilities = {
 	"version": "15.0",
 	"platform": "MacOS Monterey",
 	"resolution": "1024x768",
+    "unexpectedAlertBehaviour": "accept",
 	"build": "Brass"
 }
 
@@ -80,7 +83,7 @@ async function runAllTests(baseURL) {
 		promises.push(runTest(`${example} on Safari`, exampleURL, safariCapabilities));
 	});
 
-	Promise.all(promises.map(promise => promise.catch(console.error))).then(() => process.exit(0), () => process.exit(1));
+	Promise.allSettled(promises.map(promise => promise.catch(console.error))).then(() => process.exit(0), () => process.exit(1));
 }
 
 async function runTest(name, ...args) {
@@ -112,9 +115,17 @@ async function runTestUnprotected(name, url, capabilities) {
 	} catch (err) { }
 
 	const documentInitialised = () =>
-		driver.executeScript("return window.frameCount > 600");
-
+		driver.executeScript("return window.Brass && Brass.getTestStatus() !== null");
+	
 	await driver.wait(documentInitialised, 30000);
+
+	const errorStatus = await driver.executeScript("return Brass.getTestStatus()");
+
+	if (errorStatus === null) {
+		throw Error("Example did not set test status");
+	} else if (errorStatus !== true) {
+		throw Error(errorStatus);
+	}
 
 	await driver.quit();
 }

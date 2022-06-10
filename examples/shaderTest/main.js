@@ -51,6 +51,7 @@ function windowResized() {
 }
 
 function draw() {
+	Brass.setTestStatus(frameCount > 60);
 	circle(mouseX, mouseY, 32);
 }
 

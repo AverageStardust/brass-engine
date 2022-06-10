@@ -79,7 +79,10 @@ function createPlayer() {
 	player = new Brass.RayBody(35.5, 35.5, 0.4, {
 		velocity: Brass.Vector2.fromDirMag(random(TWO_PI), random(0.1, 0.3))
 	});
-	player.addSensor(() => createPlayer());
+	player.addSensor(() => {
+		Brass.setTestStatus(true);
+		createPlayer()
+	});
 }
 
 function brassDraw() {
