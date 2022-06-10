@@ -745,7 +745,7 @@ class PathAgent {
         this.leadership = leadership;
     }
 
-    drawPath(thickness = 0.2, fillColor = "red", g = getP5DrawTarget("p5Default").maps.canvas) {
+    drawPath(thickness = 0.2, fillColor = "red", g = getP5DrawTarget("defaultP5").maps.canvas) {
         if (this.position === null) return;
 
         g.push();

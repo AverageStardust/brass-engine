@@ -26,7 +26,7 @@ export class Lighter {
 	}
 
 	// light
-	begin(v = getDefaultViewpoint(), g = getP5DrawTarget("p5Default").maps.canvas) {
+	begin(v = getDefaultViewpoint(), g = getP5DrawTarget("defaultP5").maps.canvas) {
 		const size = this.getLightMapSize(g);
 
 		if (this._lightMap === null) {
@@ -50,7 +50,7 @@ export class Lighter {
 		return this;
 	}
 
-	end(g = getP5DrawTarget("p5Default").maps.canvas) {
+	end(g = getP5DrawTarget("defaultP5").maps.canvas) {
 		g.push();
 		g.resetMatrix();
 
@@ -97,7 +97,7 @@ export class Lighter {
 		return this;
 	}
 
-	private getLightMapSize(g = getP5DrawTarget("p5Default").maps.canvas) {
+	private getLightMapSize(g = getP5DrawTarget("defaultP5").maps.canvas) {
 		return {
 			x: Math.ceil(g.width * this.resolution),
 			y: Math.ceil(g.height * this.resolution)

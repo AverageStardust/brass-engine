@@ -81,7 +81,7 @@ export function update(delta: number) {
     }
 }
 
-export function drawColliders(weight = 0.5, g = getP5DrawTarget("p5Default").maps.canvas) {
+export function drawColliders(weight = 0.5, g = getP5DrawTarget("defaultP5").maps.canvas) {
     g.push();
     g.noFill();
     g.stroke(0, 255, 0);

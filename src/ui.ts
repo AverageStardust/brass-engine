@@ -44,7 +44,7 @@ function pickLoadingTip() {
 
 
 
-export function drawFPS(g = getP5DrawTarget("p5Default").maps.canvas) {
+export function drawFPS(g = getP5DrawTarget("defaultP5").maps.canvas) {
     g.push();
     g.resetMatrix();
 
@@ -102,7 +102,7 @@ export function drawFPS(g = getP5DrawTarget("p5Default").maps.canvas) {
     g.pop();
 }
 
-export function drawLoading(g = getP5DrawTarget("p5Default").maps.canvas) {
+export function drawLoading(g = getP5DrawTarget("defaultP5").maps.canvas) {
     g.push();
     g.resetMatrix();
 

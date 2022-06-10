@@ -449,7 +449,7 @@ export class Tilemap extends TilemapAbstract {
         }
     }
 
-    draw(v = getDefaultViewpoint(), g = getP5DrawTarget("p5Default").maps.canvas) {
+    draw(v = getDefaultViewpoint(), g = getP5DrawTarget("defaultP5").maps.canvas) {
         const viewArea = v.getViewArea(g);
 
         // lock drawing to inside tile map
@@ -526,7 +526,7 @@ export class Tilemap extends TilemapAbstract {
         pop();
     }
 
-    private padChunks(alwaysCache: boolean, v = getDefaultViewpoint(), g = getP5DrawTarget("p5Default").maps.canvas) {
+    private padChunks(alwaysCache: boolean, v = getDefaultViewpoint(), g = getP5DrawTarget("defaultP5").maps.canvas) {
         expect(this.chunkPool !== null);
 
         const viewArea = v.getViewArea(g);
@@ -658,7 +658,7 @@ export class Tilemap extends TilemapAbstract {
         g.pop();
     }
 
-    private defaultDrawTile(data: any, x: number, y: number, g = getP5DrawTarget("p5Default").maps.canvas) {
+    private defaultDrawTile(data: any, x: number, y: number, g = getP5DrawTarget("defaultP5").maps.canvas) {
         g.noStroke();
 
         const brightness = (x + y) % 2 * 255;

@@ -30,7 +30,7 @@ export function update(delta: number) {
     }
 }
 
-export function draw(v = getDefaultViewpoint(), g = getP5DrawTarget("p5Default").maps.canvas) {
+export function draw(v = getDefaultViewpoint(), g = getP5DrawTarget("defaultP5").maps.canvas) {
     const viewArea = v.getViewArea(g);
 
     for (const [_, particle] of particles.entries()) {
@@ -117,7 +117,7 @@ export class ParticleAbstract {
 
     update(delta: number) { }
 
-    draw(g = getP5DrawTarget("p5Default").maps.canvas) {
+    draw(g = getP5DrawTarget("defaultP5").maps.canvas) {
         g.noStroke();
         g.fill(255, 0, 255);
         g.circle(0, 0, 2);
