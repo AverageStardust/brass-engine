@@ -125,6 +125,7 @@ export function refreshRegl() {
 
 export function refreshReglFast() {
     getRegl(); // check regl is enabled
+    if (doReglRefresh) return;
     doReglRefresh = true;
     queueMicrotask(honorReglRefresh);
 }

@@ -1,4 +1,4 @@
-let regl, drawTri;
+let regl, triCommand;
 
 function setup() {
 	Brass.init({
@@ -6,48 +6,43 @@ function setup() {
 	});
 	regl = Brass.getRegl();
 
-	// regl test examples on regl's site
-	drawTri = regl({
+	triCommand = regl({
 		frag: `
 		precision mediump float;
-		uniform vec4 color;
+		varying vec4 vColor;
+
 		void main () {
-			gl_FragColor = color;
+			gl_FragColor = vColor;
 		}`,
 
 		vert: `
 		precision mediump float;
-		attribute vec2 position;
+		attribute vec2 aPosition;
+		attribute vec4 aColor;
+		varying vec4 vColor;
+
 		void main () {
-			gl_Position = vec4(position, 0, 1);
+			gl_Position = vec4(aPosition, 0, 1);
+			vColor = aColor;
 		}`,
 
 		attributes: {
-			position: [
+			aPosition: [
 				[-1, 0],
 				[0, -1],
 				[1, 1]
+			],
+			aColor: [
+				[1, 0, 0, 1],
+				[0, 1, 0, 1],
+				[0, 0, 1, 1]
 			]
-		},
-
-		uniforms: {
-			color: [1, 0, 0, 1]
 		},
 
 		count: 3
 	});
 
 	displayTri();
-}
-
-function displayTri() {
-	regl.clear({
-		color: [0, 0, 0, 1],
-		depth: 1,
-		stencil: 0
-	});
-	drawTri();
-	Brass.displayRegl();
 }
 
 function windowResized() {
@@ -57,4 +52,9 @@ function windowResized() {
 
 function draw() {
 	circle(mouseX, mouseY, 32);
+}
+
+function displayTri() {
+	triCommand();
+	Brass.displayRegl();
 }
