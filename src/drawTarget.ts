@@ -64,7 +64,6 @@ export function init(sketch: p5, doRegl: boolean, drawTarget?: p5.Graphics | Dra
 	setDrawTarget("defaultP5", defaultP5DrawTarget);
 
 	if (doRegl) {
-		if(/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) throw "Safari Error";
 		if (!defaultReglDrawTarget) {
 			defaultReglDrawTarget = new ReglDrawTarget();
 		}

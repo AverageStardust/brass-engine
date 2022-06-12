@@ -30,7 +30,7 @@ interface InitOptions {
 
 
 let inited = false;
-let errorStatus: true | string | null = null;
+let testStatus: true | string | null = null;
 let sketch: p5;
 let maxTimeDelta = 100;
 const timewarpList: Timewarp[] = [];
@@ -42,14 +42,15 @@ window.addEventListener("load", () => {
 	window.addEventListener("error", (error) => setTestStatus(error.message));
 });
 
-export function setTestStatus(status: boolean | string) {
-	if (status === false) return;
-	if (errorStatus !== null && errorStatus !== true) return;
-	errorStatus = status;
+export function setTestStatus(newStatus: boolean | string) {
+	if (newStatus === false) return;
+	if (typeof testStatus === "string") return;
+	console.log(newStatus)
+	testStatus = newStatus;
 }
 
 export function getTestStatus() {
-	return errorStatus;
+	return testStatus;
 }
 
 export function init(options: InitOptions = {}) {

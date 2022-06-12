@@ -88,7 +88,7 @@ async function runAllTests(baseURL) {
 }
 
 function runTest(name, ...args) {
-	return Promise(async (resolve, reject) => {
+	return new Promise(async (resolve, reject) => {
 		try {
 			await runTestUnprotected(name, ...args);
 			console.log(`Passed test: ${name}`);
