@@ -83,17 +83,22 @@ async function runAllTests(baseURL) {
 		promises.push(runTest(`${example} on Safari`, exampleURL, safariCapabilities));
 	});
 
-	Promise.allSettled(promises.map(promise => promise.catch(console.error))).then(() => process.exit(0), () => process.exit(1));
+	Promise.allSettled(promises)
+		.then(() => process.exit(0), () => process.exit(1));
 }
 
-async function runTest(name, ...args) {
-	try {
-		await runTestUnprotected(name, ...args);
-		console.log(`Passed test: ${name}`);
-	} catch (err) {
-		console.log(`Failed test: ${name}`);
-		throw err;
-	}
+function runTest(name, ...args) {
+	return Promise(async (resolve, reject) => {
+		try {
+			await runTestUnprotected(name, ...args);
+			console.log(`Passed test: ${name}`);
+			resolve();
+		} catch (err) {
+			console.log(`Failed test: ${name}`);
+			console.error(err)
+			reject();
+		}
+	});
 }
 
 async function runTestUnprotected(name, url, capabilities) {
@@ -120,7 +125,7 @@ async function runTestUnprotected(name, url, capabilities) {
 	try {
 		await driver.wait(documentInitialised, 30000);
 	} catch (error) {
-		if (!(error instanceof TimeoutError)) {
+		if (error.name !== "TimeoutError") {
 			throw error;
 		}
 	}
