@@ -3,13 +3,13 @@ let lastUpdateTime = 0; update();
 
 
 export function update() {
-    lastUpdateTime = Math.round(getExactTime());
+	lastUpdateTime = Math.round(getExactTime());
 }
 
 export function getTime() {
-    return lastUpdateTime;
+	return lastUpdateTime;
 }
 
 export function getExactTime() {
-    return window.performance.now();
+	return window.performance.now();
 }

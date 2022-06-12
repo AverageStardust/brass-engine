@@ -5,21 +5,40 @@ import { FieldDeclaration, TilemapWorld } from "./tilemap";
 
 
 type Asset = p5.Image | p5.Graphics | p5.SoundFile | TilemapWorld;
-type AssetDefinitionArgs = [string] | [string, string] | [string, string, string];
-type AssetDefinition = { title: string, path: string, extension: string };
+type AssetDefinitionArgs = [string] | [string, string];
+// like loadImage() or loadSound()
 type P5LoaderFuction = (path: string, successCallback: (data: Asset) => void, failureCallback: (event: Event) => any) => Asset;
 
+enum AssetType {
+    Image = "image",
+    Sound = "sound",
+    World = "world"
+}
+
+interface AssetDefinition {
+    name: string;
+    fullPath: string;
+    basePath: string;
+    extension: string;
+}
+
 interface QueuedAsset {
-    type: "image" | "sound" | "world";
+    type: AssetType;
     path: string;
-    title: string;
+    names: string[];
     late: boolean;
-    children: QueuedAsset[];
+    children: QueuedAsset[]; // what to load afterward
 
     fields?: FieldDeclaration;
     resolve?: (asset: Asset) => void;
     reject?: (error: Error) => void;
 }
+
+const assetTypeExtensions: { [key in AssetType]: Set<string> } = {
+    [AssetType.Image]: new Set([".png", ".jpg", ".jpeg", ".gif", ".tif", ".tiff"]),
+    [AssetType.Sound]: new Set([".mp3", ".wav", ".ogg"]),
+    [AssetType.World]: new Set([".json"]),
+};
 
 
 
@@ -27,18 +46,14 @@ const assets: { [key: string]: Asset } = {};
 const loadQueue: QueuedAsset[] = [];
 let useSound = false;
 let inited = false;
+let soundFormatsConfigured = false;
+let unsafeWorld = false;
 
 let totalLateAssets = 0;
 let loadedLateAssets = 0;
 
 let errorImage: p5.Graphics;
-const imageQualityNames = ["_FULL", "_HALF", "_QUARTER", "_EIGHTH"];
-
 let errorSound: p5.SoundFile;
-const allowedSoundFormats = ["mp3", "wav", "ogg"];
-let soundFormatsSet = false;
-
-let unsafeWorld = false;
 
 
 
@@ -108,20 +123,20 @@ function loadQueuedAssets() {
         default:
             throw Error(`Unknown asset type (${assetEntry.type})`);
 
-        case "image":
+        case AssetType.Image:
             loadImage(assetEntry.path,
                 handleAsset.bind(globalThis, assetEntry),
                 handleAssetFail.bind(globalThis, assetEntry));
             break;
 
-        case "sound":
+        case AssetType.Sound:
             loadSound(assetEntry.path,
                 handleAsset.bind(globalThis, assetEntry),
                 handleAssetFail.bind(globalThis, assetEntry));
             break;
 
 
-        case "world":
+        case AssetType.World:
             loadJSON(assetEntry.path,
                 handleAsset.bind(globalThis, assetEntry),
                 handleAssetFail.bind(globalThis, assetEntry));
@@ -134,12 +149,14 @@ function handleAsset(assetEntry: QueuedAsset, data: any) {
         loadedLateAssets++;
     }
 
-    if (assetEntry.type === "world") {
+    if (assetEntry.type === AssetType.World) {
         expect(assetEntry.fields !== undefined);
         data = parseWorldJson(assetEntry.fields, data);
     }
 
-    assets[assetEntry.title] = data as Asset;
+    for (const name of assetEntry.names) {
+        assets[name] = data as Asset;
+    }
 
     if (assetEntry.resolve) {
         assetEntry.resolve(data as Asset);
@@ -157,7 +174,7 @@ function handleAssetFail(assetEntry: QueuedAsset) {
         loadedLateAssets++;
     }
 
-    const error = Error(`Failed to load asset (${assetEntry.title}) at path (${assetEntry.path})`);
+    const error = Error(`Failed to load asset (${assetEntry.names[0]}) at path (${assetEntry.path})`);
 
     if (assetEntry.reject) {
         assetEntry.reject(error);
@@ -184,120 +201,124 @@ export function loadProgress() {
 
 
 export function loadImageEarly(...args: AssetDefinitionArgs) {
-    const { title, path, extension } = parseAssetDefinition("png", args);
+    const { name, fullPath } = parseAssetDefinition(AssetType.Image, args);
 
-    return queueEarlyAssetWithPromise(path + extension, title, loadImage);
+    return queueEarlyAssetWithPromise(fullPath, name, loadImage);
 }
 
 export function loadImageLate(...args: AssetDefinitionArgs) {
-    const { title, path, extension } = parseAssetDefinition("png", args);
+    const { name, fullPath } = parseAssetDefinition(AssetType.Image, args);
 
     return queueLastAssetWithPromise({
-        type: "image",
-        path: path + extension,
-        title: title,
+        type: AssetType.Image,
+        path: fullPath,
+        names: [name],
         late: true,
         children: []
     });
 }
 
-export function loadImageDynamic(qualitySteps: number, ...args: AssetDefinitionArgs) {
-    const assetDefinition = parseAssetDefinition("png", args);
+export function loadImageDynamic(qualitySteps: number | string[], ...args: AssetDefinitionArgs) {
+    const assetDefinition = parseAssetDefinition(AssetType.Image, args);
 
-    if (qualitySteps < 1 || qualitySteps > 4) {
-        throw Error(`expected 1 to 4 dynamic image quality steps, found (${qualitySteps})`);
+    if (typeof qualitySteps === "number") {
+        if (qualitySteps < 2 || qualitySteps > 5) {
+            throw Error(`expected 2 to 5 dynamic image quality steps, found (${qualitySteps})`);
+        }
+        qualitySteps = ["_FULL", "_HALF", "_QUARTER", "_EIGHTH", "_SIXTEENTH"].slice(0, qualitySteps);
     }
 
-    const resolves: ((asset: Asset) => void)[] = [];
-    const rejects: ((error: Error) => void)[] = [];
-    const promiseArray: Promise<Asset>[] = Array(qualitySteps).fill(null).map((_, index) => {
-        return new Promise((resolve, reject) => {
-            resolves.push(resolve);
-            rejects.push(reject);
-        });
-    });
+    const { promises } = loadImageDynamicStep(qualitySteps, assetDefinition);
 
-    loadQueue.push(
-        buildDynamicImageAssetEntry(qualitySteps, assetDefinition, true, resolves, rejects));
-    totalLateAssets++;
-
-    return promiseArray;
+    return promises;
 }
 
-export function getImage(title: string): p5.Image | p5.Graphics {
+function loadImageDynamicStep(qualitySteps: string[], assetDefinition: AssetDefinition, isRoot = true): {
+    asset?: QueuedAsset,
+    promises: Promise<Asset>[]
+} {
+
+    const stepPostfix = qualitySteps.pop();
+    if (stepPostfix === undefined) return {
+        promises: []
+    };
+
+    const { asset: childAsset, promises } = loadImageDynamicStep(qualitySteps, assetDefinition, false);
+    const { name, basePath, extension } = assetDefinition;
+
+    const asset: QueuedAsset = {
+        type: AssetType.Image,
+        path: basePath + stepPostfix + extension,
+        names: [
+            name,
+            name + stepPostfix
+        ],
+        late: isRoot,
+        children: []
+    }
+
+    if (isRoot) totalLateAssets++;
+
+    if (childAsset) {
+        childAsset.children = [childAsset];
+    }
+
+    promises.push(queueLastAssetWithPromise(asset));
+
+    return {
+        asset,
+        promises
+    };
+}
+
+export function getImage(name: string): p5.Image | p5.Graphics {
     enforceInit("getting images");
 
-    const image = assets[title];
+    const image = assets[name];
     if (image) return image as p5.Image | p5.Graphics;
 
-    for (const quality of imageQualityNames) {
-        const qualifiedImage = assets[title + quality];
-        if (qualifiedImage) return qualifiedImage as p5.Image | p5.Graphics;
-    }
-
     return errorImage;
-}
-
-function buildDynamicImageAssetEntry(
-    qualityStep: number, assetDefinition: AssetDefinition, isRoot: boolean,
-    resolves: ((asset: Asset) => void)[], rejects: ((error: Error) => void)[]): QueuedAsset {
-
-    qualityStep--;
-
-    const children: QueuedAsset[] = [];
-    if (qualityStep > 0) {
-        children[0] =
-            buildDynamicImageAssetEntry(qualityStep, assetDefinition, false, resolves, rejects);
-    }
-
-    const { path, title, extension } = assetDefinition;
-    return {
-        type: "image",
-        path: path + imageQualityNames[qualityStep] + extension,
-        title: title + imageQualityNames[qualityStep],
-        late: isRoot,
-        children,
-        resolve: resolves.pop(),
-        reject: rejects.pop()
-    };
 }
 
 
 
 export function loadSoundEarly(...args: AssetDefinitionArgs) {
-    const { title, path, extension } = parseAssetDefinition("mp3", args);
-    insureSoundFormatsSet();
+    const { name, fullPath } = parseAssetDefinition(AssetType.Sound, args);
+    insureSoundFormatsConfigured();
 
-    return queueEarlyAssetWithPromise(path + extension, title, loadSound);
+    return queueEarlyAssetWithPromise(fullPath, name, loadSound);
 }
 
 export function loadSoundLate(...args: AssetDefinitionArgs) {
-    const { title, path, extension } = parseAssetDefinition("mp3", args);
-    insureSoundFormatsSet();
+    const { name, fullPath } = parseAssetDefinition(AssetType.Sound, args);
+    insureSoundFormatsConfigured();
 
     return queueLastAssetWithPromise({
-        type: "sound",
-        path: path + extension,
-        title: title,
+        type: AssetType.Sound,
+        path: fullPath,
+        names: [name],
         late: true,
         children: []
     });
 }
 
-export function getSound(title: string): p5.SoundFile {
+export function getSound(name: string): p5.SoundFile {
     enforceInit("getting sounds");
     enforceP5SoundPresent("getting sounds");
 
-    const sound = assets[title] as p5.SoundFile;
+    const sound = assets[name] as p5.SoundFile;
     return sound ?? errorSound;
 }
 
-function insureSoundFormatsSet() {
-    if (soundFormatsSet) return;
+function insureSoundFormatsConfigured() {
+    if (soundFormatsConfigured) return;
 
     try {
-        soundFormats(...allowedSoundFormats);
-        soundFormatsSet = true;
+        const soundExtensions =
+            Array.from(assetTypeExtensions[AssetType.Sound])
+                .map((extension) => extension.replace(".", ""));
+        soundFormats(...soundExtensions);
+        soundFormatsConfigured = true;
     } catch (err) { }
 }
 
@@ -308,34 +329,34 @@ export function enableUnsafeWorldLoading() {
 }
 
 export function loadWorldEarly(fields: FieldDeclaration, ...args: AssetDefinitionArgs) {
-    const { title, path, extension } = parseAssetDefinition("json", args);
+    const { name, fullPath } = parseAssetDefinition(AssetType.World, args);
 
     return new Promise((resolve, reject) => {
-        loadJSON(path + extension, (data: any) => {
+        loadJSON(fullPath, (data: any) => {
             const world = parseWorldJson(fields, data);
-            assets[title] = world;
+            assets[name] = world;
             resolve(world);
         }, reject);
     });
 }
 
 export function loadWorldLate(fields: FieldDeclaration, ...args: AssetDefinitionArgs) {
-    const { title, path, extension } = parseAssetDefinition("json", args);
+    const { name, fullPath } = parseAssetDefinition(AssetType.World, args);
 
     return queueLastAssetWithPromise({
-        type: "world",
-        path: path + extension,
-        title: title,
+        type: AssetType.World,
+        path: fullPath,
+        names: [name],
         late: true,
         children: [],
         fields
     });
 }
 
-export function getWorld(title: string): TilemapWorld | null {
+export function getWorld(name: string): TilemapWorld | null {
     enforceInit("getting worlds");
 
-    const world = assets[title] as TilemapWorld;
+    const world = assets[name] as TilemapWorld;
     return world ?? null;
 }
 
@@ -457,16 +478,16 @@ function searchTiledObj(obj: any): [any[], any[]] {
 
 
 
-function queueEarlyAssetWithPromise(path: string, title: string, loader: P5LoaderFuction) {
+function queueEarlyAssetWithPromise(path: string, name: string, loader: P5LoaderFuction) {
     return new Promise((resolve, reject) => {
         loader(path, (data) => {
-            assets[title] = data;
+            assets[name] = data;
             resolve(data);
         }, reject);
     });
 }
 
-function queueLastAssetWithPromise(assetEntry: QueuedAsset) {
+function queueLastAssetWithPromise(assetEntry: QueuedAsset): Promise<Asset> {
     totalLateAssets++;
     return new Promise((resolve, reject) => {
         assetEntry.resolve = resolve;
@@ -475,14 +496,24 @@ function queueLastAssetWithPromise(assetEntry: QueuedAsset) {
     });
 }
 
-function parseAssetDefinition(defaultExtension: string, args: AssetDefinitionArgs): AssetDefinition {
-    let [title, path, extension] = args;
+function parseAssetDefinition(type: AssetType, args: AssetDefinitionArgs): AssetDefinition {
+    let [fullPath, name] = args;
 
-    if (title === undefined) throw Error("Can't load asset without an asset title");
-    if (path === undefined) path = title;
-    if (extension === undefined) extension = defaultExtension;
+    if (fullPath === undefined) throw Error("Can't load asset without an path");
+    if (name === undefined) name = fullPath;
 
-    if (extension !== "") extension = "." + extension;
+    const pathParts = fullPath.split(".");
 
-    return { title, path, extension };
+    const basePath = pathParts.shift() as string;
+    let extension = "";
+    if (pathParts.length > 0) {
+        extension = "." + pathParts.join(".");
+    }
+
+    const validExtensions = assetTypeExtensions[type];
+    if (!validExtensions.has(extension)) {
+        throw Error(`Can't load (${extension}) file as a ${type} file, try ${Array.from(validExtensions).join(" ")}`);
+    }
+
+    return { name, basePath, fullPath, extension };
 }

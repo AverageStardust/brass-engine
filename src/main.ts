@@ -1,111 +1,111 @@
 /*
-    directional light
-    UI system
-    inventory system
+	directional light
+	UI system
+	inventory system
 */
 
 export {
-    Heap,
-    MaxHeap,
-    MinHeap,
-    MappedHeap,
-    MappedMaxHeap,
-    MappedMinHeap
+	Heap,
+	MaxHeap,
+	MinHeap,
+	MappedHeap,
+	MappedMaxHeap,
+	MappedMinHeap
 } from "./common";
 
 export {
-    setTestStatus,
-    getTestStatus,
-    init,
-    update,
-    timewarp
+	setTestStatus,
+	getTestStatus,
+	init,
+	update,
+	timewarp
 } from "./core";
 
 export {
-    Lighter
+	Lighter
 } from "./lighting";
 
 export {
-    loadImageEarly,
-    loadImageLate,
-    loadImageDynamic,
-    getImage,
+	loadImageEarly,
+	loadImageLate,
+	loadImageDynamic,
+	getImage,
 
-    loadSoundEarly,
-    loadSoundLate,
-    getSound,
+	loadSoundEarly,
+	loadSoundLate,
+	getSound,
 
-    enableUnsafeWorldLoading,
-    loadWorldEarly,
-    loadWorldLate,
-    getWorld,
+	enableUnsafeWorldLoading,
+	loadWorldEarly,
+	loadWorldLate,
+	getWorld,
 
-    loaded,
-    loadProgress
+	loaded,
+	loadProgress
 } from "./loader";
 
 export {
-    setParticleLimit,
-    emit,
-    emitSingle,
-    draw as drawParticles,
+	setParticleLimit,
+	emit,
+	emitSingle,
+	draw as drawParticles,
 
-    ParticleAbstract,
-    VelocityParticleAbstract
+	ParticleAbstract,
+	VelocityParticleAbstract
 } from "./particle";
 
 export {
-    AStarPathfinder
+	AStarPathfinder
 } from "./pathfinder";
 
 export {
-    RectBody,
-    CircleBody,
-    PolyBody,
-    GridBody,
-    RayBody,
+	RectBody,
+	CircleBody,
+	PolyBody,
+	GridBody,
+	RayBody,
 
-    drawColliders
+	drawColliders
 } from "./physics";
 
 export {
-    Tilemap
+	Tilemap
 } from "./tilemap";
 
 export {
-    getTime,
-    getExactTime
+	getTime,
+	getExactTime
 } from "./time";
 
 export {
-    drawFPS,
-    drawLoading,
-    setLoadingTips
+	drawFPS,
+	drawLoading,
+	setLoadingTips
 } from "./ui";
 
 export * from "./vector3";
 
 export {
-    DrawTarget,
-    P5DrawTarget,
-    ReglDrawTarget,
+	DrawTarget,
+	P5DrawTarget,
+	ReglDrawTarget,
 
-    setDrawTarget,
-    hasDrawTarget,
-    getDrawTarget,
-    getP5DrawTarget,
-    getReglDrawTarget,
-    
-    resize,
-    getRegl,
-    refreshRegl,
-    refreshReglFast,
-    displayRegl
+	setDrawTarget,
+	hasDrawTarget,
+	getDrawTarget,
+	getP5DrawTarget,
+	getReglDrawTarget,
+	
+	resize,
+	getRegl,
+	refreshRegl,
+	refreshReglFast,
+	displayRegl
 } from "./drawTarget";
 
 export {
-    ClassicViewpoint,
-    Viewpoint,
-    setDefaultViewpoint,
-    getDefaultViewpoint
+	ClassicViewpoint,
+	Viewpoint,
+	setDefaultViewpoint,
+	getDefaultViewpoint
 } from "./viewpoint";
