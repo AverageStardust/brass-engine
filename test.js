@@ -1,4 +1,4 @@
-const { Builder, By } = require("selenium-webdriver");
+const { Builder, By, TimeoutError } = require("selenium-webdriver");
 const { exec } = require("child_process");
 const fs = require("fs");
 
@@ -117,7 +117,13 @@ async function runTestUnprotected(name, url, capabilities) {
 	const documentInitialised = () =>
 		driver.executeScript("return window.Brass && Brass.getTestStatus() !== null");
 	
-	await driver.wait(documentInitialised, 30000);
+	try {
+		await driver.wait(documentInitialised, 30000);
+	} catch (error) {
+		if (!(error instanceof TimeoutError)) {
+			throw error;
+		}
+	}
 
 	const errorStatus = await driver.executeScript("return Brass.getTestStatus()");
 
