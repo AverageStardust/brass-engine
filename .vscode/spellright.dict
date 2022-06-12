@@ -4,3 +4,5 @@ postload
 tilelayer
 objectgroup
 safe-ish
+iife
+sourcemaps
