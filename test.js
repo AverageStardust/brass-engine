@@ -2,8 +2,8 @@ const { Builder, By, TimeoutError } = require("selenium-webdriver");
 const { exec } = require("child_process");
 const fs = require("fs");
 
-const username = "wyatt.durbano";
-const accessKey = "05FPUpMcvqVLw55SlEKtmeqt8pG42OTe0qCUuMePYosZC24k8B";
+const username = "wyatt.durbanogmail";
+const accessKey = "uVU0Y7oD1BaKYPiNFGcPAihjabehgWcznOXtGIBxoljlemEKJE";
 
 const GRID_HOST = "hub.lambdatest.com/wd/hub";
 
