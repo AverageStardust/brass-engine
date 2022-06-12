@@ -12,7 +12,7 @@ const chromeCapabilities = {
 	"version": "92.0",
 	"platform": "Windows 10",
 	"resolution": "1024x768",
-    "unexpectedAlertBehaviour": "accept",
+	"unexpectedAlertBehaviour": "accept",
 	"build": "Brass"
 }
 const firefoxCapabilities = {
@@ -20,7 +20,7 @@ const firefoxCapabilities = {
 	"version": "101.0",
 	"platform": "Windows 10",
 	"resolution": "1024x768",
-    "unexpectedAlertBehaviour": "accept",
+	"unexpectedAlertBehaviour": "accept",
 	"build": "Brass"
 }
 const safariCapabilities = {
@@ -28,19 +28,13 @@ const safariCapabilities = {
 	"version": "15.0",
 	"platform": "MacOS Monterey",
 	"resolution": "1024x768",
-    "unexpectedAlertBehaviour": "accept",
+	"unexpectedAlertBehaviour": "accept",
 	"build": "Brass"
 }
 
 let childProcess;
 
 function init() {
-	process.on("exit", exitHandler);
-	process.on("SIGINT", exitHandler);
-	process.on("SIGUSR1", exitHandler);
-	process.on("SIGUSR2", exitHandler);
-	process.on("uncaughtException", exitHandler);
-
 	console.log("Opening examples ...");
 	childProcess = exec("npm run examples", (error, _, stderr) => {
 		if (error) throw error;
@@ -63,14 +57,6 @@ function init() {
 	});
 }
 
-function exitHandler(error) {
-	if (!childProcess) return;
-	if (error) console.error(error);
-	console.log("Closing examples ...");
-	childProcess.kill();
-	childProcess = undefined;
-}
-
 async function runAllTests(baseURL) {
 	console.log(`Testing examples at ${baseURL} ...`);
 
@@ -84,7 +70,13 @@ async function runAllTests(baseURL) {
 	});
 
 	Promise.allSettled(promises)
-		.then(() => process.exit(0), () => process.exit(1));
+		.then(() => {
+			childProcess.kill();
+			process.exit(0);
+		}, () => {
+			childProcess.kill();
+			process.exit(1);
+		});
 }
 
 function runTest(name, ...args) {
@@ -121,7 +113,7 @@ async function runTestUnprotected(name, url, capabilities) {
 
 	const documentInitialised = () =>
 		driver.executeScript("return window.Brass && Brass.getTestStatus() !== null");
-	
+
 	try {
 		await driver.wait(documentInitialised, 30000);
 	} catch (error) {
