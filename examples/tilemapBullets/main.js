@@ -5,22 +5,20 @@ let player, pathfinder;
 function preload() {
 	Brass.loadImageDynamic(
 		3,
-		"tilesheet",
-		"tilesheet",
-		"png").map((loadPromise, i) => {
-		if (i === 0) return;
+		"tilesheet.png").map((loadPromise, i) => {
+			if (i === 0) return; // reload caches for each new image
 		loadPromise.then(() => tilemap.clearCaches());
 	});
 	Brass.loadWorldLate({
 			surface: "uint16",
 			items: "uint16"
 		},
-		"tilemap"
+		"tilemap.json"
 	);
 }
 
 function postload() {
-	tilemap.import(Brass.getWorld("tilemap"));
+	tilemap.import(Brass.getWorld("tilemap.json"));
 }
 
 function setup() {
@@ -59,7 +57,7 @@ function setup() {
 			surface,
 			items
 		}, x, y, g) {
-			const tilemap = Brass.getImage("tilesheet");
+			const tilemap = Brass.getImage("tilesheet.png");
 			const
 				u1 = (surface - 1) / 27 % 1,
 				v1 = Math.floor((surface - 1) / 27) / 20;

@@ -259,11 +259,15 @@ function loadImageDynamicStep(qualitySteps: string[], assetDefinition: AssetDefi
 
     if (isRoot) totalLateAssets++;
 
-    if (childAsset) {
-        childAsset.children = [childAsset];
+    if (childAsset !== undefined) {
+        asset.children = [childAsset];
     }
 
-    promises.push(queueLastAssetWithPromise(asset));
+    promises.push(new Promise((resolve, reject) => {
+        asset.resolve = resolve;
+        asset.reject = reject;
+        if (isRoot) loadQueue.push(asset);
+    }));
 
     return {
         asset,
