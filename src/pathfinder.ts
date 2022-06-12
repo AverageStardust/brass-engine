@@ -51,7 +51,7 @@ interface SizedPathfinderOptions extends PathfinderOptions {
 	height: number;
 }
 
-type NodePrimative = Opaque<number, "NodePrimative">;
+type NodePrimative = Opaque<number, "NodePrimitive">;
 
 
 
@@ -170,7 +170,7 @@ abstract class PathfinderAbstract {
 		this.goal = newGoal;
 
 		// check all agents that are on route
-		// if their new goal is far from their current goal, recompute
+		// if their new goal is far from their current goal, compute it again
 		for (const agent of this.agents) {
 			if (agent.path.length <= 0) continue;
 
@@ -214,7 +214,7 @@ abstract class PathfinderAbstract {
 
 			const agent = this.agents[i];
 
-			// skip if failed resently
+			// skip if failed recently
 			if (agent.pathFailTime > skipFailuresAfter) {
 				continue;
 			}
@@ -258,10 +258,10 @@ abstract class PathfinderAbstract {
 							agent.processingSituation = null;
 							agent.tryedPartCompute = false;
 						} else if (agent.tryedPartCompute) {
-							// failed partal and whole, reset and wait
+							// failed partial and whole, reset and wait
 							agent.reset();
 						} else {
-							// failed only partal, record and start whole next time
+							// failed only partial, record and start whole next time
 							agent.processingSituation = null;
 							agent.tryedPartCompute = true;
 						}
@@ -414,7 +414,7 @@ abstract class PathfinderAbstract {
 			// if between nodes are needed
 			if (nodeDistance > 1.01) {
 
-				// space out between nodes evenly by interplating node i and node i+1
+				// space out between nodes evenly by interpolating node i and node i+1
 				const interNodeCount = Math.floor(nodeDistance / 1);
 				const firstInterNode = (nodeDistance - interNodeCount) / nodeDistance / 2;
 				const interDistance = 1 / nodeDistance;
@@ -526,7 +526,7 @@ export class AStarPathfinder extends PathfinderAbstract {
 		if (situation.type === PathSituationType.Inital) {
 			if (this.tilemap.getSolid(situation.start.x, situation.start.y) ||
 				this.tilemap.getSolid(situation.end.x, situation.end.y)) {
-				// path is not posible, start or end is blocked
+				// path is not possible, start or end is blocked
 				situation.type = PathSituationType.Failed;
 				return situation;
 			}
@@ -753,7 +753,7 @@ class PathAgent {
 		g.noStroke();
 		g.fill(fillColor);
 
-		// add current postion to path, only for drawing
+		// add current position to path, only for drawing
 		this.path.unshift(this.position);
 
 		for (let i = 0; i < this.path.length; i++) {
@@ -777,7 +777,7 @@ class PathAgent {
 			);
 		}
 
-		// remove current postion from path, it was only there for drawing
+		// remove current position from path, it was only there for drawing
 		this.path.shift();
 
 		g.pop();
@@ -798,7 +798,7 @@ class PathAgent {
 				const pathNode = (this.path.shift() as Vector2).floor();
 				this.pathfinder.setPheromones(pathNode);
 			} else {
-				// recompute start of path if path node is too far
+				// compute start of path if path node is too far
 				if (this.position.dist(this.path[0]) > pathfinderMaxDist) {
 					if (this.processingSituation) {
 						this.tryedPartCompute = false;

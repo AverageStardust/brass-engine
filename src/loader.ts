@@ -395,7 +395,7 @@ function parseWorldJson(fields: FieldDeclaration, json: any): TilemapWorld {
     for (const fieldName in fields) {
         const fieldType = fields[fieldName];
         if (fieldType === "sparse") {
-            throw Error("World file had sparse type in field decleration; This is not supported");
+            throw Error("World file had sparse type in field declaration; This is not supported");
         }
 
         const layerIndex = tileLayers.findIndex((layer) => layer.name === fieldName);
@@ -429,7 +429,7 @@ function parseWorldJson(fields: FieldDeclaration, json: any): TilemapWorld {
 
     if (objectLayers.length > 0) {
         if (objectLayers.length > 1 && !unsafeWorld) {
-            throw Error("World file had multible object layers; Run enableUnsafeWorldLoading() to combine them");
+            throw Error("World file had multiple object layers; Run enableUnsafeWorldLoading() to combine them");
         }
         for (const layer of objectLayers) {
             for (const object of layer) {

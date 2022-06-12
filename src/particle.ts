@@ -102,7 +102,7 @@ function emitParticle(classVar: ParticleClass, position: Vector2, data: any[]) {
 
 
 // named abstract because update() *should* be replaced
-// class may be extended in JS where abstact class may not be honored
+// class may be extended in JS where abstract class may not be honored
 export class ParticleAbstract {
 
 	position: Vector2;

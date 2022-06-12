@@ -69,7 +69,7 @@ interface TilemapOptions extends TilemapAbstractOptions {
 	drawCacheDecayTime?: number; // milliseconds until unseen chunk is deleted
 	drawCachePadding?: number; // tiles off-screen should chunks will be rendered
 	drawCachePaddingTime?: number; // milliseconds used on off-screen chunks rendering
-	drawCachePoolInitalSize?: number; // how many tile caches to create on initalization
+	drawCachePoolInitalSize?: number; // how many tile caches to create on initialization
 
 	drawTile?: (data: any, x: number, y: number, g: P5DrawTargetMap) => void;
 	canCacheTile?: (data: any) => boolean;
@@ -260,7 +260,7 @@ abstract class TilemapAbstract {
 
 	import(world: TilemapWorld) {
 		if (world === null) {
-			throw Error("Tryed to import (null) as world; Did you pass Brass.getWorld() before the world loaded?")
+			throw Error("Tried to import (null) as world; Did you pass Brass.getWorld() before the world loaded?")
 		}
 
 		if (world.width > this.width ||
@@ -434,7 +434,7 @@ export class Tilemap extends TilemapAbstract {
 					lastUsed: getTime()
 				}),
 				({ g }) => ({ g, lastUsed: getTime() }));
-			// graphical cahce of chunks
+			// graphical cache of chunks
 			this.chunks = Array(drawCacheChunkSize).fill(null);
 			// cache what chunks can be graphicly cached
 			this.cacheableChunks = Array(drawCacheChunkSize).fill(null);

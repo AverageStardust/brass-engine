@@ -1,11 +1,11 @@
-const { Builder, By, TimeoutError } = require("selenium-webdriver");
+const { Builder, By } = require("selenium-webdriver");
 const { exec } = require("child_process");
 const fs = require("fs");
 
-const username = "wyatt.durbanogmail";
-const accessKey = "uVU0Y7oD1BaKYPiNFGcPAihjabehgWcznOXtGIBxoljlemEKJE";
+const username = `wyatt.durbanogmail`;
+const accessKey = `uVU0Y7oD1BaKYPiNFGcPAihjabehgWcznOXtGIBxoljlemEKJE`;
 
-const GRID_HOST = "hub.lambdatest.com/wd/hub";
+const GRID_HOST = `hub.lambdatest.com/wd/hub`;
 
 const chromeCapabilities = {
 	"browserName": "Chrome",

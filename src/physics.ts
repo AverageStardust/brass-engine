@@ -12,8 +12,8 @@ interface Collision {
 type CollisionCallback = (collision: Collision) => void;
 type InternalMatterBody = Matter.Body & { collisionFilter: { category: CollisionFitlerCategory }, __brassBody__: MaterialBodyAbstract };
 type CollisionFilterIndex = Opaque<number, "CollisionFilterIndex">; // index for bitmask, between 0 and 31 inclusive
-type CollisionFitlerMask = Opaque<number, "CollisionFitlerMask">; // bitmask for what categories to collide with
-type CollisionFitlerCategory = Opaque<number, "CollisionFitlerCategory">; // bitmask with one bit set for collions
+type CollisionFilterMask = Opaque<number, "CollisionFilterMask">; // bitmask for what categories to collide with
+type CollisionFitlerCategory = Opaque<number, "CollisionFitlerCategory">; // bitmask with one bit set for collisions
 type MatterWorldDefinition = Matter.IEngineDefinition & { spaceScale: number };
 
 
@@ -30,7 +30,7 @@ const bodies: { [index: CollisionFilterIndex]: Map<number, MaterialBodyAbstract>
 
 export function init(_options: Partial<MatterWorldDefinition> = {}) {
 	if (typeof Matter !== "object") {
-		throw Error("Matter was not found; Can't initalize Brass physics without Matter.js initalized first");
+		throw Error("Matter was not found; Can't initialize Brass physics without Matter.js initialized first");
 	}
 
 	_options.gravity ??= { scale: 0 };
@@ -164,12 +164,12 @@ export abstract class BodyAbstract {
 		return index as CollisionFitlerCategory;
 	}
 
-	protected validateCollisionMask(mask: number): CollisionFitlerMask {
+	protected validateCollisionMask(mask: number): CollisionFilterMask {
 		if (typeof mask !== "number" ||
 			mask !== Math.floor(mask)) throw Error("Collision mask must be an integer");
 		if (mask < 0x00000000 || mask > 0xFFFFFFFF) throw Error("Collision mask must be 32-bit");
 
-		return mask as CollisionFitlerMask;
+		return mask as CollisionFilterMask;
 	}
 
 	protected collisionIndexToCategory(index: number): CollisionFitlerCategory {
@@ -182,7 +182,7 @@ export abstract class BodyAbstract {
 			return 31 as CollisionFilterIndex;
 		} else {
 			const index = Math.log2(category);
-			if (index !== Math.floor(index)) throw Error("Internal Matter.js body could not be fit in one collision catagory");
+			if (index !== Math.floor(index)) throw Error("Internal Matter.js body could not be fit in one collision category");
 			return index as CollisionFilterIndex;
 		}
 	}
@@ -440,7 +440,7 @@ export class GridBody extends MaterialBodyAbstract {
 			}
 		}
 
-		// combine stips width matching ends on adjacent rows 
+		// combine strips width matching ends on adjacent rows 
 		for (const [key, strip] of stripMap.entries()) {
 			let combineStripKey = key;
 
@@ -549,7 +549,7 @@ export class RayBody extends BodyAbstract {
 	velocity: Vector2;
 
 	private width: number;
-	private mask: CollisionFitlerMask;
+	private mask: CollisionFilterMask;
 
 	constructor(x: number, y: number, width: number = 0.1, options: { velocity?: Vertex2, mask?: number } = {}) {
 		super();
@@ -602,7 +602,7 @@ export class RayBody extends BodyAbstract {
 	set collisionCategory(_: number) { }
 
 	set collidesWith(category: number | number[]) {
-		this.mask = 0 as CollisionFitlerMask;
+		this.mask = 0 as CollisionFilterMask;
 		if (Array.isArray(category)) {
 			category.map((subCategory) => this.setCollidesWith(subCategory));
 		} else {
@@ -628,7 +628,7 @@ export class RayBody extends BodyAbstract {
 	}
 
 	applyForce() {
-		throw Error("RayBody can't have forces applyed");
+		throw Error("RayBody can't have forces applied");
 		return this;
 	}
 

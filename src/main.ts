@@ -18,7 +18,7 @@ export {
 	getTestStatus,
 	init,
 	update,
-	timewarp
+	timeWarp
 } from "./core";
 
 export {

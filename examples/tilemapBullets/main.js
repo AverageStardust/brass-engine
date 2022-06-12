@@ -7,12 +7,12 @@ function preload() {
 		3,
 		"tilesheet.png").map((loadPromise, i) => {
 			if (i === 0) return; // reload caches for each new image
-		loadPromise.then(() => tilemap.clearCaches());
-	});
+			loadPromise.then(() => tilemap.clearCaches());
+		});
 	Brass.loadWorldLate({
-			surface: "uint16",
-			items: "uint16"
-		},
+		surface: "uint16",
+		items: "uint16"
+	},
 		"tilemap.json"
 	);
 }

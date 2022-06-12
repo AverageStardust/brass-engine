@@ -33,7 +33,7 @@ let inited = false;
 let testStatus: true | string | null = null;
 let sketch: p5;
 let maxTimeDelta = 100;
-const timewarpList: Timewarp[] = [];
+const timeWarpList: Timewarp[] = [];
 let runningPhysics = false;
 
 
@@ -119,18 +119,18 @@ function defaultGlobalDraw() {
 	let realTime = Math.min(maxTimeDelta, deltaTime),
 		simTime = 0;
 
-	// move realTime into simTime with timewarp rates accounted
-	while (timewarpList.length > 0) {
+	// move realTime into simTime with timeWarp rates accounted
+	while (timeWarpList.length > 0) {
 		const warpedTime = Math.min(
 			realTime,
-			timewarpList[0].duration);
+			timeWarpList[0].duration);
 
 		realTime -= warpedTime;
-		simTime += warpedTime * timewarpList[0].rate;
+		simTime += warpedTime * timeWarpList[0].rate;
 
-		timewarpList[0].duration -= warpedTime;
+		timeWarpList[0].duration -= warpedTime;
 
-		if (timewarpList[0].duration <= 0) timewarpList.shift();
+		if (timeWarpList[0].duration <= 0) timeWarpList.shift();
 		else break;
 	}
 
@@ -160,6 +160,6 @@ export function update(delta?: number) {
 	updateParticles(delta);
 }
 
-export function timewarp(duration: number, rate = 0) {
-	timewarpList.push({ duration, rate });
+export function timeWarp(duration: number, rate = 0) {
+	timeWarpList.push({ duration, rate });
 }

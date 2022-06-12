@@ -38,7 +38,7 @@ export function init(sketch: p5, doRegl: boolean, drawTarget?: p5.Graphics | Dra
 		if (defaultDrawTarget instanceof ReglDrawTarget) {
 			defaultReglDrawTarget = defaultDrawTarget;
 		}
-		// @ts-ignore p5.Graphics has bad typings
+		// @ts-ignore because p5.Graphics is typed wrong
 	} else if (drawTarget instanceof p5.Graphics) {
 		defaultDrawTarget = new P5DrawTarget(
 			() => ({
@@ -220,7 +220,7 @@ export class P5DrawTarget extends DrawTarget<{ canvas: P5DrawTargetMap }> {
 			({ x, y }) => {
 				if (canvas) {
 					if (canvas.width !== x || canvas.height !== y) {
-						throw Error("P5DrawTarget found inital albedo map was of the wrong size");
+						throw Error("P5DrawTarget found initial albedo map was of the wrong size");
 					}
 					return { canvas };
 				} else {
