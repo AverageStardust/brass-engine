@@ -1,4 +1,4 @@
-import { getP5DrawTarget } from "./drawTarget";
+import { getP5DrawTarget, P5DrawTargetMap } from "./drawTarget";
 import { Tilemap } from "./tilemap";
 import { getTime } from "./time";
 import { Vector2, Vertex2 } from "./vector3";
@@ -70,7 +70,7 @@ export function setParticleLimit(limit: number) {
 	particleLimit = limit;
 }
 
-export function emit(classVar: ParticleClass, amount: number, position: Vector2, ...data: any[]) {
+export function emit(classVar: ParticleClass, amount: number, position: Vertex2, ...data: any[]) {
 	// percent of limit filled
 	const limitFilled = particles.size / particleLimit;
 	// spawn less when near/over limit
@@ -83,7 +83,7 @@ export function emit(classVar: ParticleClass, amount: number, position: Vector2,
 	}
 }
 
-export function emitSingle(classVar: ParticleClass, position: Vector2, ...data: any[]) {
+export function emitSingle(classVar: ParticleClass, position: Vertex2, ...data: any[]) {
 	// percent of limit filled
 	const limitFilled = particles.size / particleLimit;
 	// don't spawn less when over limit
@@ -93,8 +93,8 @@ export function emitSingle(classVar: ParticleClass, position: Vector2, ...data: 
 	emitParticle(classVar, position, data);
 }
 
-function emitParticle(classVar: ParticleClass, position: Vector2, data: any[]) {
-	const particle = new classVar(position, ...data);
+function emitParticle(classVar: ParticleClass, position: Vertex2, data: any[]) {
+	const particle = new classVar(Vector2.fromObjFast(position), ...data);
 
 	particles.set(Symbol(), particle);
 }
@@ -107,7 +107,7 @@ export class ParticleAbstract {
 
 	position: Vector2;
 	radius = 1;
-	protected lifetime = 5000;
+	lifetime = 5000;
 	private spawnTime: number;
 
 	constructor(position: Vertex2) {
@@ -117,14 +117,14 @@ export class ParticleAbstract {
 
 	update(delta: number) { }
 
-	draw(g = getP5DrawTarget("defaultP5").maps.canvas) {
+	draw(g: P5DrawTargetMap) {
 		g.noStroke();
 		g.fill(255, 0, 255);
 		g.circle(0, 0, 2);
 	}
 
 	alive() {
-		return this.spawnTime + this.lifetime <= getTime();
+		return this.age < 1;
 	}
 
 	// what to do when particle dies, nothing by default

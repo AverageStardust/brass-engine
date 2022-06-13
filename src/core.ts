@@ -166,7 +166,11 @@ export function timeWarp(duration: number, rate = 0) {
 	timeWarpList.push({ duration, rate });
 }
 
-export function getTimeWarp() {
+export function getTimeWarp(): Timewarp | undefined {
 	if (timeWarpList.length === 0) return { duration: Infinity, rate: 1 };
 	return timeWarpList[0];
+}
+
+export function getTimeWarps(): Timewarp[] {
+	return timeWarpList;
 }

@@ -1,4 +1,4 @@
-import { getP5DrawTarget } from "./drawTarget";
+import { getP5DrawTarget, P5DrawTargetMap } from "./drawTarget";
 import { getTime } from "./time";
 import { Vector2 } from "./vector3";
 
@@ -52,8 +52,8 @@ export abstract class ViewpointAbstract {
 	scale: number
 	translation: Vector2
 
-	private integerTranslation: boolean;
-	private integerScaling: boolean;
+	protected integerTranslation: boolean;
+	protected integerScaling: boolean;
 
 	private shakeSpeed: number;
 	private shakeStrength = 0;
@@ -79,8 +79,8 @@ export abstract class ViewpointAbstract {
 	abstract update(delta: number): void;
 
 	view(g = getP5DrawTarget("defaultP5").maps.canvas) {
-		const screenCenter = this.getEffectiveScreenCenter(g);
-		g.translate(screenCenter.x, screenCenter.y);
+		const viewOrigin = this.getViewOrigin(g);
+		g.translate(viewOrigin.x, viewOrigin.y);
 
 		g.scale(this.effectiveScale);
 
@@ -92,14 +92,13 @@ export abstract class ViewpointAbstract {
 
 	getViewArea(g = getP5DrawTarget("defaultP5").maps.canvas) {
 		const translation = this.effectiveTranslation;
-		const edgeDistance = this.getEffectiveScreenCenter(g)
-			.divScalar(this.effectiveScale);
+		translation.sub(this.getViewOrigin(g));
 
 		return {
-			minX: translation.x - edgeDistance.x,
-			maxX: translation.x + edgeDistance.x,
-			minY: translation.y - edgeDistance.y,
-			maxY: translation.y + edgeDistance.y
+			minX: translation.x,
+			maxX: translation.x + g.width,
+			minY: translation.y,
+			maxY: translation.y + g.height
 		};
 	}
 
@@ -111,8 +110,8 @@ export abstract class ViewpointAbstract {
 	screenToWorld(screenCoord: Vector2, g = getP5DrawTarget("defaultP5").maps.canvas) {
 		const coord = screenCoord.copy();
 
-		const screenCenter = this.getEffectiveScreenCenter(g);
-		coord.sub(screenCenter);
+		const viewOrigin = this.getViewOrigin(g);
+		coord.sub(viewOrigin);
 
 		coord.divScalar(this.effectiveScale);
 
@@ -124,13 +123,7 @@ export abstract class ViewpointAbstract {
 		return coord;
 	}
 
-	protected getEffectiveScreenCenter(g = getP5DrawTarget("defaultP5").maps.canvas) {
-		if (this.integerTranslation) {
-			return new Vector2(Math.round(g.width / 2), Math.round(g.height / 2));
-		}
-
-		return new Vector2(g.width / 2, g.height / 2);
-	}
+	protected abstract getViewOrigin(g: P5DrawTargetMap): Vector2;
 
 	protected get effectiveTranslation() {
 		if (this.integerTranslation) {
@@ -185,16 +178,11 @@ export class ClassicViewpoint extends ViewpointAbstract {
 		super(scale, translation, options);
 	}
 
-	view(g = getP5DrawTarget("defaultP5").maps.canvas) {
-		g.scale(this.effectiveScale);
-
-		const translation = this.effectiveTranslation;
-		g.translate(-translation.x, -translation.y);
-
-		g.translate(-this.shakePosition.x, -this.shakePosition.y);
-	}
-
 	update(delta: number) { }
+
+	protected getViewOrigin() {
+		return new Vector2(0, 0);
+	}
 }
 
 
@@ -259,6 +247,14 @@ export class Viewpoint extends ViewpointAbstract {
 		this.previousTarget = this.target.copy();
 
 		this.updateShake(delta);
+	}
+
+	protected getViewOrigin(g = getP5DrawTarget("defaultP5").maps.canvas) {
+		if (this.integerTranslation) {
+			return new Vector2(Math.round(g.width / 2), Math.round(g.height / 2));
+		}
+
+		return new Vector2(g.width / 2, g.height / 2);
 	}
 
 	set target(value) {

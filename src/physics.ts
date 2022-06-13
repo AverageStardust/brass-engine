@@ -10,10 +10,10 @@ interface Collision {
 	points: Vector2[];
 }
 type CollisionCallback = (collision: Collision) => void;
-type InternalMatterBody = Matter.Body & { collisionFilter: { category: CollisionFitlerCategory }, __brassBody__: MaterialBodyAbstract };
+type InternalMatterBody = Matter.Body & { collisionFilter: { category: CollisionFilterCategory }, __brassBody__: MaterialBodyAbstract };
 type CollisionFilterIndex = Opaque<number, "CollisionFilterIndex">; // index for bitmask, between 0 and 31 inclusive
 type CollisionFilterMask = Opaque<number, "CollisionFilterMask">; // bitmask for what categories to collide with
-type CollisionFitlerCategory = Opaque<number, "CollisionFitlerCategory">; // bitmask with one bit set for collisions
+type CollisionFilterCategory = Opaque<number, "CollisionFilterCategory">; // bitmask with one bit set for collisions
 type MatterWorldDefinition = Matter.IEngineDefinition & { spaceScale: number };
 
 
@@ -156,12 +156,12 @@ export abstract class BodyAbstract {
 		this.alive = false;
 	}
 
-	protected validateCollisionIndex(index: number): CollisionFitlerCategory {
+	protected validateCollisionIndex(index: number): CollisionFilterCategory {
 		if (typeof index !== "number" ||
 			index !== Math.floor(index)) throw Error("Collision category must be an integer");
 		if (index < 0 || index > 31) throw Error("Collision category must be in 0 through 31 inclusive");
 
-		return index as CollisionFitlerCategory;
+		return index as CollisionFilterCategory;
 	}
 
 	protected validateCollisionMask(mask: number): CollisionFilterMask {
@@ -172,9 +172,9 @@ export abstract class BodyAbstract {
 		return mask as CollisionFilterMask;
 	}
 
-	protected collisionIndexToCategory(index: number): CollisionFitlerCategory {
+	protected collisionIndexToCategory(index: number): CollisionFilterCategory {
 		this.validateCollisionIndex(index);
-		return 1 << index as CollisionFitlerCategory;
+		return 1 << index as CollisionFilterCategory;
 	}
 
 	protected collisionCategoryToIndex(category: number): CollisionFilterIndex {
