@@ -1,3 +1,5 @@
+/// <reference path = "../declareBrass.ts"/>
+
 const MAX_MAP_SIZE = 256;
 let tilemap, viewpoint, lighter;
 let player, pathfinder;
@@ -79,7 +81,7 @@ function createPlayer() {
 	});
 	player.addSensor(() => {
 		Brass.setTestStatus(true);
-		createPlayer()
+		createPlayer();
 	});
 }
 

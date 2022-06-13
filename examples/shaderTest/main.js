@@ -1,3 +1,5 @@
+/// <reference path = "../declareBrass.ts"/>
+
 let regl, triCommand;
 
 function setup() {
