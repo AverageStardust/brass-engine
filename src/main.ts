@@ -14,11 +14,12 @@ export {
 } from "./common";
 
 export {
-	setTestStatus,
-	getTestStatus,
 	init,
 	update,
-	timeWarp
+	setTestStatus,
+	getTestStatus,
+	timeWarp,
+	getTimeWarp
 } from "./core";
 
 export {
@@ -74,7 +75,8 @@ export {
 
 export {
 	getTime,
-	getExactTime
+	getExactTime,
+	getSimTime
 } from "./time";
 
 export {

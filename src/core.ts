@@ -2,7 +2,7 @@ import p5 from "p5";
 import { init as initLoader, loaded } from "./loader";
 import { init as initViewpoint, updateViewpoints, ViewpointAbstract } from "./viewpoint";
 import { DrawTarget, init as initDrawTarget, resize } from "./drawTarget";
-import { update as updateTime } from "./time";
+import { deltaSimTime, update as updateTime } from "./time";
 import { drawLoading } from "./ui";
 import { update as updateParticles } from "./particle";
 import { update as updatePathfinders } from "./pathfinder";
@@ -45,7 +45,6 @@ window.addEventListener("load", () => {
 export function setTestStatus(newStatus: boolean | string) {
 	if (newStatus === false) return;
 	if (typeof testStatus === "string") return;
-	console.log(newStatus)
 	testStatus = newStatus;
 }
 
@@ -116,17 +115,17 @@ function defaultGlobalDraw() {
 		return;
 	}
 
-	let realTime = Math.min(maxTimeDelta, deltaTime),
-		simTime = 0;
+	let realDelta = Math.min(maxTimeDelta, deltaTime),
+		simDelta = 0;
 
-	// move realTime into simTime with timeWarp rates accounted
+	// move realDelta into simDelta with timeWarp rates accounted
 	while (timeWarpList.length > 0) {
 		const warpedTime = Math.min(
-			realTime,
+			realDelta,
 			timeWarpList[0].duration);
 
-		realTime -= warpedTime;
-		simTime += warpedTime * timeWarpList[0].rate;
+		realDelta -= warpedTime;
+		simDelta += warpedTime * timeWarpList[0].rate;
 
 		timeWarpList[0].duration -= warpedTime;
 
@@ -134,15 +133,18 @@ function defaultGlobalDraw() {
 		else break;
 	}
 
-	// move leftover realTime into simTime
-	simTime += realTime;
+	// move leftover realDelta into simDelta
+	simDelta += realDelta;
+
+	// update simulation time
+	deltaSimTime(simDelta);
 
 	// @ts-ignore because this is outside of Brass engine and can't be type checked
-	if (sketch.brassUpdate !== undefined) sketch.brassUpdate(simTime);
-	update(simTime);
+	if (sketch.brassUpdate !== undefined) sketch.brassUpdate(simDelta);
+	update(simDelta);
 
 	// @ts-ignore because this is outside of Brass engine and can't be type checked
-	if (sketch.brassDraw !== undefined) sketch.brassDraw(simTime);
+	if (sketch.brassDraw !== undefined) sketch.brassDraw(simDelta);
 }
 
 export function update(delta?: number) {
@@ -162,4 +164,9 @@ export function update(delta?: number) {
 
 export function timeWarp(duration: number, rate = 0) {
 	timeWarpList.push({ duration, rate });
+}
+
+export function getTimeWarp() {
+	if (timeWarpList.length === 0) return { duration: Infinity, rate: 1 };
+	return timeWarpList[0];
 }

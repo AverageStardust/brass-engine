@@ -1,6 +1,5 @@
 import typescript from "rollup-plugin-ts";
 import { terser } from "rollup-plugin-terser";
-import sourcemaps from "rollup-plugin-sourcemaps";
 
 const banner =
     `// library : Brass Engine
@@ -15,8 +14,8 @@ const rawOutput = {
     format: "iife",
     name: "Brass",
     file: './dist/brass.js',
-    globals: { p5: "p5" },
     sourcemap: true,
+    globals: { p5: "p5" },
 };
 
 const minifyOutput = {
@@ -24,6 +23,7 @@ const minifyOutput = {
     format: "iife",
     name: "Brass",
     file: './dist/brass.min.js',
+    sourcemap: true,
     globals: { p5: "p5" },
     plugins: [
         terser({
@@ -31,8 +31,7 @@ const minifyOutput = {
                 comments: "all",
             },
         })
-    ],
-    sourcemap: true,
+    ]
 };
 
 export default {
@@ -42,7 +41,10 @@ export default {
         [rawOutput, minifyOutput],
     external: ["p5"],
     plugins: [
-        typescript(),
-        sourcemaps()
-    ]
+        typescript()
+    ],
+    onwarn: function (warn) {
+        if (warn.code === "SOURCEMAP_BROKEN") return;
+        console.error(warn.message);
+    }
 };

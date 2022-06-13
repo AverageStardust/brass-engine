@@ -62,7 +62,7 @@ async function runAllTests(baseURL) {
 
 	const promises = []
 	fs.readdirSync("./examples").forEach(example => {
-		if (example.endsWith(".html")) return;
+		if (example.search("\\.") !== -1) return;
 		const exampleURL = `${baseURL}/${example}/index.html`;
 		promises.push(runTest(`${example} on Chrome`, exampleURL, chromeCapabilities));
 		promises.push(runTest(`${example} on Firefox`, exampleURL, firefoxCapabilities));

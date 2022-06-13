@@ -1,4 +1,9 @@
-let lastUpdateTime = 0; update();
+let lastUpdateTime = 0;
+let simTime = 0;
+
+
+
+update();
 
 
 
@@ -12,4 +17,12 @@ export function getTime() {
 
 export function getExactTime() {
 	return window.performance.now();
+}
+
+export function getSimTime() {
+	return simTime;
+}
+
+export function deltaSimTime(delta: number) {
+	simTime += delta;
 }
