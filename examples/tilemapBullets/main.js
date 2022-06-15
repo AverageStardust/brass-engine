@@ -43,19 +43,19 @@ function setup() {
 		body: true,
 		tileCacheMode: "always",
 		tileCachePadding: 4,
-		getTileData(x, y) {
+		getTileData: function(x, y) {
 			return {
 				surface: this.get(x, y, this.SURFACE),
 				items: this.get(x, y, this.ITEMS)
 			};
 		},
-		isTileSolid: ({
+		isTileSolid: function({
 			surface,
 			items
-		}) => {
+		}) {
 			return surface > 101 || items > 0;
 		},
-		drawTile({
+		drawTile: function({
 			surface,
 			items
 		}, x, y, g) {

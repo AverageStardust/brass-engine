@@ -10,7 +10,7 @@ function windowResized() {
 
 function brassUpdate(delta) {
 	if (Brass.getTimeWarps().length < 2) {
-		const rate = sin(Brass.getSimTime() * 0.002) * 0.8 + 1;
+		const rate = sin(Brass.getTime() * 0.002) * 0.8 + 1;
 		Brass.timeWarp(50, rate);
 	}
 	Brass.emit(Particle, delta * 0.15, { x: width / 2, y: height / 2 });
