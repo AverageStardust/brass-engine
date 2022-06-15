@@ -5,6 +5,9 @@
 
 	# 0.16.0
 	directional light
+	start TypeDoc docs
+
+    # 0.17.0
 	regl drawn tilemaps
 
 	# future

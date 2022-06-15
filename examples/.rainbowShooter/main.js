@@ -1,11 +1,26 @@
 /// <reference path = "../declareBrass.ts"/>
 
-const splatMaxRadius = 0.2;
+const TileType = {
+	Ground: 1,
+	Wall: 2
+};
+const startPosition = {
+	x: 7.5,
+	y: 60.5,
+};
 const tileMapSize = 128;
 let viewpoint, tilemap;
 
+function preload() {
+	Brass.loadWorldLate({
+		"tile": "uint8"
+	}, "tilemap.json").then((world) => {
+		tilemap.import(world);
+	});
+}
+
 function setup() {
-	viewpoint = new Brass.Viewpoint(64);
+	viewpoint = new Brass.Viewpoint(64, Brass.Vector2.fromObj(startPosition));
 
 	Brass.init({
 		viewpoint,
@@ -18,27 +33,27 @@ function setup() {
 
 	tilemap = new Brass.Tilemap(tileMapSize, tileMapSize, {
 		fields: {
-			"wall": "uint8",
+			"tile": "uint8",
 			"splats": "sparse"
 		},
-		solidField: "wall",
 
 		drawCacheMode: "always",
 
 		getTileData: function (x, y) {
-			const wall = this.get(x, y, this.WALL);
+			const tile = this.get(x, y, this.TILE);
 
-			let neighbourWalls = [false, false, false, false];
+			let neighbourWalls = [0, 0, 0, 0];
 			let splats = [];
+			let shade = 0;
 
-			if (wall) {
+			if (tile === TileType.Wall) {
 				neighbourWalls = [
-					this.get(x + 1, y, this.WALL) ?? false,
-					this.get(x, y - 1, this.WALL) ?? false,
-					this.get(x - 1, y, this.WALL) ?? false,
-					this.get(x, y + 1, this.WALL) ?? false,
+					this.get(x + 1, y, this.TILE) ?? 0,
+					this.get(x, y - 1, this.TILE) ?? 0,
+					this.get(x - 1, y, this.TILE) ?? 0,
+					this.get(x, y + 1, this.TILE) ?? 0,
 				];
-			} else {
+			} else if (tile === TileType.Ground) {
 				for (let u = x - 1; u <= x + 1; u++) {
 					for (let v = y - 1; v <= y + 1; v++) {
 						const tileSplats = this.get(u, v, this.SPLATS);
@@ -58,47 +73,51 @@ function setup() {
 						}
 					}
 				}
+
+				shade = noise(x * 0.3, y * 0.3);
 			}
 
 			return {
-				wall,
+				tile,
+				shade,
 				neighbourWalls,
 				splats
 			};
 		},
 
-		drawOrder: function ({ wall }) {
-			// draw floor first, then walls
-			return wall ? 2 : 1;
+		drawOrder: function ({ tile }) {
+			// draw floor first
+			if (tile !== TileType.Wall) return 1;
+			else return 2; // then walls second
 		},
 
-		drawTile: function ({ wall, neighbourWalls, splats }, x, y, g) {
-			if (wall) {
+		drawTile: function ({ tile, shade, neighbourWalls, splats }, x, y, g) {
+			if (tile === TileType.Wall) {
 				g.noStroke();
 				g.fill(50, 40, 60);
 				g.rect(x, y, 1, 1);
 
 				g.strokeWeight(0.1);
 				g.strokeCap(PROJECT);
-				if (!neighbourWalls[0]) {
+				if (neighbourWalls[0] !== TileType.Wall) {
 					g.stroke(15, 5, 40);
 					g.line(x + 0.95, y + 0.05, x + 0.95, y + 0.95);
 				}
-				if (!neighbourWalls[3]) {
+				if (neighbourWalls[3] !== TileType.Wall) {
 					g.stroke(15, 5, 40);
 					g.line(x + 0.05, y + 0.95, x + 0.95, y + 0.95);
 				}
-				if (!neighbourWalls[1]) {
+				if (neighbourWalls[1] !== TileType.Wall) {
 					g.stroke(90, 85, 95);
 					g.line(x + 0.05, y + 0.05, x + 0.95, y + 0.05);
 				}
-				if (!neighbourWalls[2]) {
+				if (neighbourWalls[2] !== TileType.Wall) {
 					g.stroke(90, 85, 95);
 					g.line(x + 0.05, y + 0.05, x + 0.05, y + 0.95);
 				}
-			} else {
+			} else if (tile === TileType.Ground) {
 				g.noStroke();
-				g.fill(242);
+				g.fill(225 + shade * 30);
 				g.rect(x, y, 1, 1);
 
 				for (const splat of splats) {
@@ -136,10 +155,10 @@ function addSplat(x, y, hue) {
 function draw() {
 	Brass.setTestStatus(frameCount > 60);
 
-	tilemap.set(true, 0, 0, tilemap.WALL);
-	tilemap.set(true, 1, 1, tilemap.WALL);
-	tilemap.set(true, 2, 1, tilemap.WALL);
-	tilemap.set(true, 1, 2, tilemap.WALL);
+	tilemap.set(TileType.Wall, 0, 0, tilemap.WALL);
+	tilemap.set(TileType.Wall, 1, 1, tilemap.WALL);
+	tilemap.set(TileType.Wall, 2, 1, tilemap.WALL);
+	tilemap.set(TileType.Wall, 1, 2, tilemap.WALL);
 	addSplat(mouseX / 100, mouseY / 100, floor(random(360)));
 
 	viewpoint.view();
