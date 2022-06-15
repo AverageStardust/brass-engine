@@ -354,10 +354,7 @@ export class GridBody extends MaterialBodyAbstract {
 	private readonly width: number;
 	private readonly height: number;
 	private readonly gridScale: number;
-	private readonly chunkSize: number;
 	private readonly options: Matter.IBodyDefinition;
-	private readonly chunks = new Map<number, Matter.Body[]>();
-	private readonly changedChunks = new Set<number>();
 
 	constructor(width: number, height: number, grid: ArrayLike<any>,
 		options: Matter.IBodyDefinition = {}, gridScale = 1, chunkSize = 16) {
