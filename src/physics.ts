@@ -357,7 +357,7 @@ export class GridBody extends MaterialBodyAbstract {
 	private readonly options: Matter.IBodyDefinition;
 
 	constructor(width: number, height: number, grid: ArrayLike<any>,
-		options: Matter.IBodyDefinition = {}, gridScale = 1, chunkSize = 16) {
+		options: Matter.IBodyDefinition = {}, gridScale = 1) {
 
 		super(Matter.Body.create({}));
 		options.isStatic ??= true;
@@ -374,7 +374,6 @@ export class GridBody extends MaterialBodyAbstract {
 		this.height = height;
 		this.gridScale = gridScale;
 		this.options = options;
-		this.chunkSize = chunkSize;
 
 		this.buildBody(grid);
 	}
