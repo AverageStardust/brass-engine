@@ -1,7 +1,7 @@
 import p5 from "p5";
 import { getP5DrawTarget, P5DrawTargetMap } from "./drawTarget";
 import { getExactTime, getTime } from "./time";
-import { expect, cloneDynamicArray, createDynamicArray, createFastGraphics, decodeDynamicTypedArray, DynamicArray, DynamicArrayType, DynamicTypedArray, DynamicTypedArrayType, encodeDynamicTypedArray, Pool } from "./common";
+import { expect, cloneDynamicArray, createDynamicArray, createFastGraphics, decodeDynamicTypedArray, DynamicArray, DynamicArrayType, DynamicTypedArray, DynamicTypedArrayType, encodeDynamicTypedArray, Pool, safeBind } from "./common";
 import { getDefaultViewpoint } from "./viewpoint";
 import { GridBody } from "./physics";
 
@@ -54,10 +54,11 @@ interface TilemapAbstractOptions {
 	// name and data type stored for every tile
 	// field IDs are stored under their name as properties
 	fields?: FieldDeclaration
+	solidField?: string;
 
 	body?: boolean | Matter.IBodyDefinition;
 	autoMaintainBody?: boolean;
-	
+
 	getTileData?: (x: number, y: number) => any;
 	isTileSolid?: (data: any) => boolean;
 }
@@ -72,6 +73,7 @@ interface TilemapOptions extends TilemapAbstractOptions {
 	drawCachePoolInitalSize?: number; // how many tile caches to create on initialization
 
 	drawTile?: (data: any, x: number, y: number, g: P5DrawTargetMap) => void;
+	drawOrder?: (data: any) => number;
 	canCacheTile?: (data: any) => boolean;
 }
 
@@ -98,8 +100,9 @@ abstract class TilemapAbstract {
 
 	readonly tileSize: number;
 	protected readonly fields: SparseableDynamicArray[];
-	protected readonly fieldTypes: FieldDeclaration
 	protected readonly fieldIds: { [name: string]: number };
+	protected readonly solidFieldId: number;
+	protected readonly fieldTypes: FieldDeclaration
 
 	private readonly hasBody: boolean;
 	private readonly autoMaintainBody: boolean;
@@ -119,10 +122,17 @@ abstract class TilemapAbstract {
 		this.fieldTypes = options.fields ?? {
 			"_DEFAULTFIELD": "uint8"
 		};
+
+		const solidFieldName = options.solidField ?? "";
+
+		if (this.fieldTypes[solidFieldName] === undefined) {
+			this.fieldTypes[solidFieldName] = "uint8";
+		} else if (this.fieldTypes[solidFieldName] !== "uint8") {
+			throw Error("Solid field must be of type uint8");
+		}
+
+		this.fields = [];
 		this.fieldIds = {};
-
-		this.fieldTypes["_SOLIDFIELD"] = "uint8";
-
 		for (let fieldName in this.fieldTypes) {
 			const fieldType = this.fieldTypes[fieldName];
 
@@ -139,14 +149,15 @@ abstract class TilemapAbstract {
 			this.fields.push(this.createField(fieldType));
 		}
 
+		this.solidFieldId = this.fieldIds[solidFieldName];
+
 		this.hasBody = !!options.body;
 		this.autoMaintainBody = options.autoMaintainBody ?? true;
 
-		this.getTileData = options.getTileData ?? this.get;
-		this.isTileSolid = options.isTileSolid ?? null;
+		this.getTileData = this.bindOptionsFunction(options.getTileData) ?? this.get;
+		this.isTileSolid = this.bindOptionsFunction(options.isTileSolid) ?? null;
 
-		// @ts-ignore because this._SOLIDFIELD is always defined
-		const solidField = this.fields[this._SOLIDFIELD] as SolidFieldType;
+		const solidField = this.fields[this.solidFieldId] as SolidFieldType;
 
 		if (this.isTileSolid !== null) {
 			const nullTileSolid = this.isTileSolid(this.getTileData(0, 0)) ? 1 : 0;
@@ -168,6 +179,11 @@ abstract class TilemapAbstract {
 		tilemapList.push(this);
 	}
 
+	bindOptionsFunction(func?: Function) {
+		if (!func) return func;
+		return safeBind(func, this);
+	}
+
 	maintain() {
 		if (this.autoMaintainBody) this.maintainBody();
 	}
@@ -176,8 +192,7 @@ abstract class TilemapAbstract {
 		if (this.body === null ||
 			this.bodyValid) return;
 
-		// @ts-ignore because this._SOLIDFIELD is always defined
-		const solidField = this.fields[this._SOLIDFIELD] as SolidFieldType;
+		const solidField = this.fields[this.solidFieldId] as SolidFieldType;
 
 		this.body.buildBody(solidField.data, minX, minY, maxX, maxY);
 
@@ -216,8 +231,7 @@ abstract class TilemapAbstract {
 	}
 
 	getSolid(x: number, y: number) {
-		// @ts-ignore because this._SOLIDFIELD is always defined
-		const solid = this.get(x, y, this._SOLIDFIELD);
+		const solid = this.get(x, y, this.solidFieldId);
 		if (solid === undefined) return undefined;
 		return Boolean(solid);
 	}
@@ -326,8 +340,7 @@ abstract class TilemapAbstract {
 	private updateSolidAtTile(x: number, y: number) {
 		if (this.isTileSolid === null) return;
 
-		// @ts-ignore because this._SOLIDFIELD is always defined
-		const solidField = this.fields[this._SOLIDFIELD] as SolidFieldType;
+		const solidField = this.fields[this.solidFieldId] as SolidFieldType;
 		const isSolid = this.isTileSolid(this.getTileData(x, y));
 		const solidIndex = x + y * this.width;
 
@@ -343,8 +356,8 @@ abstract class TilemapAbstract {
 	clearFields() {
 		for (const fieldName in this.fieldIds) {
 			const fieldId = this.fieldIds[fieldName];
-			// @ts-ignore because this._SOLIDFIELD is always defined
-			if (fieldId === this._SOLIDFIELD) continue;
+
+			if (fieldId === this.solidFieldId) continue;
 			const fieldType = this.fieldTypes[fieldName]
 
 			this.fields[fieldId] = this.createField(fieldType);
@@ -393,6 +406,7 @@ export class Tilemap extends TilemapAbstract {
 	private readonly drawCachePaddingTime: number;
 
 	private readonly drawTile: (data: any, x: number, y: number, g: P5DrawTargetMap) => void;
+	private readonly drawOrder: ((data: any) => number) | null;
 	private readonly canCacheTile: ((data: any) => boolean) | null;
 
 	private readonly chunkPool: Pool<P5CacheChunk> | null;
@@ -440,8 +454,9 @@ export class Tilemap extends TilemapAbstract {
 			this.cacheableChunks = Array(drawCacheChunkSize).fill(null);
 		}
 
-		this.drawTile = options.drawTile ?? this.defaultDrawTile;
-		this.canCacheTile = options.canCacheTile ?? null;
+		this.drawTile = this.bindOptionsFunction(options.drawTile) ?? this.defaultDrawTile;
+		this.drawOrder = this.bindOptionsFunction(options.drawOrder) ?? null;
+		this.canCacheTile = this.bindOptionsFunction(options.canCacheTile) ?? null;
 
 		if (this.canCacheTile === null &&
 			this.drawCacheMode === "check") {
@@ -608,13 +623,31 @@ export class Tilemap extends TilemapAbstract {
 		cache.clear(0, 0, 0, 0);
 		cache.scale(this.drawCacheTileResolution);
 
+		const drawList = [];
+
 		for (let x = 0; x < this.drawCacheChunkSize; x++) {
 			for (let y = 0; y < this.drawCacheChunkSize; y++) {
 				const worldX = x + chunkX * this.drawCacheChunkSize,
 					worldY = y + chunkY * this.drawCacheChunkSize;
 
 				const data = this.getTileData(worldX, worldY);
-				this.drawTile(data, x, y, cache);
+				if (this.drawOrder) {
+					drawList.push({
+						data,
+						x,
+						y,
+						order: this.drawOrder(data)
+					});
+				} else {
+					this.drawTile(data, x, y, cache);
+				}
+			}
+		}
+
+		if (this.drawOrder) {
+			drawList.sort((a, b) => a.order - b.order);
+			for (const drawItem of drawList) {
+				this.drawTile(drawItem.data, drawItem.x, drawItem.y, cache);
 			}
 		}
 
@@ -648,10 +681,29 @@ export class Tilemap extends TilemapAbstract {
 	private drawTiles(minX: number, minY: number, maxX: number, maxY: number, g: P5DrawTargetMap) {
 		g.push();
 
+		const drawList = [];
+
 		for (let x = minX; x < maxX; x++) {
 			for (let y = minY; y < maxY; y++) {
 				const data = this.getTileData(x, y);
-				this.drawTile(data, x, y, g);
+
+				if (this.drawOrder) {
+					drawList.push({
+						data,
+						x,
+						y,
+						order: this.drawOrder(data)
+					});
+				} else {
+					this.drawTile(data, x, y, g);
+				}
+			}
+		}
+
+		if (this.drawOrder) {
+			drawList.sort((a, b) => a.order - b.order);
+			for (const drawItem of drawList) {
+				this.drawTile(drawItem.data, drawItem.x, drawItem.y, g);
 			}
 		}
 

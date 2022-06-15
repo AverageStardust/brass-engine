@@ -3,7 +3,7 @@ import { terser } from "rollup-plugin-terser";
 
 const banner =
     `// library : Brass Engine
-// version : 0.14.0
+// version : 0.15.0dev
 // author  : WD_STEVE
 // required: p5
 // optional: p5.sound, matter.js, regl.js
@@ -14,7 +14,6 @@ const rawOutput = {
     format: "iife",
     name: "Brass",
     file: './dist/brass.js',
-    sourcemap: true,
     globals: { p5: "p5" },
 };
 
@@ -23,7 +22,6 @@ const minifyOutput = {
     format: "iife",
     name: "Brass",
     file: './dist/brass.min.js',
-    sourcemap: true,
     globals: { p5: "p5" },
     plugins: [
         terser({

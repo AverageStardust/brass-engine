@@ -1,5 +1,13 @@
 /*
+	# 0.15.0
+	tilemap drawing order
+	key-binding system
+
+	# 0.16.0
 	directional light
+	regl drawn tilemaps
+
+	# future
 	UI system
 	inventory system
 */

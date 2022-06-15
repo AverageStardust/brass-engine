@@ -36,6 +36,13 @@ export function expect(condition: boolean, message = "Expectation failed"): asse
 }
 
 
+
+export function safeBind(func: Function, thisArg: any, ...argArray: any[]) {
+	assert(func.hasOwnProperty("prototype"), `Can't bind context to function (${func.name}); Use the Function keyword and do not bind before-hand`);
+
+	return func.bind(thisArg, ...argArray);
+}
+
 export function createColor(...colArgs: ColorArgs) {
 	// @ts-ignore because this is safe, if not type-checkable
 	return color(...colArgs);
