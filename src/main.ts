@@ -1,13 +1,16 @@
 /*
 	# 0.15.0
 	tilemap drawing order
-	key-binding system
+	InputMapper system
+	KeyboardInputDevice
+	MouseInputDevice
+	MouseInputDevice
 
 	# 0.16.0
 	directional light
 	start TypeDoc docs
 
-    # 0.17.0
+	# 0.17.0
 	regl drawn tilemaps
 
 	# future
@@ -33,6 +36,11 @@ export {
 	getTimeWarp,
 	getTimeWarps
 } from "./core";
+
+export {
+	InputMapper,
+	disableContextMenu
+} from "./inputMapper";
 
 export {
 	Lighter
@@ -109,7 +117,7 @@ export {
 	getDrawTarget,
 	getP5DrawTarget,
 	getReglDrawTarget,
-	
+
 	resize,
 	getRegl,
 	refreshRegl,

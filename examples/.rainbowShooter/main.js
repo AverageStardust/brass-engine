@@ -9,7 +9,7 @@ const startPosition = {
 	y: 60.5,
 };
 const tileMapSize = 128;
-let viewpoint, tilemap;
+let viewpoint, tilemap, player;
 
 function preload() {
 	Brass.loadWorldLate({
@@ -25,11 +25,11 @@ function setup() {
 	Brass.init({
 		viewpoint,
 		matter: {
-			gravity: {
-				scale: 0
-			}
+			spaceScale: 20
 		}
 	});
+
+	player = new Player();
 
 	tilemap = new Brass.Tilemap(tileMapSize, tileMapSize, {
 		fields: {
@@ -38,6 +38,8 @@ function setup() {
 		},
 
 		drawCacheMode: "always",
+
+		body: true,
 
 		getTileData: function (x, y) {
 			const tile = this.get(x, y, this.TILE);
@@ -83,6 +85,10 @@ function setup() {
 				neighbourWalls,
 				splats
 			};
+		},
+
+		isTileSolid: function ({ tile }) {
+			return tile === TileType.Wall;
 		},
 
 		drawOrder: function ({ tile }) {
@@ -152,15 +158,27 @@ function addSplat(x, y, hue) {
 	tilemap.clearCacheAtTile(u + 1, v + 1);
 }
 
-function draw() {
+function brassUpdate() {
 	Brass.setTestStatus(frameCount > 60);
 
-	tilemap.set(TileType.Wall, 0, 0, tilemap.WALL);
-	tilemap.set(TileType.Wall, 1, 1, tilemap.WALL);
-	tilemap.set(TileType.Wall, 2, 1, tilemap.WALL);
-	tilemap.set(TileType.Wall, 1, 2, tilemap.WALL);
-	addSplat(mouseX / 100, mouseY / 100, floor(random(360)));
+	player.update();
+}
 
+function brassDraw() {
 	viewpoint.view();
 	tilemap.draw();
+	Brass.drawColliders(0.1);
+}
+
+class Player {
+	constructor() {
+		this.input = new Brass.InputMapper();
+		this.body = new Brass.CircleBody(startPosition.x, startPosition.y, 0.4, {
+			inertia: Infinity, friction: 0, frictionStatic: 0, frictionAir: 0.25
+		});
+	}
+
+	update() {
+		this.body.velocity.add(this.input.vector.get("movement").multScalar(0.04));
+	}
 }

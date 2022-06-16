@@ -67,7 +67,9 @@ export function update(delta: number) {
 	enforceInit("updating physics");
 
 	if (lastDelta === null) lastDelta = delta;
-	Matter.Engine.update(engine, delta, delta / lastDelta);
+	if (lastDelta !== 0) {
+		Matter.Engine.update(engine, delta, delta / lastDelta);
+	}
 	lastDelta = delta;
 
 	for (const [_, ray] of rays.entries()) {

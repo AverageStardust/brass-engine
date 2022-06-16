@@ -1,7 +1,8 @@
 import p5 from "p5";
+import { init as initInput, update as updateInput } from "./inputMapper";
+import { DrawTarget, init as initDrawTarget, resize } from "./drawTarget";
 import { init as initLoader, loaded } from "./loader";
 import { init as initViewpoint, updateViewpoints, ViewpointAbstract } from "./viewpoint";
-import { DrawTarget, init as initDrawTarget, resize } from "./drawTarget";
 import { deltaSimTime, update as updateTime } from "./time";
 import { drawLoading } from "./ui";
 import { update as updateParticles } from "./particle";
@@ -74,6 +75,8 @@ export function init(options: InitOptions = {}) {
 		}
 		sketch = globalThis as unknown as p5;
 	}
+
+	initInput();
 
 	initDrawTarget(sketch, options.regl ?? false, options.drawTarget);
 
@@ -155,6 +158,7 @@ export function update(delta?: number) {
 	}
 
 	updateTime();
+	updateInput();
 	if (runningPhysics) updatePhysics(delta);
 	updateViewpoints(delta);
 	updateTilemaps();
