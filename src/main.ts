@@ -1,11 +1,4 @@
 /*
-	# 0.15.0
-	tilemap drawing order
-	InputMapper system
-	KeyboardInputDevice
-	MouseInputDevice
-	MouseInputDevice
-
 	# 0.16.0
 	directional light
 	start TypeDoc docs
@@ -90,7 +83,7 @@ export {
 } from "./physics";
 
 export {
-	Tilemap
+	P5Tilemap
 } from "./tilemap";
 
 export {
@@ -110,20 +103,20 @@ export * from "./vector3";
 export {
 	DrawTarget,
 	P5DrawTarget,
-	ReglDrawTarget,
+	CanvasDrawTarget,
 
 	setDrawTarget,
 	hasDrawTarget,
 	getDrawTarget,
 	getP5DrawTarget,
-	getReglDrawTarget,
+	getCanvasDrawTarget,
 
 	resize,
 	getRegl,
 	refreshRegl,
 	refreshReglFast,
 	displayRegl
-} from "./drawTarget";
+} from "./drawSurface";
 
 export {
 	ClassicViewpoint,

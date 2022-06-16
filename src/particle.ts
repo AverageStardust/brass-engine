@@ -1,5 +1,5 @@
-import { getP5DrawTarget, P5DrawTargetMap } from "./drawTarget";
-import { Tilemap } from "./tilemap";
+import { getP5DrawTarget, P5DrawTargetMap } from "./drawSurface";
+import { TilemapAbstract } from "./tilemap";
 import { getTime } from "./time";
 import { Vector2, Vertex2 } from "./vector3";
 import { getDefaultViewpoint } from "./viewpoint";
@@ -30,8 +30,9 @@ export function update(delta: number) {
 	}
 }
 
-export function draw(v = getDefaultViewpoint(), g = getP5DrawTarget("defaultP5").maps.canvas) {
-	const viewArea = v.getViewArea(g);
+export function draw(v = getDefaultViewpoint(), d = getP5DrawTarget("defaultP5")) {
+	const g = d.getMaps().canvas;
+	const viewArea = v.getViewArea(d);
 
 	for (const [_, particle] of particles.entries()) {
 		const visibleX = particle.position.x + particle.radius > viewArea.minX &&
@@ -151,7 +152,7 @@ export class VelocityParticleAbstract extends ParticleAbstract {
 	}
 
 	// simple collision without matter.js
-	protected collide(tilemap: Tilemap) {
+	protected collide(tilemap: TilemapAbstract) {
 		const { x, y } = this.position.copy().divScalar(tilemap.tileSize);
 		const radius = this.radius / tilemap.tileSize;
 		let deltaX = 0, deltaY = 0;

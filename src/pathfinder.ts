@@ -1,6 +1,6 @@
 import { expect, MappedHeap, Opaque } from "./common";
-import { getP5DrawTarget } from "./drawTarget";
-import { Tilemap } from "./tilemap";
+import { getP5DrawTarget } from "./drawSurface";
+import { TilemapAbstract } from "./tilemap";
 import { getExactTime, getTime } from "./time";
 import { Vector2, Vertex2 } from "./vector3";
 
@@ -484,9 +484,9 @@ interface AStarState {
 }
 
 export class AStarPathfinder extends PathfinderAbstract {
-	tilemap: Tilemap;
+	tilemap: TilemapAbstract;
 
-	constructor(tilemap: Tilemap, options: PathfinderOptions = {}) {
+	constructor(tilemap: TilemapAbstract, options: PathfinderOptions = {}) {
 		options.width = tilemap.width;
 		options.height = tilemap.height;
 		options.scale = tilemap.tileSize;
@@ -745,7 +745,8 @@ class PathAgent {
 		this.leadership = leadership;
 	}
 
-	drawPath(thickness = 0.2, fillColor = "red", g = getP5DrawTarget("defaultP5").maps.canvas) {
+	drawPath(thickness = 0.2, fillColor = "red", d = getP5DrawTarget("defaultP5")) {
+		const g = d.getMaps().canvas;
 		if (this.position === null) return;
 
 		g.push();

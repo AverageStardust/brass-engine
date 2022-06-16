@@ -25,21 +25,23 @@ function setup() {
 	Brass.init({
 		viewpoint,
 		matter: {
-			spaceScale: 20
+			spaceScale: 10
 		}
 	});
 
 	player = new Player();
 
-	tilemap = new Brass.Tilemap(tileMapSize, tileMapSize, {
+	tilemap = new Brass.P5Tilemap(tileMapSize, tileMapSize, {
 		fields: {
 			"tile": "uint8",
 			"splats": "sparse"
 		},
 
-		drawCacheMode: "always",
-
 		body: true,
+		
+		tileCacheMode: "always",
+		tileCachePadding: 4,
+		drawCacheWEBGLcomposite: true,
 
 		getTileData: function (x, y) {
 			const tile = this.get(x, y, this.TILE);
@@ -167,18 +169,25 @@ function brassUpdate() {
 function brassDraw() {
 	viewpoint.view();
 	tilemap.draw();
-	Brass.drawColliders(0.1);
+	player.draw();
 }
 
 class Player {
 	constructor() {
 		this.input = new Brass.InputMapper();
 		this.body = new Brass.CircleBody(startPosition.x, startPosition.y, 0.4, {
-			inertia: Infinity, friction: 0, frictionStatic: 0, frictionAir: 0.25
+			inertia: Infinity, friction: 0, frictionStatic: 0, frictionAir: 0.3
 		});
 	}
 
 	update() {
-		this.body.velocity.add(this.input.vector.get("movement").multScalar(0.04));
+		this.body.applyForce(this.input.vector.get("movement").multScalar(0.1));
+		viewpoint.target = this.body.position;
+	}
+
+	draw() {
+		noStroke();
+		fill(220, 170, 20);
+		circle(this.body.position.x, this.body.position.y, 0.8);
 	}
 }

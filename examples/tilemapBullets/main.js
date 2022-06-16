@@ -35,14 +35,18 @@ function setup() {
 
 	viewpoint.position = player.position;
 
-	tilemap = new Brass.Tilemap(MAX_MAP_SIZE, MAX_MAP_SIZE, {
+	tilemap = new Brass.P5Tilemap(MAX_MAP_SIZE, MAX_MAP_SIZE, {
 		fields: {
 			surface: "uint16",
 			items: "uint16"
 		},
+		
 		body: true,
+
 		tileCacheMode: "always",
 		tileCachePadding: 4,
+		drawCacheWEBGLcomposite: true,
+
 		getTileData: function(x, y) {
 			return {
 				surface: this.get(x, y, this.SURFACE),

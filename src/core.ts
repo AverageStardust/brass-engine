@@ -1,6 +1,6 @@
 import p5 from "p5";
 import { init as initInput, update as updateInput } from "./inputMapper";
-import { DrawTarget, init as initDrawTarget, resize } from "./drawTarget";
+import { DrawTarget, init as initDrawTarget, resize } from "./drawSurface";
 import { init as initLoader, loaded } from "./loader";
 import { init as initViewpoint, updateViewpoints, ViewpointAbstract } from "./viewpoint";
 import { deltaSimTime, update as updateTime } from "./time";

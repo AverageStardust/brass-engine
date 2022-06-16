@@ -5,8 +5,6 @@ let simTime = 0;
 
 update();
 
-
-
 export function update() {
 	lastUpdateTime = Math.round(getExactTime());
 }

@@ -1,5 +1,5 @@
 import p5 from "p5";
-import { getP5DrawTarget, P5DrawTargetMap } from "./drawTarget";
+import { getP5DrawTarget, P5DrawTarget, P5DrawTargetMap } from "./drawSurface";
 import { getExactTime, getTime } from "./time";
 import { expect, cloneDynamicArray, createDynamicArray, createFastGraphics, decodeDynamicTypedArray, DynamicArray, DynamicArrayType, DynamicTypedArray, DynamicTypedArrayType, encodeDynamicTypedArray, Pool, safeBind } from "./common";
 import { getDefaultViewpoint } from "./viewpoint";
@@ -63,7 +63,7 @@ interface TilemapAbstractOptions {
 	isTileSolid?: (data: any) => boolean;
 }
 
-interface TilemapOptions extends TilemapAbstractOptions {
+interface P5TilemapOptions extends TilemapAbstractOptions {
 	drawCacheMode?: "never" | "check" | "always";
 	drawCacheChunkSize?: number; // tiles per cache chunk
 	drawCacheTileResolution?: number; // pixels per tile in chunk cache
@@ -71,6 +71,7 @@ interface TilemapOptions extends TilemapAbstractOptions {
 	drawCachePadding?: number; // tiles off-screen should chunks will be rendered
 	drawCachePaddingTime?: number; // milliseconds used on off-screen chunks rendering
 	drawCachePoolInitalSize?: number; // how many tile caches to create on initialization
+	drawCacheWEBGLcomposite?: boolean; // use WEBGL to join chunks into finished image
 
 	drawTile?: (data: any, x: number, y: number, g: P5DrawTargetMap) => void;
 	drawOrder?: (data: any) => number;
@@ -94,7 +95,7 @@ export function update() {
 	}
 }
 
-abstract class TilemapAbstract {
+export abstract class TilemapAbstract {
 	readonly width: number;
 	readonly height: number;
 
@@ -397,7 +398,7 @@ abstract class TilemapAbstract {
 	}
 }
 
-export class Tilemap extends TilemapAbstract {
+export class P5Tilemap extends TilemapAbstract {
 	readonly drawCacheMode: "never" | "check" | "always"
 	readonly drawCacheChunkSize: number;
 	private readonly drawCacheTileResolution: number;
@@ -413,7 +414,7 @@ export class Tilemap extends TilemapAbstract {
 	private readonly chunks: (P5CacheChunk | null)[];
 	private readonly cacheableChunks: (boolean | null)[];
 
-	constructor(width: number, height: number, options: TilemapOptions = {}) {
+	constructor(width: number, height: number, options: P5TilemapOptions = {}) {
 		super(width, height, options);
 
 		// get tile cache properties
@@ -464,8 +465,9 @@ export class Tilemap extends TilemapAbstract {
 		}
 	}
 
-	draw(v = getDefaultViewpoint(), g = getP5DrawTarget("defaultP5").maps.canvas) {
-		const viewArea = v.getViewArea(g);
+	draw(v = getDefaultViewpoint(), d = getP5DrawTarget("defaultP5")) {
+		const g = d.getMaps().canvas;
+		const viewArea = v.getViewArea(d);
 
 		// lock drawing to inside tile map
 		viewArea.minX = Math.max(0, viewArea.minX / this.tileSize);
@@ -499,7 +501,7 @@ export class Tilemap extends TilemapAbstract {
 				// this.drawCacheMode !== "never" thus
 				expect(this.chunkPool !== null);
 
-				this.padChunks(alwaysCache, v, g);
+				this.padChunks(alwaysCache, v, d);
 
 				// loop through every tile cache chunk
 				for (let x = viewArea.minX; x < viewArea.maxX; x++) {
@@ -541,10 +543,11 @@ export class Tilemap extends TilemapAbstract {
 		pop();
 	}
 
-	private padChunks(alwaysCache: boolean, v = getDefaultViewpoint(), g = getP5DrawTarget("defaultP5").maps.canvas) {
+	private padChunks(alwaysCache: boolean, v = getDefaultViewpoint(), d: P5DrawTarget) {
+		const g = d.getMaps().canvas;
 		expect(this.chunkPool !== null);
 
-		const viewArea = v.getViewArea(g);
+		const viewArea = v.getViewArea(d);
 
 		// add padding and lock drawing to inside tile map
 		viewArea.minX = Math.max(0,
@@ -710,7 +713,7 @@ export class Tilemap extends TilemapAbstract {
 		g.pop();
 	}
 
-	private defaultDrawTile(data: any, x: number, y: number, g = getP5DrawTarget("defaultP5").maps.canvas) {
+	private defaultDrawTile(data: any, x: number, y: number, g: P5DrawTargetMap) {
 		g.noStroke();
 
 		const brightness = (x + y) % 2 * 255;

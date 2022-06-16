@@ -1,5 +1,5 @@
 import p5 from "p5";
-import { getP5DrawTarget } from "./drawTarget";
+import { DrawSurfaceAbstract, getP5DrawTarget, P5DrawBuffer, P5DrawSurface, P5DrawTarget, P5DrawTargetMap } from "./drawSurface";
 import { ColorArgs, createColor, createFastGraphics } from "./common";
 import { getDefaultViewpoint } from "./viewpoint";
 
@@ -14,7 +14,7 @@ interface LighterOptions {
 
 
 export class Lighter {
-	private _lightMap: p5.Graphics | null = null;
+	private lightMap: P5DrawBuffer = new P5DrawBuffer();
 	private resolution: number;
 	private _blur: number;
 	private color: p5.Color;
@@ -26,36 +26,27 @@ export class Lighter {
 	}
 
 	// light
-	begin(v = getDefaultViewpoint(), g = getP5DrawTarget("defaultP5").maps.canvas) {
-		const size = this.getLightMapSize(g);
-
-		if (this._lightMap === null) {
-			this._lightMap = createFastGraphics(size.x, size.y);
-			this.lightMap.blendMode(ADD);
-			this.light(this.color);
-		} else {
-			if (this._lightMap.width !== size.x ||
-				this._lightMap.height !== size.y) {
-				this._lightMap.resizeCanvas(size.x, size.y, true);
-				this._lightMap.clear(0, 0, 0, 255);
-			}
-		}
+	begin(v = getDefaultViewpoint(), d = getP5DrawTarget("defaultP5")) {
+		this.lightMap.sizeMaps(d.getSize(this.resolution))
 
 		this.resetLightMap();
+
 		const originalScale = v.scale;
 		v.scale *= this.resolution;
-		v.view(this.lightMap);
+		v.view(d);
 		v.scale = originalScale;
 
 		return this;
 	}
 
-	end(g = getP5DrawTarget("defaultP5").maps.canvas) {
+	end(d: P5DrawSurface = getP5DrawTarget("defaultP5")) {
+		const g = d.getMaps().canvas;
+
 		g.push();
 		g.resetMatrix();
 
 		g.blendMode(MULTIPLY);
-		g.image(this.lightMap, 0, 0, width, height);
+		g.image(this.getLightCanvas() as any, 0, 0, width, height);
 
 		g.pop();
 	}
@@ -70,19 +61,37 @@ export class Lighter {
 	}
 
 	light(...colArgs: ColorArgs) {
-		this.setLightMapColor(...colArgs);
+		const lightCanvas = this.getLightCanvas();
+
+		const col = createColor(...colArgs);
+
+		lightCanvas.fill(col);
+
+		if (this._blur > 0) {
+			const r = red(col), g = green(col), b = blue(col);
+			lightCanvas.stroke(r / 2, g / 2, b / 2);
+			lightCanvas.strokeWeight(this._blur);
+		} else {
+			lightCanvas.noStroke();
+		}
+
+		this.color = col;
 
 		return this;
 	}
 
 	point(x: number, y: number, r: number) {
-		this.lightMap.circle(x, y, r * 2);
+		const lightCanvas = this.getLightCanvas();
+
+		lightCanvas.circle(x, y, r * 2);
 
 		return this;
 	}
 
 	cone(x: number, y: number, angle: number, width = HALF_PI, distance = 1000) {
-		this.lightMap.triangle(x, y,
+		const lightCanvas = this.getLightCanvas();
+
+		lightCanvas.triangle(x, y,
 			x + Math.cos(angle - width / 2) * distance,
 			y + Math.sin(angle - width / 2) * distance,
 			x + Math.cos(angle + width / 2) * distance,
@@ -92,45 +101,26 @@ export class Lighter {
 	}
 
 	world() {
-		this.lightMap.background(this.color);
+		const lightCanvas = this.getLightCanvas();
+
+		lightCanvas.background(this.color);
 
 		return this;
 	}
 
-	private getLightMapSize(g = getP5DrawTarget("defaultP5").maps.canvas) {
-		return {
-			x: Math.ceil(g.width * this.resolution),
-			y: Math.ceil(g.height * this.resolution)
-		};
-	}
-
-	private setLightMapColor(...colArgs: ColorArgs) {
-		const col = createColor(...colArgs);
-
-		this.lightMap.fill(col);
-
-		if (this._blur > 0) {
-			const r = red(col), g = green(col), b = blue(col);
-			this.lightMap.stroke(r / 2, g / 2, b / 2);
-			this.lightMap.strokeWeight(this._blur);
-		} else {
-			this.lightMap.noStroke();
-		}
-
-		this.color = col;
-	}
-
 	private resetLightMap() {
-		this.lightMap.push();
-		this.lightMap.blendMode(BLEND);
-		this.lightMap.background(0);
-		this.lightMap.pop();
+		const lightCanvas = this.getLightCanvas();
 
-		this.lightMap.resetMatrix();
+		lightCanvas.push();
+		lightCanvas.blendMode(BLEND);
+		lightCanvas.background(0);
+		lightCanvas.pop();
+
+		lightCanvas.resetMatrix();
 	}
 
-	private get lightMap() {
-		if (this._lightMap !== null) return this._lightMap;
-		throw Error(`Lighter.begin() must be ran before using lighting`);
+	private getLightCanvas() {
+		if (!this.lightMap.hasSize()) throw Error(`Lighter.begin() must be ran before using lighting`);
+		return this.lightMap.getMaps().canvas;
 	}
 }

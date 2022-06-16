@@ -1,4 +1,4 @@
-import { getP5DrawTarget, P5DrawTargetMap } from "./drawTarget";
+import { getP5DrawTarget, P5DrawTarget, P5DrawTargetMap } from "./drawSurface";
 import { getTime } from "./time";
 import { Vector2 } from "./vector3";
 
@@ -78,8 +78,10 @@ export abstract class ViewpointAbstract {
 	// camera
 	abstract update(delta: number): void;
 
-	view(g = getP5DrawTarget("defaultP5").maps.canvas) {
-		const viewOrigin = this.getViewOrigin(g);
+	view(d = getP5DrawTarget("defaultP5")) {
+		const g = d.getMaps().canvas;
+
+		const viewOrigin = this.getViewOrigin(d);
 		g.translate(viewOrigin.x, viewOrigin.y);
 
 		g.scale(this.effectiveScale);
@@ -90,9 +92,11 @@ export abstract class ViewpointAbstract {
 		g.translate(-this.shakePosition.x, -this.shakePosition.y);
 	}
 
-	getViewArea(g = getP5DrawTarget("defaultP5").maps.canvas) {
+	getViewArea(d = getP5DrawTarget("defaultP5")) {
+		const g = d.getMaps().canvas;
+
 		const translation = this.effectiveTranslation;
-		translation.sub(this.getViewOrigin(g));
+		translation.sub(this.getViewOrigin(d));
 
 		return {
 			minX: translation.x,
@@ -107,10 +111,12 @@ export abstract class ViewpointAbstract {
 		this.translation.add(worldTraslation);
 	}
 
-	screenToWorld(screenCoord: Vector2, g = getP5DrawTarget("defaultP5").maps.canvas) {
+	screenToWorld(screenCoord: Vector2, d = getP5DrawTarget("defaultP5")) {
+		const g = d.getMaps().canvas;
+
 		const coord = screenCoord.copy();
 
-		const viewOrigin = this.getViewOrigin(g);
+		const viewOrigin = this.getViewOrigin(d);
 		coord.sub(viewOrigin);
 
 		coord.divScalar(this.effectiveScale);
@@ -123,7 +129,7 @@ export abstract class ViewpointAbstract {
 		return coord;
 	}
 
-	protected abstract getViewOrigin(g: P5DrawTargetMap): Vector2;
+	protected abstract getViewOrigin(g: P5DrawTarget): Vector2;
 
 	protected get effectiveTranslation() {
 		if (this.integerTranslation) {
@@ -249,7 +255,9 @@ export class Viewpoint extends ViewpointAbstract {
 		this.updateShake(delta);
 	}
 
-	protected getViewOrigin(g = getP5DrawTarget("defaultP5").maps.canvas) {
+	protected getViewOrigin(d: P5DrawTarget) {
+		const g = d.getMaps().canvas;
+
 		if (this.integerTranslation) {
 			return new Vector2(Math.round(g.width / 2), Math.round(g.height / 2));
 		}

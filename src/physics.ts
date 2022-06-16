@@ -1,5 +1,5 @@
 import { Opaque } from "./common";
-import { getP5DrawTarget } from "./drawTarget";
+import { getP5DrawTarget } from "./drawSurface";
 import { Vector2, Vertex2, watchVector } from "./vector3";
 
 
@@ -25,6 +25,7 @@ let world: Matter.World;
 let spaceScale: number;
 const rays: Map<symbol, RayBody> = new Map();
 const bodies: { [index: CollisionFilterIndex]: Map<number, MaterialBodyAbstract> } = Array(32).fill(null).map(() => new Map());
+const forceUnit = 1e-6;
 
 
 
@@ -83,7 +84,8 @@ export function update(delta: number) {
 	}
 }
 
-export function drawColliders(weight = 0.5, g = getP5DrawTarget("defaultP5").maps.canvas) {
+export function drawColliders(weight = 0.5, d = getP5DrawTarget("defaultP5")) {
+	const g = d.getMaps().canvas;
 	g.push();
 	g.noFill();
 	g.stroke(0, 255, 0);
@@ -310,7 +312,8 @@ abstract class MaterialBodyAbstract extends BodyAbstract {
 	}
 
 	applyForce(force: Vertex2, position = this.position) {
-		const matterForce = Matter.Vector.create(force.x * spaceScale, force.y * spaceScale);
+		const forceScale = spaceScale * spaceScale * spaceScale * forceUnit;
+		const matterForce = Matter.Vector.create(force.x * forceScale, force.y * forceScale);
 		const matterPosition = Matter.Vector.create(position.x * spaceScale, position.y * spaceScale);
 		Matter.Body.applyForce(this.body, matterPosition, matterForce);
 		return this;
