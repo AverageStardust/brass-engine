@@ -83,7 +83,7 @@ function runTest(name, ...args) {
 	return new Promise(async (resolve, reject) => {
 		try {
 			await runTestUnprotected(name, ...args);
-			console.log(`Passed test: ${name}`);
+			console.log(`Finished test: ${name}`);
 			resolve();
 		} catch (err) {
 			console.log(`Failed test: ${name}`);
