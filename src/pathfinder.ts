@@ -177,11 +177,7 @@ abstract class PathfinderAbstract {
 			const lastNode = agent.path[agent.path.length - 1];
 			if (lastNode.dist(this.goal) < pathfinderMinDist) continue;
 
-			if (agent.processingSituation) {
-				agent.tryedPartCompute = false;
-				agent.processingSituation = null;
-			}
-			agent.computeEnd = true;
+			agent.newGoal = true;
 		}
 
 		return true;
@@ -496,12 +492,12 @@ export class AStarPathfinder extends PathfinderAbstract {
 		this.tilemap = tilemap;
 	}
 
-	createAgent(radius: number) {
+	createAgent(radius: number, leadership?: number) {
 		if (radius > 0.5 * this.scale) {
 			throw Error("AStarPathfinder can't handle agents wider than one tilemap cell");
 		}
 
-		return super.createAgent(radius);
+		return super.createAgent(radius, leadership);
 	}
 
 	protected computePath(...args: ComputePathArgs) {
@@ -725,6 +721,8 @@ class PathAgent {
 
 	readonly radius: number;
 	position: Vector2 | null = null;
+	direction: Vector2 | false = false;
+	newGoal: boolean = true;
 	leadership: number;
 
 	processingSituation: PathSituation<unknown> | null = null;
@@ -784,14 +782,21 @@ class PathAgent {
 		g.pop();
 	}
 
-	getDirection(position: Vector2) {
-		const newPosition = position.copy().divScalar(this.pathfinder.scale);
+	getDirection(position?: Vector2) {
+		if (position &&
+			(this.position === null || !this.position.equal(position))) {
+			const newPosition = position.copy().divScalar(this.pathfinder.scale);
 
-		if (!this.pathfinder.validatePosition(newPosition)) {
-			this.position = null;
-			return false;
+			if (!this.pathfinder.validatePosition(newPosition)) {
+				this.position = null;
+				return false;
+			}
+			this.position = newPosition;
+		} else {
+			if (this.direction) return this.direction;
 		}
-		this.position = newPosition;
+
+		if (this.position === null) return false;
 
 		while (this.path.length > 0) {
 			// remove path node if too close
@@ -830,7 +835,22 @@ class PathAgent {
 		}
 
 		// return direction to next node in path
-		return this.path[0].copy().multScalar(this.pathfinder.scale).sub(position);
+		this.direction = this.path[0].copy()
+			.multScalar(this.pathfinder.scale)
+			.sub(this.position.copy().multScalar(this.pathfinder.scale));
+
+		if (this.newGoal) {
+			if (this.direction.mag < pathfinderMinDist * 3 && random() < 0.2) {
+				if (this.processingSituation) {
+					this.tryedPartCompute = false;
+					this.processingSituation = null;
+				}
+				this.computeEnd = true;
+				this.newGoal = false;
+			}
+		}
+
+		return this.direction;
 	}
 
 	reset() {

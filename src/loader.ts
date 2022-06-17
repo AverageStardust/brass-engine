@@ -432,7 +432,7 @@ function parseWorldJson(fields: FieldDeclaration, json: any): TilemapWorld {
             throw Error("World file had multiple object layers; Run enableUnsafeWorldLoading() to combine them");
         }
         for (const layer of objectLayers) {
-            for (const object of layer) {
+            for (const object of layer.objects) {
                 world.objects.push(object);
             }
         }
@@ -467,7 +467,7 @@ function searchTiledObj(obj: any): [any[], any[]] {
         for (const subObj of obj.layers) {
             const [newTileLayers, newObjectLayers] = searchTiledObj(subObj);
             tileLayers.push(...newTileLayers);
-            tileLayers.push(...newObjectLayers);
+            objectLayers.push(...newObjectLayers);
         }
     } else if (obj.type === "tilelayer") {
         tileLayers.push(obj);

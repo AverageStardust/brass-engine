@@ -129,6 +129,24 @@ export abstract class ViewpointAbstract {
 		return coord;
 	}
 
+	worldToScreen(worldCoord: Vector2, d = getP5DrawTarget("defaultP5")) {
+		const g = d.getMaps().canvas;
+
+		const coord = worldCoord.copy();
+		
+		coord.sub(this.shakePosition);
+
+		const translation = this.effectiveTranslation;
+		coord.sub(translation);
+
+		coord.multScalar(this.effectiveScale);
+
+		const viewOrigin = this.getViewOrigin(d);
+		coord.add(viewOrigin);
+
+		return coord;
+	}
+
 	protected abstract getViewOrigin(g: P5DrawTarget): Vector2;
 
 	protected get effectiveTranslation() {

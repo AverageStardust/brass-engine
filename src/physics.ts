@@ -80,7 +80,7 @@ export function update(delta: number) {
 		if (!body) continue;
 
 		ray.triggerSensors({ body: body as MaterialBodyAbstract, self: ray, points: [point] });
-		ray.destroy();
+		ray.kill();
 	}
 }
 
@@ -116,6 +116,7 @@ export function drawColliders(weight = 0.5, d = getP5DrawTarget("defaultP5")) {
 export abstract class BodyAbstract {
 	private sensors: CollisionCallback[] = [];
 	alive = true;
+	data: any = null;
 
 	constructor() {
 		enforceInit("creating a body");
@@ -156,7 +157,7 @@ export abstract class BodyAbstract {
 
 	abstract rotate(rotation: number): this;
 	abstract applyForce(force: Vertex2, position?: Vertex2): this
-	destroy() {
+	kill() {
 		this.alive = false;
 	}
 
@@ -315,12 +316,16 @@ abstract class MaterialBodyAbstract extends BodyAbstract {
 		const forceScale = spaceScale * spaceScale * spaceScale * forceUnit;
 		const matterForce = Matter.Vector.create(force.x * forceScale, force.y * forceScale);
 		const matterPosition = Matter.Vector.create(position.x * spaceScale, position.y * spaceScale);
-		Matter.Body.applyForce(this.body, matterPosition, matterForce);
+		queueMicrotask(Matter.Body.applyForce.bind(globalThis, this.body, matterPosition, matterForce));
 		return this;
 	}
 
-	destroy() {
-		super.destroy();
+	kill() {
+		super.kill();
+		this.destroy();
+	}
+
+	protected destroy() {
 		const categoryIndex = this.collisionCategoryToIndex(this.body.collisionFilter.category);
 		bodies[categoryIndex].delete(this.body.id);
 		Matter.World.remove(world, this.body);
@@ -633,8 +638,12 @@ export class RayBody extends BodyAbstract {
 		return this;
 	}
 
-	destroy() {
-		super.destroy();
+	kill() {
+		super.kill();
+		this.destroy();
+	}
+
+	protected destroy() {
 		rays.delete(this.id);
 	}
 
@@ -663,7 +672,7 @@ export class RayBody extends BodyAbstract {
 			hitPoint = 1;
 		for (let i = 0; i < steps; i++) {
 			const end = displacment.copy().multScalar(testPoint).add(start);
-			const currentHits = Matter.Query.ray(testBodies, start, end, this.width);
+			const currentHits = Matter.Query.ray(testBodies, start, end, this.width * spaceScale);
 			if (currentHits.length < 1) {
 				if (i === 0) break;
 				testPoint += testJump;
