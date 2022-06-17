@@ -6,8 +6,8 @@ import { Vertex2 } from "./vector3";
 
 
 // these would both have canvas properties anyway, for some reason they were not in the typing
-export type P5DrawTargetMap = (p5.Graphics | p5);
-export type P5DrawSurface = DrawSurfaceAbstract<{ canvas: P5DrawTargetMap }>;
+export type P5DrawSurfaceMap = (p5.Graphics | p5);
+export type P5DrawSurface = DrawSurfaceAbstract<{ canvas: P5DrawSurfaceMap }>;
 
 
 
@@ -276,17 +276,17 @@ export class DrawTarget<T> extends DrawSurfaceAbstract<T> {
 	}
 }
 
-export class P5DrawBuffer extends DrawBuffer<{ canvas: P5DrawTargetMap }> {
-	constructor(canvas: p5.RENDERER | P5DrawTargetMap = P2D) {
+export class P5DrawBuffer extends DrawBuffer<{ canvas: P5DrawSurfaceMap }> {
+	constructor(arg: p5.RENDERER | P5DrawSurfaceMap = P2D) {
 		super(
 			({ x, y }) => {
-				if (typeof canvas === "string") {
-					return { canvas: createFastGraphics(x, y, canvas) }
+				if (typeof arg === "string") {
+					return { canvas: createFastGraphics(x, y, arg) };
 				} else {
-					if (canvas.width !== x || canvas.height !== y) {
+					if (arg.width !== x || arg.height !== y) {
 						throw Error("P5DrawTarget found initial albedo map was of the wrong size");
 					}
-					return { canvas };
+					return { canvas: arg };
 				}
 			},
 			({ x, y }, { canvas }) => {
@@ -297,17 +297,17 @@ export class P5DrawBuffer extends DrawBuffer<{ canvas: P5DrawTargetMap }> {
 	}
 }
 
-export class P5DrawTarget extends DrawTarget<{ canvas: P5DrawTargetMap }> {
-	constructor(sizer: () => Vertex2 = defaultMatchSizer, canvas: p5.RENDERER | P5DrawTargetMap = P2D) {
+export class P5DrawTarget extends DrawTarget<{ canvas: P5DrawSurfaceMap }> {
+	constructor(sizer: () => Vertex2 = defaultMatchSizer, arg: p5.RENDERER | P5DrawSurfaceMap = P2D) {
 		super(
 			({ x, y }) => {
-				if (typeof canvas === "string") {
-					return { canvas: createFastGraphics(x, y, canvas) }
+				if (typeof arg === "string") {
+					return { canvas: createFastGraphics(x, y, arg) };
 				} else {
-					if (canvas.width !== x || canvas.height !== y) {
+					if (arg.width !== x || arg.height !== y) {
 						throw Error("P5DrawTarget found initial albedo map was of the wrong size");
 					}
-					return { canvas };
+					return { canvas: arg };
 				}
 			},
 			({ x, y }, { canvas }) => {

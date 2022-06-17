@@ -40,12 +40,11 @@ function setup() {
 			surface: "uint16",
 			items: "uint16"
 		},
-		
+
 		body: true,
 
-		tileCacheMode: "always",
-		tileCachePadding: 4,
-		drawCacheWEBGLcomposite: true,
+		drawCacheMode: "always",
+		drawCachePadding: 4,
 
 		getTileData: function(x, y) {
 			return {

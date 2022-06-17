@@ -1,5 +1,5 @@
 import p5 from "p5";
-import { DrawSurfaceAbstract, getP5DrawTarget, P5DrawBuffer, P5DrawSurface, P5DrawTarget, P5DrawTargetMap } from "./drawSurface";
+import { DrawSurfaceAbstract, getP5DrawTarget, P5DrawBuffer, P5DrawSurface, P5DrawTarget, P5DrawSurfaceMap } from "./drawSurface";
 import { ColorArgs, createColor, createFastGraphics } from "./common";
 import { getDefaultViewpoint } from "./viewpoint";
 

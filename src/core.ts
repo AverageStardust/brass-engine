@@ -39,6 +39,9 @@ let runningPhysics = false;
 
 
 
+// @ts-ignore because types are wrong
+p5.disableFriendlyErrors = true;
+
 window.addEventListener("load", () => {
 	window.addEventListener("error", (error) => setTestStatus(error.message));
 });

@@ -1,4 +1,4 @@
-import { getP5DrawTarget, P5DrawTargetMap } from "./drawSurface";
+import { getP5DrawTarget, P5DrawSurfaceMap } from "./drawSurface";
 import { TilemapAbstract } from "./tilemap";
 import { getTime } from "./time";
 import { Vector2, Vertex2 } from "./vector3";
@@ -118,7 +118,7 @@ export class ParticleAbstract {
 
 	update(delta: number) { }
 
-	draw(g: P5DrawTargetMap) {
+	draw(g: P5DrawSurfaceMap) {
 		g.noStroke();
 		g.fill(255, 0, 255);
 		g.circle(0, 0, 2);

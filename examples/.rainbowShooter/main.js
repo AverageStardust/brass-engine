@@ -39,9 +39,8 @@ function setup() {
 
 		body: true,
 		
-		tileCacheMode: "always",
-		tileCachePadding: 4,
-		drawCacheWEBGLcomposite: true,
+		drawCacheMode: "always",
+		drawCachePadding: 4,
 
 		getTileData: function (x, y) {
 			const tile = this.get(x, y, this.TILE);
