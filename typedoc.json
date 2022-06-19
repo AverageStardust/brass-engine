@@ -1,4 +1,5 @@
 {
+	"name": "Brass Engine",
 	"entryPoints": ["./src/main.ts"],
 	"readme": "./docsREADME.md",
 	"plugin": ["typedoc-plugin-missing-exports"],
