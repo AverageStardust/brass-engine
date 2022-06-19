@@ -7,6 +7,7 @@
     "dev": "rollup --watch --config rollup.config.js --environment BUILD:development",
     "build": "rollup --config rollup.config.js --environment BUILD:production",
     "doc": "npx typedoc --options typedoc.json",
+    "publish": "npm run build && npm run doc",
     "examples": "browser-sync start --config bs-config.js",
     "test": "node test.js"
   },

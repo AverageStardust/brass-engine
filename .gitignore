@@ -1,5 +1,4 @@
 node_modules
-dist/
 .rollup.cache/
 .vscode/
 tsconfig.tsbuildinfo
