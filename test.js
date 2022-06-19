@@ -2,7 +2,7 @@ const { Builder, By } = require("selenium-webdriver");
 const { exec } = require("child_process");
 const fs = require("fs");
 
-const username = `wyatt.durbanogmail`;
+const username = `wyatt.durbanogmail`; // it is a free trial account, don't get cheeky
 const accessKey = `uVU0Y7oD1BaKYPiNFGcPAihjabehgWcznOXtGIBxoljlemEKJE`;
 
 const GRID_HOST = `hub.lambdatest.com/wd/hub`;
@@ -45,7 +45,7 @@ function init() {
 	childProcess.stdout.on("data", async (data) => {
 		if (!waitingOnStdout) return;
 		stdoutStr += data.toString();
-		if (stdoutStr.endsWith("Serving files from: ./examples\n")) {
+		if (stdoutStr.endsWith("Serving files from: ./\n")) {
 			waitingOnStdout = false;
 
 			const urlMatch = stdoutStr.match(RegExp("Tunnel:.+"));
@@ -58,12 +58,12 @@ function init() {
 }
 
 async function runAllTests(baseURL) {
-	console.log(`Testing examples at ${baseURL} ...`);
+	console.log(`Testing examples at ${baseURL}/examples ...`);
 
 	const promises = []
 	fs.readdirSync("./examples").forEach(example => {
 		if (example.search("\\.") !== -1) return;
-		const exampleURL = `${baseURL}/${example}/index.html`;
+		const exampleURL = `${baseURL}/examples/${example}/index.html`;
 		promises.push(runTest(`${example} on Chrome`, exampleURL, chromeCapabilities));
 		promises.push(runTest(`${example} on Firefox`, exampleURL, firefoxCapabilities));
 		promises.push(runTest(`${example} on Safari`, exampleURL, safariCapabilities));
