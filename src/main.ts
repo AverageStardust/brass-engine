@@ -6,9 +6,23 @@
 	# 0.17.0
 	regl drawn tilemaps
 
-	# future
-	UI system
-	inventory system
+	# 0.18.0
+	UI/mouse system
+
+	# future / maybe?
+	extended Matter.js support
+	extended p5.js WEBGL support
+	JSON/text/binary/model loading
+	inventory ui
+	save state system
+	animation loading/handling
+
+	spatial sound
+	post-processing
+	raytraced lighting
+	behaviour trees
+	p5 asset / ui editor
+	multiplayer
 */
 
 export {

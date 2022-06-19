@@ -264,7 +264,7 @@ function brassUpdate(delta) {
 	player.update(delta);
 	pathfinder.setGoal(player.body.position);
 
-	enemyCap = floor(min(100, 4 + 0.0000011 * pow(Brass.getSimTime(), 1.4)));
+	enemyCap = floor(min(100, 6 + 0.0000011 * pow(Brass.getSimTime(), 1.4)));
 	enemySpawnCooldown -= delta;
 	if (enemies.length < enemyCap && enemySpawnCooldown <= 0) {
 		const position = enemySpawns[floor(random(enemySpawns.length))];
@@ -396,22 +396,33 @@ class Paintball {
 class Enemy {
 	constructor(position) {
 		this.body = new Brass.CircleBody(position.x, position.y, 0.45, {
-			inertia: Infinity, friction: 0, frictionStatic: 0, frictionAir: 0
+			inertia: Infinity,
+			friction: 0,
+			frictionStatic: 0,
+			frictionAir: 0
 		});
 		this.body.collisionCategory = 1;
 		this.body.collidesWith = 0;
-		this.body.data = { enemy: this };
+		this.body.data = {
+			enemy: this
+		};
 		this.leader = enemyCap > 20 && random() < 0.12;
 		this.hp = this.leader ? 18 : 6;
+		this.speed = 1;
 		this.agent = pathfinder.createAgent(0.45, this.leader ? 1 : random(0.8));
+
 		enemies.push(this);
 	}
 
 	update(delta) {
 		const direction = this.agent.getDirection(this.body.position);
 		if (typeof direction === "boolean") return;
-		this.body.applyForce(direction.copy().norm(this.leader ? 0.055 : 0.045));
-		this.body.velocity.multScalar(pow(0.98, delta));
+
+		this.speed = pow(this.speed, pow(0.995, delta));
+
+		this.body.applyForce(direction.copy()
+			.norm((this.leader ? 0.005 : 0.004) * delta * this.speed));
+		this.body.velocity.multScalar(pow(0.97, delta));
 	}
 
 	draw() {
@@ -434,6 +445,7 @@ class Enemy {
 
 	damage(amount) {
 		this.hp -= amount;
+		this.speed = Math.max(0.1, 0.7 - amount * 0.2);
 		if (this.hp <= 0) {
 			this.body.kill();
 		}
