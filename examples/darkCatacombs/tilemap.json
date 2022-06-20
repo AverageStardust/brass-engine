@@ -8,7 +8,7 @@
          "encoding":"base64",
          "height":128,
          "id":1,
-         "name":"Tile",
+         "name":"tile",
          "opacity":1,
          "type":"tilelayer",
          "visible":true,

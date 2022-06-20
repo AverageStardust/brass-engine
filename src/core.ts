@@ -46,7 +46,7 @@ interface InitOptions {
 let inited = false;
 let testStatus: true | string | null = null;
 let sketch: p5;
-let maxTimeDelta: number, minTimeDelta: number;
+let maxTimeDelta: number, targetTimeDelta: number, minTimeDelta: number;
 const timewarpList: Timewarp[] = [];
 let runningPhysics = false;
 
@@ -100,9 +100,8 @@ export function init(options: InitOptions = {}) {
 
 	const targetFrameRate = Math.min(_targetFrameRate, options.maxFrameRate ?? 60);
 	sketch.frameRate(targetFrameRate);
-	const targetTimeDelta = 1000 / targetFrameRate;
-
-	maxTimeDelta = options.maxTimeDelta ?? targetTimeDelta * 2.5;
+	targetTimeDelta = 1000 / targetFrameRate;
+	maxTimeDelta = options.maxTimeDelta ?? targetTimeDelta * 2.0;
 	minTimeDelta = options.minTimeDelta ?? targetTimeDelta * 0.5;
 
 	updateTime();

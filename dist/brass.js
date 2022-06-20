@@ -2235,6 +2235,7 @@ var Brass = (function (exports, p5) {
     var soundFormatsConfigured = false;
     var unsafeWorld = false;
     var totalLateAssets = 0;
+    var loadingLateAssets = 0;
     var loadedLateAssets = 0;
     var errorImage;
     var errorSound;
@@ -2255,7 +2256,6 @@ var Brass = (function (exports, p5) {
             errorSound.buffer = audioBuffer;
             errorSound.panner.inputChannels(audioBuffer.numberOfChannels);
         }
-        loadQueuedAssets();
         inited$2 = true;
     }
     function enforceInit$2(action) {
@@ -2268,15 +2268,23 @@ var Brass = (function (exports, p5) {
             return;
         throw Error("Sound must enabled in Brass.init() before ".concat(action));
     }
+    function loadAssetLate() {
+        var assets = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            assets[_i] = arguments[_i];
+        }
+        loadQueue.push.apply(loadQueue, __spreadArray([], __read(assets), false));
+        loadQueuedAssets();
+    }
     function loadQueuedAssets() {
         var assetEntry = loadQueue.shift();
+        if (loadingLateAssets > 2)
+            return;
         if (loaded() && totalLateAssets > 0) {
             totalLateAssets = 0;
             loadedLateAssets = 0;
-            if ("postload" in globalThis) {
-                globalThis.postload();
-            }
         }
+        loadingLateAssets++;
         if (assetEntry === undefined)
             return;
         switch (assetEntry.type) {
@@ -2292,10 +2300,12 @@ var Brass = (function (exports, p5) {
                 loadJSON(assetEntry.path, handleAsset.bind(globalThis, assetEntry), handleAssetFail.bind(globalThis, assetEntry));
                 break;
         }
+        queueMicrotask(loadQueuedAssets);
     }
     function handleAsset(assetEntry, data) {
         var e_1, _a;
         if (assetEntry.late) {
+            loadingLateAssets--;
             loadedLateAssets++;
         }
         if (assetEntry.type === AssetType.World) {
@@ -2319,12 +2329,15 @@ var Brass = (function (exports, p5) {
             assetEntry.resolve(data);
         }
         if ("children" in assetEntry) {
-            loadQueue.push.apply(loadQueue, __spreadArray([], __read(assetEntry.children), false));
+            loadAssetLate.apply(void 0, __spreadArray([], __read(assetEntry.children), false));
         }
-        loadQueuedAssets();
+        else {
+            loadQueuedAssets();
+        }
     }
     function handleAssetFail(assetEntry) {
         if (assetEntry.late) {
+            loadingLateAssets--;
             loadedLateAssets++;
         }
         var error = Error("Failed to load asset (".concat(assetEntry.names[0], ") at path (").concat(assetEntry.path, ")"));
@@ -2360,7 +2373,7 @@ var Brass = (function (exports, p5) {
             args[_i] = arguments[_i];
         }
         var _a = parseAssetDefinition(AssetType.Image, args), name = _a.name, fullPath = _a.fullPath;
-        return queueLastAssetWithPromise({
+        return queueLateAssetWithPromise({
             type: AssetType.Image,
             path: fullPath,
             names: [name],
@@ -2410,8 +2423,9 @@ var Brass = (function (exports, p5) {
         promises.push(new Promise(function (resolve, reject) {
             asset.resolve = resolve;
             asset.reject = reject;
-            if (isRoot)
-                loadQueue.push(asset);
+            if (isRoot) {
+                loadAssetLate(asset);
+            }
         }));
         return {
             asset: asset,
@@ -2441,7 +2455,7 @@ var Brass = (function (exports, p5) {
         }
         var _a = parseAssetDefinition(AssetType.Sound, args), name = _a.name, fullPath = _a.fullPath;
         insureSoundFormatsConfigured();
-        return queueLastAssetWithPromise({
+        return queueLateAssetWithPromise({
             type: AssetType.Sound,
             path: fullPath,
             names: [name],
@@ -2489,7 +2503,7 @@ var Brass = (function (exports, p5) {
             args[_i - 1] = arguments[_i];
         }
         var _a = parseAssetDefinition(AssetType.World, args), name = _a.name, fullPath = _a.fullPath;
-        return queueLastAssetWithPromise({
+        return queueLateAssetWithPromise({
             type: AssetType.World,
             path: fullPath,
             names: [name],
@@ -2684,12 +2698,12 @@ var Brass = (function (exports, p5) {
             }, reject);
         });
     }
-    function queueLastAssetWithPromise(assetEntry) {
+    function queueLateAssetWithPromise(assetEntry) {
         totalLateAssets++;
         return new Promise(function (resolve, reject) {
             assetEntry.resolve = resolve;
             assetEntry.reject = reject;
-            loadQueue.push(assetEntry);
+            loadAssetLate(assetEntry);
         });
     }
     function parseAssetDefinition(type, args) {
@@ -5160,7 +5174,7 @@ var Brass = (function (exports, p5) {
     var inited = false;
     var testStatus = null;
     var sketch;
-    var maxTimeDelta, minTimeDelta;
+    var maxTimeDelta, targetTimeDelta, minTimeDelta;
     var timewarpList = [];
     var runningPhysics = false;
     p5__default["default"].disableFriendlyErrors = true;
@@ -5206,8 +5220,8 @@ var Brass = (function (exports, p5) {
         init$2(options.viewpoint);
         var targetFrameRate = Math.min(_targetFrameRate, (_b = options.maxFrameRate) !== null && _b !== void 0 ? _b : 60);
         sketch.frameRate(targetFrameRate);
-        var targetTimeDelta = 1000 / targetFrameRate;
-        maxTimeDelta = (_c = options.maxTimeDelta) !== null && _c !== void 0 ? _c : targetTimeDelta * 2.5;
+        targetTimeDelta = 1000 / targetFrameRate;
+        maxTimeDelta = (_c = options.maxTimeDelta) !== null && _c !== void 0 ? _c : targetTimeDelta * 2.0;
         minTimeDelta = (_d = options.minTimeDelta) !== null && _d !== void 0 ? _d : targetTimeDelta * 0.5;
         update$5();
         init$3((_e = options.sound) !== null && _e !== void 0 ? _e : false);

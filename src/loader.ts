@@ -56,6 +56,7 @@ let soundFormatsConfigured = false;
 let unsafeWorld = false;
 
 let totalLateAssets = 0;
+let loadingLateAssets = 0;
 let loadedLateAssets = 0;
 
 let errorImage: p5.Graphics;
@@ -94,8 +95,6 @@ export function init(_useSound: boolean) {
         errorSound.panner.inputChannels(audioBuffer.numberOfChannels);
     }
 
-    loadQueuedAssets();
-
     inited = true;
 }
 
@@ -109,19 +108,22 @@ function enforceP5SoundPresent(action: string) {
     throw Error(`Sound must enabled in Brass.init() before ${action}`);
 }
 
+function loadAssetLate(...assets: QueuedAsset[]) {
+    loadQueue.push(...assets);
+    loadQueuedAssets();
+}
+
 function loadQueuedAssets() {
     const assetEntry = loadQueue.shift();
+    if (loadingLateAssets > 2) return;
 
     // check when late loading is done
     if (loaded() && totalLateAssets > 0) {
         totalLateAssets = 0;
         loadedLateAssets = 0;
-
-        if ("postload" in globalThis) {
-            // @ts-ignore because this is outside of the Brass engine and its type-checking
-            globalThis.postload();
-        }
     }
+
+    loadingLateAssets++;
 
     if (assetEntry === undefined) return;
 
@@ -148,10 +150,13 @@ function loadQueuedAssets() {
                 handleAssetFail.bind(globalThis, assetEntry));
             break;
     }
+
+    queueMicrotask(loadQueuedAssets);
 }
 
 function handleAsset(assetEntry: QueuedAsset, data: any) {
     if (assetEntry.late) {
+        loadingLateAssets--;
         loadedLateAssets++;
     }
 
@@ -169,14 +174,15 @@ function handleAsset(assetEntry: QueuedAsset, data: any) {
     }
 
     if ("children" in assetEntry) {
-        loadQueue.push(...assetEntry.children);
+        loadAssetLate(...assetEntry.children);
+    } else {
+        loadQueuedAssets();
     }
-
-    loadQueuedAssets();
 }
 
 function handleAssetFail(assetEntry: QueuedAsset) {
     if (assetEntry.late) {
+        loadingLateAssets--;
         loadedLateAssets++;
     }
 
@@ -215,7 +221,7 @@ export function loadImageEarly(...args: AssetDefinitionArgs) {
 export function loadImageLate(...args: AssetDefinitionArgs) {
     const { name, fullPath } = parseAssetDefinition(AssetType.Image, args);
 
-    return queueLastAssetWithPromise({
+    return queueLateAssetWithPromise({
         type: AssetType.Image,
         path: fullPath,
         names: [name],
@@ -272,7 +278,9 @@ function loadImageDynamicStep(qualitySteps: string[], assetDefinition: AssetDefi
     promises.push(new Promise((resolve, reject) => {
         asset.resolve = resolve;
         asset.reject = reject;
-        if (isRoot) loadQueue.push(asset);
+        if (isRoot) {
+            loadAssetLate(asset);
+        }
     }));
 
     return {
@@ -303,7 +311,7 @@ export function loadSoundLate(...args: AssetDefinitionArgs) {
     const { name, fullPath } = parseAssetDefinition(AssetType.Sound, args);
     insureSoundFormatsConfigured();
 
-    return queueLastAssetWithPromise({
+    return queueLateAssetWithPromise({
         type: AssetType.Sound,
         path: fullPath,
         names: [name],
@@ -353,7 +361,7 @@ export function loadWorldEarly(fields: FieldDeclaration, ...args: AssetDefinitio
 export function loadWorldLate(fields: FieldDeclaration, ...args: AssetDefinitionArgs) {
     const { name, fullPath } = parseAssetDefinition(AssetType.World, args);
 
-    return queueLastAssetWithPromise({
+    return queueLateAssetWithPromise({
         type: AssetType.World,
         path: fullPath,
         names: [name],
@@ -497,12 +505,12 @@ function queueEarlyAssetWithPromise(path: string, name: string, loader: P5Loader
     });
 }
 
-function queueLastAssetWithPromise(assetEntry: QueuedAsset): Promise<Asset> {
+function queueLateAssetWithPromise(assetEntry: QueuedAsset): Promise<Asset> {
     totalLateAssets++;
     return new Promise((resolve, reject) => {
         assetEntry.resolve = resolve;
         assetEntry.reject = reject;
-        loadQueue.push(assetEntry);
+        loadAssetLate(assetEntry);
     });
 }
 
