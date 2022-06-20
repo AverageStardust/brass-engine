@@ -4,26 +4,7 @@ const MAX_MAP_SIZE = 256;
 let tilemap, viewpoint, lighter;
 let player, pathfinder;
 
-function preload() {
-	Brass.loadImageDynamic(
-		3,
-		"tilesheet.png").map((loadPromise, i) => {
-			if (i === 0) return; // reload caches for each new image
-			loadPromise.then(() => tilemap.clearCaches());
-		});
-	Brass.loadWorldLate({
-		surface: "uint16",
-		items: "uint16"
-	},
-		"tilemap.json"
-	);
-}
-
-function postload() {
-	tilemap.import(Brass.getWorld("tilemap.json"));
-}
-
-function setup() {
+async function setup() {
 	viewpoint = new Brass.Viewpoint(64);
 
 	Brass.init({
@@ -46,19 +27,19 @@ function setup() {
 		drawCacheMode: "always",
 		drawCachePadding: 4,
 
-		getTileData: function(x, y) {
+		getTileData: function (x, y) {
 			return {
 				surface: this.get(x, y, this.SURFACE),
 				items: this.get(x, y, this.ITEMS)
 			};
 		},
-		isTileSolid: function({
+		isTileSolid: function ({
 			surface,
 			items
 		}) {
 			return surface > 101 || items > 0;
 		},
-		drawTile: function({
+		drawTile: function ({
 			surface,
 			items
 		}, x, y, g) {
@@ -76,6 +57,20 @@ function setup() {
 			}
 		}
 	});
+
+	Brass.loadImageDynamic(
+		3,
+		"tilesheet.png").map((loadPromise, i) => {
+			if (i === 0) return; // reload caches for each new image
+			loadPromise.then(() => tilemap.clearCaches());
+		});
+
+	tilemap.import(await Brass.loadWorldLate({
+		surface: "uint16",
+		items: "uint16"
+	},
+		"tilemap.json"
+	));
 }
 
 function createPlayer() {

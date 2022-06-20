@@ -2235,7 +2235,7 @@ var Brass = (function (exports, p5) {
     var soundFormatsConfigured = false;
     var unsafeWorld = false;
     var totalLateAssets = 0;
-    var loadingLateAssets = 0;
+    var loadingAssets = 0;
     var loadedLateAssets = 0;
     var errorImage;
     var errorSound;
@@ -2257,6 +2257,7 @@ var Brass = (function (exports, p5) {
             errorSound.panner.inputChannels(audioBuffer.numberOfChannels);
         }
         inited$2 = true;
+        loadQueuedAssets();
     }
     function enforceInit$2(action) {
         if (inited$2)
@@ -2274,19 +2275,21 @@ var Brass = (function (exports, p5) {
             assets[_i] = arguments[_i];
         }
         loadQueue.push.apply(loadQueue, __spreadArray([], __read(assets), false));
-        loadQueuedAssets();
+        queueMicrotask(loadQueuedAssets);
     }
     function loadQueuedAssets() {
         var assetEntry = loadQueue.shift();
-        if (loadingLateAssets > 2)
+        if (!inited$2)
             return;
-        if (loaded() && totalLateAssets > 0) {
+        if (loadingAssets >= 2)
+            return;
+        if (loaded()) {
             totalLateAssets = 0;
             loadedLateAssets = 0;
         }
-        loadingLateAssets++;
         if (assetEntry === undefined)
             return;
+        loadingAssets++;
         switch (assetEntry.type) {
             default:
                 throw Error("Unknown asset type (".concat(assetEntry.type, ")"));
@@ -2305,9 +2308,9 @@ var Brass = (function (exports, p5) {
     function handleAsset(assetEntry, data) {
         var e_1, _a;
         if (assetEntry.late) {
-            loadingLateAssets--;
             loadedLateAssets++;
         }
+        loadingAssets--;
         if (assetEntry.type === AssetType.World) {
             expect(assetEntry.fields !== undefined);
             data = parseWorldJson(assetEntry.fields, data);
@@ -2328,18 +2331,18 @@ var Brass = (function (exports, p5) {
         if (assetEntry.resolve) {
             assetEntry.resolve(data);
         }
-        if ("children" in assetEntry) {
+        if ("children" in assetEntry && assetEntry.children.length > 0) {
             loadAssetLate.apply(void 0, __spreadArray([], __read(assetEntry.children), false));
         }
         else {
-            loadQueuedAssets();
+            queueMicrotask(loadQueuedAssets);
         }
     }
     function handleAssetFail(assetEntry) {
         if (assetEntry.late) {
-            loadingLateAssets--;
             loadedLateAssets++;
         }
+        loadingAssets--;
         var error = Error("Failed to load asset (".concat(assetEntry.names[0], ") at path (").concat(assetEntry.path, ")"));
         if (assetEntry.reject) {
             assetEntry.reject(error);

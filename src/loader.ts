@@ -56,7 +56,7 @@ let soundFormatsConfigured = false;
 let unsafeWorld = false;
 
 let totalLateAssets = 0;
-let loadingLateAssets = 0;
+let loadingAssets = 0;
 let loadedLateAssets = 0;
 
 let errorImage: p5.Graphics;
@@ -96,6 +96,7 @@ export function init(_useSound: boolean) {
     }
 
     inited = true;
+    loadQueuedAssets();
 }
 
 function enforceInit(action: string) {
@@ -110,22 +111,23 @@ function enforceP5SoundPresent(action: string) {
 
 function loadAssetLate(...assets: QueuedAsset[]) {
     loadQueue.push(...assets);
-    loadQueuedAssets();
+    queueMicrotask(loadQueuedAssets);
 }
 
 function loadQueuedAssets() {
     const assetEntry = loadQueue.shift();
-    if (loadingLateAssets > 2) return;
+    if (!inited) return; // loading will restart after Brass.init()
+    if (loadingAssets >= 2) return;
 
-    // check when late loading is done
-    if (loaded() && totalLateAssets > 0) {
+    // check when late loading is done, reset counts
+    if (loaded()) {
         totalLateAssets = 0;
         loadedLateAssets = 0;
     }
 
-    loadingLateAssets++;
-
     if (assetEntry === undefined) return;
+
+    loadingAssets++;
 
     switch (assetEntry.type) {
         default:
@@ -156,9 +158,9 @@ function loadQueuedAssets() {
 
 function handleAsset(assetEntry: QueuedAsset, data: any) {
     if (assetEntry.late) {
-        loadingLateAssets--;
         loadedLateAssets++;
     }
+    loadingAssets--;
 
     if (assetEntry.type === AssetType.World) {
         expect(assetEntry.fields !== undefined);
@@ -173,18 +175,18 @@ function handleAsset(assetEntry: QueuedAsset, data: any) {
         assetEntry.resolve(data as Asset);
     }
 
-    if ("children" in assetEntry) {
+    if ("children" in assetEntry && assetEntry.children.length > 0) {
         loadAssetLate(...assetEntry.children);
     } else {
-        loadQueuedAssets();
+        queueMicrotask(loadQueuedAssets);
     }
 }
 
 function handleAssetFail(assetEntry: QueuedAsset) {
     if (assetEntry.late) {
-        loadingLateAssets--;
         loadedLateAssets++;
     }
+    loadingAssets--;
 
     const error = Error(`Failed to load asset (${assetEntry.names[0]}) at path (${assetEntry.path})`);
 
