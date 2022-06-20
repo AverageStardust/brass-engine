@@ -1,6 +1,6 @@
 /**
  * Draws loading screen and framerate counter.
- * @module
+ * @module UI
  */
 
 import { getP5DrawTarget } from "./drawSurface";

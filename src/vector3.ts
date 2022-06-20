@@ -1,6 +1,6 @@
 /**
  * Handles vector math.
- * @module
+ * @module vector
  */
 
 // author WD_STEVE
