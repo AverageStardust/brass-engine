@@ -29,7 +29,7 @@ export function init(sketch: p5, doRegl: boolean, drawTarget?: p5.Graphics | Dra
 	let defaultCanvasDrawTarget: CanvasDrawTarget | undefined;
 
 	if (drawTarget === undefined) {
-		createCanvas(windowWidth, windowHeight);
+		sketch.createCanvas(windowWidth, windowHeight);
 
 		defaultDrawTarget = new P5DrawTarget(
 			() => ({

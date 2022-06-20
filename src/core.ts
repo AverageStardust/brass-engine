@@ -5,7 +5,7 @@
 
 import p5 from "p5";
 import { init as initInput, update as updateInput } from "./inputMapper";
-import { DrawTarget, init as initDrawTarget, resize } from "./drawSurface";
+import { DrawTarget, init as initDrawSurface, resize } from "./drawSurface";
 import { init as initLoader, loaded } from "./loader";
 import { init as initViewpoint, updateViewpoints, ViewpointAbstract } from "./viewpoint";
 import { deltaSimTime, update as updateTime } from "./time";
@@ -15,6 +15,12 @@ import { update as updatePathfinders } from "./pathfinder";
 import { init as initPhysics, update as updatePhysics } from "./physics";
 import { update as updateTilemaps } from "./tilemap";
 
+
+
+declare global {
+	// internal p5.js value
+	let _targetFrameRate: number;
+}
 
 interface Timewarp {
 	duration: number;
@@ -26,7 +32,9 @@ interface InitOptions {
 	drawTarget?: p5.Graphics | DrawTarget<any>;
 	viewpoint?: ViewpointAbstract;
 
+	maxFrameRate?: number;
 	maxTimeDelta?: number;
+	minTimeDelta?: number;
 
 	sound?: boolean;
 	matter?: boolean | Partial<Matter.IEngineDefinition>;
@@ -38,7 +46,7 @@ interface InitOptions {
 let inited = false;
 let testStatus: true | string | null = null;
 let sketch: p5;
-let maxTimeDelta = 100;
+let maxTimeDelta: number, minTimeDelta: number;
 const timewarpList: Timewarp[] = [];
 let runningPhysics = false;
 
@@ -86,11 +94,17 @@ export function init(options: InitOptions = {}) {
 
 	initInput();
 
-	initDrawTarget(sketch, options.regl ?? false, options.drawTarget);
+	initDrawSurface(sketch, options.regl ?? false, options.drawTarget);
 
 	initViewpoint(options.viewpoint);
 
-	maxTimeDelta = options.maxTimeDelta ?? (1000 / 30);
+	const targetFrameRate = Math.min(_targetFrameRate, options.maxFrameRate ?? 60);
+	sketch.frameRate(targetFrameRate);
+	const targetTimeDelta = 1000 / targetFrameRate;
+
+	maxTimeDelta = options.maxTimeDelta ?? targetTimeDelta * 2.5;
+	minTimeDelta = options.minTimeDelta ?? targetTimeDelta * 0.5;
+
 	updateTime();
 
 	initLoader(options.sound ?? false);
@@ -126,8 +140,25 @@ function defaultGlobalDraw() {
 		return;
 	}
 
-	let realDelta = Math.min(maxTimeDelta, deltaTime),
-		simDelta = 0;
+	let realDelta = deltaTime;
+	realDelta = Math.min(maxTimeDelta, realDelta);
+	realDelta = Math.max(minTimeDelta, realDelta);
+	
+	const simDelta = updateSimTiming(realDelta);
+
+	updateEarly();
+
+	// @ts-ignore because this is outside of Brass engine and can't be type checked
+	if (sketch.brassUpdate !== undefined) sketch.brassUpdate(simDelta);
+
+	updateLate(simDelta);
+
+	// @ts-ignore because this is outside of Brass engine and can't be type checked
+	if (sketch.brassDraw !== undefined) sketch.brassDraw(simDelta);
+}
+
+function updateSimTiming(realDelta: number) {
+	let simDelta = 0;
 
 	// move realDelta into simDelta with timewarp rates accounted
 	while (timewarpList.length > 0) {
@@ -150,23 +181,24 @@ function defaultGlobalDraw() {
 	// update simulation time
 	deltaSimTime(simDelta);
 
-	// @ts-ignore because this is outside of Brass engine and can't be type checked
-	if (sketch.brassUpdate !== undefined) sketch.brassUpdate(simDelta);
-	update(simDelta);
-
-	// @ts-ignore because this is outside of Brass engine and can't be type checked
-	if (sketch.brassDraw !== undefined) sketch.brassDraw(simDelta);
+	return simDelta;
 }
 
-export function update(delta?: number) {
+export function update(delta: number = deltaTime) {
 	enforceInit("updating Brass");
 
-	if (delta === undefined) {
-		delta = Math.min(maxTimeDelta, deltaTime);
-	}
+	updateEarly();
+	updateLate(delta);
+}
 
+function updateEarly() {
 	updateTime();
 	updateInput();
+}
+
+function updateLate(delta: number) {
+	enforceInit("updating Brass");
+
 	if (runningPhysics) updatePhysics(delta);
 	updateViewpoints(delta);
 	updateTilemaps();

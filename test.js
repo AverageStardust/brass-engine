@@ -1,6 +1,5 @@
 const { Builder, By } = require("selenium-webdriver");
 const { exec } = require("child_process");
-const fs = require("fs");
 
 const username = `wyatt.durbanogmail`; // it is a free trial account, don't get cheeky
 const accessKey = `uVU0Y7oD1BaKYPiNFGcPAihjabehgWcznOXtGIBxoljlemEKJE`;
@@ -60,9 +59,8 @@ function init() {
 async function runAllTests(baseURL) {
 	console.log(`Testing examples at ${baseURL}/examples ...`);
 
-	const promises = []
-	fs.readdirSync("./examples").forEach(example => {
-		if (example.search("\\.") !== -1) return;
+	const promises = [];
+	["particleWarp", "rainbowShooter", "shaderTest"].forEach(example => {
 		const exampleURL = `${baseURL}/examples/${example}/index.html`;
 		promises.push(runTest(`${example} on Chrome`, exampleURL, chromeCapabilities));
 		promises.push(runTest(`${example} on Firefox`, exampleURL, firefoxCapabilities));

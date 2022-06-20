@@ -11,21 +11,24 @@ import { getDefaultViewpoint } from "./viewpoint";
 
 
 
-interface LighterOptions {
+interface LighterAbstractOptions {
 	resolution?: number;
+}
+
+interface P5LighterOptions extends LighterAbstractOptions {
 	blur?: number;
 	color?: p5.Color;
 }
 
 
 
-export class Lighter {
+export class P5Lighter {
 	private lightMap: P5DrawBuffer = new P5DrawBuffer();
 	private resolution: number;
 	private _blur: number;
 	private color: p5.Color;
 
-	constructor(options: LighterOptions = {}) {
+	constructor(options: P5LighterOptions = {}) {
 		this.resolution = options.resolution ?? 0.25;
 		this._blur = options.blur ?? 1;
 		this.color = options.color ?? createColor(255);

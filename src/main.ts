@@ -29,7 +29,7 @@ export {
 } from "./inputMapper";
 
 export {
-	Lighter
+	P5Lighter
 } from "./lighting";
 
 export {

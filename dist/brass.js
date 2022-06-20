@@ -1898,7 +1898,7 @@ var Brass = (function (exports, p5) {
         var defaultP5DrawTarget;
         var defaultCanvasDrawTarget;
         if (drawTarget === undefined) {
-            createCanvas(windowWidth, windowHeight);
+            sketch.createCanvas(windowWidth, windowHeight);
             defaultDrawTarget = new P5DrawTarget(function () { return ({
                 x: sketch.width,
                 y: sketch.height
@@ -5160,7 +5160,7 @@ var Brass = (function (exports, p5) {
     var inited = false;
     var testStatus = null;
     var sketch;
-    var maxTimeDelta = 100;
+    var maxTimeDelta, minTimeDelta;
     var timewarpList = [];
     var runningPhysics = false;
     p5__default["default"].disableFriendlyErrors = true;
@@ -5178,7 +5178,7 @@ var Brass = (function (exports, p5) {
         return testStatus;
     }
     function init(options) {
-        var _a, _b, _c;
+        var _a, _b, _c, _d, _e;
         if (options === void 0) { options = {}; }
         if (options.sound === undefined && p5__default["default"].SoundFile !== undefined) {
             console.warn("p5.sound.js has been found; Enable or disable sound in Brass.init()");
@@ -5204,9 +5204,13 @@ var Brass = (function (exports, p5) {
         init$5();
         init$4(sketch, (_a = options.regl) !== null && _a !== void 0 ? _a : false, options.drawTarget);
         init$2(options.viewpoint);
-        maxTimeDelta = (_b = options.maxTimeDelta) !== null && _b !== void 0 ? _b : (1000 / 30);
+        var targetFrameRate = Math.min(_targetFrameRate, (_b = options.maxFrameRate) !== null && _b !== void 0 ? _b : 60);
+        sketch.frameRate(targetFrameRate);
+        var targetTimeDelta = 1000 / targetFrameRate;
+        maxTimeDelta = (_c = options.maxTimeDelta) !== null && _c !== void 0 ? _c : targetTimeDelta * 2.5;
+        minTimeDelta = (_d = options.minTimeDelta) !== null && _d !== void 0 ? _d : targetTimeDelta * 0.5;
         update$5();
-        init$3((_c = options.sound) !== null && _c !== void 0 ? _c : false);
+        init$3((_e = options.sound) !== null && _e !== void 0 ? _e : false);
         runningPhysics = options.matter !== undefined;
         if (runningPhysics) {
             if (typeof options.matter === "object") {
@@ -5234,7 +5238,19 @@ var Brass = (function (exports, p5) {
             drawLoading();
             return;
         }
-        var realDelta = Math.min(maxTimeDelta, deltaTime), simDelta = 0;
+        var realDelta = deltaTime;
+        realDelta = Math.min(maxTimeDelta, realDelta);
+        realDelta = Math.max(minTimeDelta, realDelta);
+        var simDelta = updateSimTiming(realDelta);
+        updateEarly();
+        if (sketch.brassUpdate !== undefined)
+            sketch.brassUpdate(simDelta);
+        updateLate(simDelta);
+        if (sketch.brassDraw !== undefined)
+            sketch.brassDraw(simDelta);
+    }
+    function updateSimTiming(realDelta) {
+        var simDelta = 0;
         while (timewarpList.length > 0) {
             var warpedTime = Math.min(realDelta, timewarpList[0].duration);
             realDelta -= warpedTime;
@@ -5247,19 +5263,20 @@ var Brass = (function (exports, p5) {
         }
         simDelta += realDelta;
         deltaSimTime(simDelta);
-        if (sketch.brassUpdate !== undefined)
-            sketch.brassUpdate(simDelta);
-        update(simDelta);
-        if (sketch.brassDraw !== undefined)
-            sketch.brassDraw(simDelta);
+        return simDelta;
     }
     function update(delta) {
+        if (delta === void 0) { delta = deltaTime; }
         enforceInit("updating Brass");
-        if (delta === undefined) {
-            delta = Math.min(maxTimeDelta, deltaTime);
-        }
+        updateEarly();
+        updateLate(delta);
+    }
+    function updateEarly() {
         update$5();
         update$6();
+    }
+    function updateLate(delta) {
+        enforceInit("updating Brass");
         if (runningPhysics)
             update$2(delta);
         updateViewpoints(delta);
@@ -5280,8 +5297,8 @@ var Brass = (function (exports, p5) {
         return timewarpList;
     }
 
-    var Lighter = (function () {
-        function Lighter(options) {
+    var P5Lighter = (function () {
+        function P5Lighter(options) {
             if (options === void 0) { options = {}; }
             var _a, _b, _c;
             this.lightMap = new P5DrawBuffer();
@@ -5289,7 +5306,7 @@ var Brass = (function (exports, p5) {
             this._blur = (_b = options.blur) !== null && _b !== void 0 ? _b : 1;
             this.color = (_c = options.color) !== null && _c !== void 0 ? _c : createColor(255);
         }
-        Lighter.prototype.begin = function (v, d) {
+        P5Lighter.prototype.begin = function (v, d) {
             if (v === void 0) { v = getDefaultViewpoint(); }
             if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
             this.lightMap.sizeMaps(d.getSize(this.resolution));
@@ -5300,7 +5317,7 @@ var Brass = (function (exports, p5) {
             v.scale = originalScale;
             return this;
         };
-        Lighter.prototype.end = function (d) {
+        P5Lighter.prototype.end = function (d) {
             if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
             var g = d.getMaps().canvas;
             g.push();
@@ -5309,7 +5326,7 @@ var Brass = (function (exports, p5) {
             g.image(this.getLightCanvas(), 0, 0, width, height);
             g.pop();
         };
-        Object.defineProperty(Lighter.prototype, "blur", {
+        Object.defineProperty(P5Lighter.prototype, "blur", {
             get: function () {
                 return this._blur;
             },
@@ -5320,7 +5337,7 @@ var Brass = (function (exports, p5) {
             enumerable: false,
             configurable: true
         });
-        Lighter.prototype.fill = function () {
+        P5Lighter.prototype.fill = function () {
             var colArgs = [];
             for (var _i = 0; _i < arguments.length; _i++) {
                 colArgs[_i] = arguments[_i];
@@ -5339,24 +5356,24 @@ var Brass = (function (exports, p5) {
             this.color = col;
             return this;
         };
-        Lighter.prototype.point = function (x, y, r) {
+        P5Lighter.prototype.point = function (x, y, r) {
             var lightCanvas = this.getLightCanvas();
             lightCanvas.circle(x, y, r * 2);
             return this;
         };
-        Lighter.prototype.cone = function (x, y, angle, width, distance) {
+        P5Lighter.prototype.cone = function (x, y, angle, width, distance) {
             if (width === void 0) { width = HALF_PI; }
             if (distance === void 0) { distance = 1000; }
             var lightCanvas = this.getLightCanvas();
             lightCanvas.triangle(x, y, x + Math.cos(angle - width / 2) * distance, y + Math.sin(angle - width / 2) * distance, x + Math.cos(angle + width / 2) * distance, y + Math.sin(angle + width / 2) * distance);
             return this;
         };
-        Lighter.prototype.world = function () {
+        P5Lighter.prototype.world = function () {
             var lightCanvas = this.getLightCanvas();
             lightCanvas.background(this.color);
             return this;
         };
-        Lighter.prototype.resetLightMap = function () {
+        P5Lighter.prototype.resetLightMap = function () {
             var lightCanvas = this.getLightCanvas();
             lightCanvas.push();
             lightCanvas.blendMode(BLEND);
@@ -5364,12 +5381,12 @@ var Brass = (function (exports, p5) {
             lightCanvas.pop();
             lightCanvas.resetMatrix();
         };
-        Lighter.prototype.getLightCanvas = function () {
+        P5Lighter.prototype.getLightCanvas = function () {
             if (!this.lightMap.hasSize())
                 throw Error("Lighter.begin() must be ran before using lighting");
             return this.lightMap.getMaps().canvas;
         };
-        return Lighter;
+        return P5Lighter;
     }());
 
     exports.AStarPathfinder = AStarPathfinder;
@@ -5380,13 +5397,13 @@ var Brass = (function (exports, p5) {
     exports.GridBody = GridBody;
     exports.Heap = Heap;
     exports.InputMapper = InputMapper;
-    exports.Lighter = Lighter;
     exports.MappedHeap = MappedHeap;
     exports.MappedMaxHeap = MappedMaxHeap;
     exports.MappedMinHeap = MappedMinHeap;
     exports.MaxHeap = MaxHeap;
     exports.MinHeap = MinHeap;
     exports.P5DrawTarget = P5DrawTarget;
+    exports.P5Lighter = P5Lighter;
     exports.P5Tilemap = P5Tilemap;
     exports.ParticleAbstract = ParticleAbstract;
     exports.PolyBody = PolyBody;

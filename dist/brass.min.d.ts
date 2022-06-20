@@ -304,6 +304,9 @@ declare class Viewpoint extends ViewpointAbstract {
     set target(value: Vector2);
     get target(): Vector2;
 }
+declare global {
+    let _targetFrameRate: number;
+}
 interface Timewarp {
     duration: number;
     rate: number;
@@ -312,7 +315,9 @@ interface InitOptions {
     sketch?: p5;
     drawTarget?: p5.Graphics | DrawTarget<any>;
     viewpoint?: ViewpointAbstract;
+    maxFrameRate?: number;
     maxTimeDelta?: number;
+    minTimeDelta?: number;
     sound?: boolean;
     matter?: boolean | Partial<Matter.IEngineDefinition>;
     regl?: boolean;
@@ -375,17 +380,19 @@ declare class InputMapper {
     update(): void;
     has(devicePrefix: string): boolean;
 }
-interface LighterOptions {
+interface LighterAbstractOptions {
     resolution?: number;
+}
+interface P5LighterOptions extends LighterAbstractOptions {
     blur?: number;
     color?: p5.Color;
 }
-declare class Lighter {
+declare class P5Lighter {
     private lightMap;
     private resolution;
     private _blur;
     private color;
-    constructor(options?: LighterOptions);
+    constructor(options?: P5LighterOptions);
     begin(v?: ViewpointAbstract, d?: P5DrawTarget): this;
     end(d?: P5DrawSurface): void;
     set blur(value: number);
@@ -819,4 +826,4 @@ declare function getSimTime(): number;
 declare function setLoadingTips(tips: string[]): void;
 declare function drawFPS(d?: P5DrawTarget): void;
 declare function drawLoading(d?: P5DrawTarget): void;
-export { Heap, MaxHeap, MinHeap, MappedHeap, MappedMaxHeap, MappedMinHeap, init$1 as init, update, setTestStatus, getTestStatus, timewarp, getTimewarp, getTimewarps, InputMapper, disableContextMenu, Lighter, loadImageEarly, loadImageLate, loadImageDynamic, getImage, loadSoundEarly, loadSoundLate, getSound, enableUnsafeWorldLoading, loadWorldEarly, loadWorldLate, getWorld, loaded, loadProgress, setParticleLimit, emit, emitSingle, draw as drawParticles, ParticleAbstract, VelocityParticleAbstract, AStarPathfinder, RectBody, CircleBody, PolyBody, GridBody, RayBody, drawColliders, P5Tilemap, getTime, getExactTime, getSimTime, drawFPS, drawLoading, setLoadingTips, Vertex2, Vertex3, Vector2, Vector3, watchVector, DrawTarget, P5DrawTarget, CanvasDrawTarget, setDrawTarget, hasDrawTarget, getDrawTarget, getP5DrawTarget, getCanvasDrawTarget, resize, getRegl, refreshRegl, refreshReglFast, displayRegl, ClassicViewpoint, Viewpoint, setDefaultViewpoint, getDefaultViewpoint };
+export { Heap, MaxHeap, MinHeap, MappedHeap, MappedMaxHeap, MappedMinHeap, init$1 as init, update, setTestStatus, getTestStatus, timewarp, getTimewarp, getTimewarps, InputMapper, disableContextMenu, P5Lighter, loadImageEarly, loadImageLate, loadImageDynamic, getImage, loadSoundEarly, loadSoundLate, getSound, enableUnsafeWorldLoading, loadWorldEarly, loadWorldLate, getWorld, loaded, loadProgress, setParticleLimit, emit, emitSingle, draw as drawParticles, ParticleAbstract, VelocityParticleAbstract, AStarPathfinder, RectBody, CircleBody, PolyBody, GridBody, RayBody, drawColliders, P5Tilemap, getTime, getExactTime, getSimTime, drawFPS, drawLoading, setLoadingTips, Vertex2, Vertex3, Vector2, Vector3, watchVector, DrawTarget, P5DrawTarget, CanvasDrawTarget, setDrawTarget, hasDrawTarget, getDrawTarget, getP5DrawTarget, getCanvasDrawTarget, resize, getRegl, refreshRegl, refreshReglFast, displayRegl, ClassicViewpoint, Viewpoint, setDefaultViewpoint, getDefaultViewpoint };

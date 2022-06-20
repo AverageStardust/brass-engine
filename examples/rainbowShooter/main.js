@@ -1,6 +1,7 @@
 /// <reference path = "../declareBrass.ts"/>
 
 const TileType = {
+	// 0 is null, should exist before Tiled map is loaded
 	Ground: 1,
 	Wall: 2
 };
@@ -9,6 +10,7 @@ const startPosition = {
 	y: 60.5,
 };
 const tileMapSize = 128;
+// list of guns, how to draw them and how they shoot
 const weapons = [{
 	shootCooldown: 380,
 	paintSpeed: 0.4,
@@ -86,14 +88,15 @@ const weapons = [{
 }];
 const paintballs = [];
 const enemies = [];
-const enemySpawns = [];
 const droppedWeapons = [];
+const enemySpawns = []; // locations where enemies can spawn
 let enemySpawnCooldown = 0;
 let enemyCap = 0;
 let messageEndTime = null;
 let viewpoint, tilemap, player, pathfinder;
 
 function preload() {
+	// load the world and add to tilemap
 	Brass.loadWorldLate({
 		"tile": "uint8"
 	}, "tilemap.json").then((world) => {
@@ -118,17 +121,24 @@ function preload() {
 }
 
 function setup() {
+	// 64 is the amount of screen pixels per scene unit
+	// basically this is the camera zoom
 	viewpoint = new Brass.Viewpoint(64, Brass.Vector2.fromObj(startPosition));
 
+	// start Brass engine with Matter.js physics
 	Brass.init({
 		viewpoint,
 		matter: {
-			spaceScale: 10
+			spaceScale: 10,
+			gravity: {
+				scale: 0
+			}
 		}
 	});
 
 	player = new Player();
 
+	// create tilemap with lots of custom functions inside
 	tilemap = new Brass.P5Tilemap(tileMapSize, tileMapSize, {
 		fields: {
 			"tile": "uint8",
@@ -138,7 +148,8 @@ function setup() {
 		drawCacheMode: "always",
 		drawCachePadding: 4,
 
-		getTileData: function (x, y) {
+		// get info from tilemap so we can draw a tile or find if solid
+		getTileData: function(x, y) {
 			const tile = this.get(x, y, this.TILE);
 
 			let neighbourWalls = [0, 0, 0, 0];
@@ -184,17 +195,28 @@ function setup() {
 			};
 		},
 
-		isTileSolid: function ({ tile }) {
+		// walls are solid, floor is not
+		isTileSolid: function({
+			tile
+		}) {
 			return tile === TileType.Wall;
 		},
 
-		drawOrder: function ({ tile }) {
+		// draw walls over floors
+		drawOrder: function({
+			tile
+		}) {
 			// draw floor first
 			if (tile !== TileType.Wall) return 1;
 			else return 2; // then walls second
 		},
 
-		drawTile: function ({ tile, shade, neighbourWalls, splats }, x, y, g) {
+		drawTile: function({
+			tile,
+			shade,
+			neighbourWalls,
+			splats
+		}, x, y, g) {
 			if (tile === TileType.Wall) {
 				g.noStroke();
 				g.fill(50, 40, 60);
@@ -224,7 +246,8 @@ function setup() {
 				g.rect(x, y, 1, 1);
 
 				for (const splat of splats) {
-					const u = x + splat.x, v = y + splat.y;
+					const u = x + splat.x,
+						v = y + splat.y;
 
 					g.fill(`hsl(${splat.hue}, 100%, 65%)`);
 					g.circle(u, v, splat.radius * 2);
@@ -233,34 +256,13 @@ function setup() {
 		}
 	});
 
-	pathfinder = new Brass.AStarPathfinder(tilemap, {
-
-	});
-}
-
-function addSplat(x, y, hue) {
-	const u = Math.floor(x), v = Math.floor(y);
-	let splats = tilemap.get(u, v, tilemap.SPLATS);
-	if (splats === undefined) return;
-	if (splats === null) splats = [];
-
-	splats.push({
-		x,
-		y,
-		radius: random(0.1, 0.5),
-		hue
-	})
-
-	tilemap.set(splats, u, v, tilemap.SPLATS);
-	tilemap.clearCacheAtTile(u - 1, v - 1);
-	tilemap.clearCacheAtTile(u + 1, v - 1);
-	tilemap.clearCacheAtTile(u - 1, v + 1);
-	tilemap.clearCacheAtTile(u + 1, v + 1);
+	// create a hive-mind for the enemies
+	pathfinder = new Brass.AStarPathfinder(tilemap);
 }
 
 function brassUpdate(delta) {
 	Brass.setTestStatus(frameCount > 60);
-
+	
 	player.update(delta);
 	pathfinder.setGoal(player.body.position);
 
@@ -269,15 +271,23 @@ function brassUpdate(delta) {
 	if (enemies.length < enemyCap && enemySpawnCooldown <= 0) {
 		const position = enemySpawns[floor(random(enemySpawns.length))];
 		const playerDist = player.body.position.dist(position);
+		
 		let valid = player.holding !== null && playerDist > 32 && playerDist < 96;
+		
 		for (const enemy of enemies) {
 			if (enemy.body.position.dist(position) < 2) valid = false;
 		}
+		
+		// everyone is valid...
+		// unless they are an enemy within 2 units of another enemy
+		// or closer than 32 units to the player
+		// or further than 96 units to the player
 		if (valid) {
 			new Enemy(position);
 			enemySpawnCooldown = 30000 / enemyCap;
 		}
 	}
+	
 	for (let i = 0; i < enemies.length; i++) {
 		const enemy = enemies[i];
 		if (!enemy.body.alive) {
@@ -287,6 +297,7 @@ function brassUpdate(delta) {
 		}
 		enemy.update(delta);
 	}
+	
 	for (let i = 0; i < paintballs.length; i++) {
 		const paintball = paintballs[i];
 		if (!paintball.body.alive) {
@@ -348,7 +359,9 @@ class Paintball {
 		this.body = new Brass.RayBody(position.x, position.y, 0.15, {
 			velocity
 		});
-		this.body.addSensor(({ body }) => {
+		this.body.addSensor(({
+			body
+		}) => {
 			if (body.data !== null && body.data.enemy) {
 				body.data.enemy.damage(this.damage);
 			}
@@ -367,17 +380,24 @@ class Paintball {
 	}
 
 	draw() {
-		const { x, y } = this.body.position;
+		const {
+			x,
+			y
+		} = this.body.position;
 		noStroke();
 		fill(`hsl(${this.hue}, 100%, 40%)`);
 		circle(x, y, 0.15);
 	}
 
+	// where a paintball goes to die
 	splat() {
-		const { x, y } = this.body.position;
-		addSplat(x + random(-0.1, 0.1), y + random(-0.1, 0.1), this.hue);
-		addSplat(x + random(-0.2, 0.2), y + random(-0.2, 0.2), this.hue);
-		addSplat(x + random(-0.3, 0.3), y + random(-0.3, 0.3), this.hue);
+		const {
+			x,
+			y
+		} = this.body.position;
+		this.addGroundSplat(x + random(-0.1, 0.1), y + random(-0.1, 0.1), this.hue);
+		this.addGroundSplat(x + random(-0.2, 0.2), y + random(-0.2, 0.2), this.hue);
+		this.addGroundSplat(x + random(-0.3, 0.3), y + random(-0.3, 0.3), this.hue);
 
 		if (this.split) {
 			const count = floor(random(8, 12));
@@ -391,6 +411,28 @@ class Paintball {
 			}
 		}
 	}
+
+	// add a splat of paint on the ground
+	addGroundSplat(x, y, hue) {
+		const u = Math.floor(x),
+			v = Math.floor(y);
+		let splats = tilemap.get(u, v, tilemap.SPLATS);
+		if (splats === undefined) return;
+		if (splats === null) splats = [];
+
+		splats.push({
+			x,
+			y,
+			radius: random(0.1, 0.5),
+			hue
+		})
+
+		tilemap.set(splats, u, v, tilemap.SPLATS);
+		tilemap.clearCacheAtTile(u - 1, v - 1);
+		tilemap.clearCacheAtTile(u + 1, v - 1);
+		tilemap.clearCacheAtTile(u - 1, v + 1);
+		tilemap.clearCacheAtTile(u + 1, v + 1);
+	}
 }
 
 class Enemy {
@@ -401,11 +443,17 @@ class Enemy {
 			frictionStatic: 0,
 			frictionAir: 0
 		});
+		
+		// stop enemies for colliding with each other
 		this.body.collisionCategory = 1;
 		this.body.collidesWith = 0;
+		
+		// add link to enemy instance into it's physics body
+		// so when it collides it can be traced back to the whole enemy instance
 		this.body.data = {
 			enemy: this
 		};
+		
 		this.leader = enemyCap > 20 && random() < 0.12;
 		this.hp = this.leader ? 18 : 6;
 		this.speed = 1;
@@ -456,9 +504,14 @@ class Player {
 	constructor() {
 		this.useGamepad = false;
 		this.body = new Brass.CircleBody(startPosition.x, startPosition.y, 0.4, {
-			inertia: Infinity, friction: 0, frictionStatic: 0, frictionAir: 0.0
+			inertia: Infinity,
+			friction: 0,
+			frictionStatic: 0,
+			frictionAir: 0.0
 		});
-		this.body.addSensor(({ body }) => {
+		this.body.addSensor(({
+			body
+		}) => {
 			if (body.data !== null && body.data.enemy) {
 				const enemy = body.data.enemy;
 				const diff = this.body.position.copy().sub(enemy.body.position).norm(1);
@@ -496,15 +549,15 @@ class Player {
 				} else {
 					mapper.vector.setSafe("aim",
 						new Brass.Vector2(mouseX, mouseY)
-							.sub(viewpoint.worldToScreen(this.body.position))
-							.norm());
+						.sub(viewpoint.worldToScreen(this.body.position))
+						.norm());
 				}
 			},
 			(mapper) => {
 				let shoot = mapper.button.get("mouseLeft") ||
 					mapper.button.get("gamepadTriggerRight") ||
 					mapper.button.get("gamepadShoulderRight");
-				shoot &&= this.input.vector.get("aim").mag !== 0;
+				shoot && this.input.vector.get("aim").mag !== 0;
 				mapper.button.setSafe("shoot", shoot);
 			},
 		]);
@@ -554,11 +607,11 @@ class Player {
 			for (let i = 0; i < weapon.paintCount; i++) {
 				new Paintball(
 					this.body.position.copy()
-						.add(aimVector.copy()
-							.multScalar(0.55)),
+					.add(aimVector.copy()
+						.multScalar(0.55)),
 					aimVector.copy()
-						.multScalar(weapon.paintSpeed + random(-0.05, 0.05))
-						.rotate(random(-weapon.spread, weapon.spread)),
+					.multScalar(weapon.paintSpeed + random(-0.05, 0.05))
+					.rotate(random(-weapon.spread, weapon.spread)),
 					weapon.paintDamage,
 					weapon.paintSplit
 				);
