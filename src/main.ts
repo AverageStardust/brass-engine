@@ -1,29 +1,8 @@
-/*
-	# 0.16.0
-	directional light
-	start TypeDoc docs
-
-	# 0.17.0
-	regl drawn tilemaps
-
-	# 0.18.0
-	UI/mouse system
-
-	# future / maybe?
-	extended Matter.js support
-	extended p5.js WEBGL support
-	JSON/text/binary/model loading
-	inventory ui
-	save state system
-	animation loading/handling
-
-	spatial sound
-	post-processing
-	raytraced lighting
-	behaviour trees
-	p5 asset / ui editor
-	multiplayer
-*/
+/**
+ * Some internal files export "public" functions and classes for use inside the engine. 
+ * Only values re-exported by main are available for outside use.
+ * @module main
+ */
 
 export {
 	Heap,
@@ -39,9 +18,9 @@ export {
 	update,
 	setTestStatus,
 	getTestStatus,
-	timeWarp,
-	getTimeWarp,
-	getTimeWarps
+	timewarp,
+	getTimewarp,
+	getTimewarps
 } from "./core";
 
 export {

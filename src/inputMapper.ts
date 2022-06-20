@@ -1,3 +1,9 @@
+/**
+ * Collect and process input data from keyboard, mouse and gamepad.
+ * Not the same as a UI system. Mouse events are only taken if they don't first hit UI.
+ * @module
+ */
+
 import { assert } from "./common";
 import { Vector2, Vertex2 } from "./vector3";
 

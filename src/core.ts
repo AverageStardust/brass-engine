@@ -1,3 +1,8 @@
+/**
+ * Initializes Brass, interacts will the global namespace and controls updates.
+ * @module
+ */
+
 import p5 from "p5";
 import { init as initInput, update as updateInput } from "./inputMapper";
 import { DrawTarget, init as initDrawTarget, resize } from "./drawSurface";
@@ -34,7 +39,7 @@ let inited = false;
 let testStatus: true | string | null = null;
 let sketch: p5;
 let maxTimeDelta = 100;
-const timeWarpList: Timewarp[] = [];
+const timewarpList: Timewarp[] = [];
 let runningPhysics = false;
 
 
@@ -124,18 +129,18 @@ function defaultGlobalDraw() {
 	let realDelta = Math.min(maxTimeDelta, deltaTime),
 		simDelta = 0;
 
-	// move realDelta into simDelta with timeWarp rates accounted
-	while (timeWarpList.length > 0) {
+	// move realDelta into simDelta with timewarp rates accounted
+	while (timewarpList.length > 0) {
 		const warpedTime = Math.min(
 			realDelta,
-			timeWarpList[0].duration);
+			timewarpList[0].duration);
 
 		realDelta -= warpedTime;
-		simDelta += warpedTime * timeWarpList[0].rate;
+		simDelta += warpedTime * timewarpList[0].rate;
 
-		timeWarpList[0].duration -= warpedTime;
+		timewarpList[0].duration -= warpedTime;
 
-		if (timeWarpList[0].duration <= 0) timeWarpList.shift();
+		if (timewarpList[0].duration <= 0) timewarpList.shift();
 		else break;
 	}
 
@@ -169,15 +174,15 @@ export function update(delta?: number) {
 	updateParticles(delta);
 }
 
-export function timeWarp(duration: number, rate = 0) {
-	timeWarpList.push({ duration, rate });
+export function timewarp(duration: number, rate = 0) {
+	timewarpList.push({ duration, rate });
 }
 
-export function getTimeWarp(): Timewarp | undefined {
-	if (timeWarpList.length === 0) return { duration: Infinity, rate: 1 };
-	return timeWarpList[0];
+export function getTimewarp(): Timewarp | undefined {
+	if (timewarpList.length === 0) return { duration: Infinity, rate: 1 };
+	return timewarpList[0];
 }
 
-export function getTimeWarps(): Timewarp[] {
-	return timeWarpList;
+export function getTimewarps(): Timewarp[] {
+	return timewarpList;
 }

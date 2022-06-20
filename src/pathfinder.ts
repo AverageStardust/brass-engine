@@ -1,3 +1,9 @@
+/**
+ * A* pathfinding over tilemaps. 
+ * Optimized for hoards of enemies going to the same location, for example the player.
+ * @module
+ */
+
 import { expect, MappedHeap, Opaque } from "./common";
 import { getP5DrawTarget } from "./drawSurface";
 import { TilemapAbstract } from "./tilemap";

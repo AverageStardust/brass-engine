@@ -1,3 +1,8 @@
+/**
+ * Draws loading screen and framerate counter.
+ * @module
+ */
+
 import { getP5DrawTarget } from "./drawSurface";
 import { loadFraction, loadProgress } from "./loader";
 import { getTime } from "./time";

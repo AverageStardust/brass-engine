@@ -1,3 +1,9 @@
+/**
+ * Simple wrapper over Matter.js physics.
+ * Ties in with tilemaps to generate physics bodies for them.
+ * @module
+ */
+
 import { Opaque } from "./common";
 import { getP5DrawTarget } from "./drawSurface";
 import { Vector2, Vertex2, watchVector } from "./vector3";

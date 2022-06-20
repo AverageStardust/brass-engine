@@ -1,3 +1,9 @@
+/**
+ * Loads and handles assets.
+ * Enables loading screens for Brass games.
+ * @module
+ */
+
 import p5 from "p5";
 import { expect, createFastGraphics } from "./common";
 import { FieldDeclaration, TilemapWorld } from "./tilemap";

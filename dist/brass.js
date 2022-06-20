@@ -5161,7 +5161,7 @@ var Brass = (function (exports, p5) {
     var testStatus = null;
     var sketch;
     var maxTimeDelta = 100;
-    var timeWarpList = [];
+    var timewarpList = [];
     var runningPhysics = false;
     p5__default["default"].disableFriendlyErrors = true;
     window.addEventListener("load", function () {
@@ -5235,13 +5235,13 @@ var Brass = (function (exports, p5) {
             return;
         }
         var realDelta = Math.min(maxTimeDelta, deltaTime), simDelta = 0;
-        while (timeWarpList.length > 0) {
-            var warpedTime = Math.min(realDelta, timeWarpList[0].duration);
+        while (timewarpList.length > 0) {
+            var warpedTime = Math.min(realDelta, timewarpList[0].duration);
             realDelta -= warpedTime;
-            simDelta += warpedTime * timeWarpList[0].rate;
-            timeWarpList[0].duration -= warpedTime;
-            if (timeWarpList[0].duration <= 0)
-                timeWarpList.shift();
+            simDelta += warpedTime * timewarpList[0].rate;
+            timewarpList[0].duration -= warpedTime;
+            if (timewarpList[0].duration <= 0)
+                timewarpList.shift();
             else
                 break;
         }
@@ -5267,17 +5267,17 @@ var Brass = (function (exports, p5) {
         update$3();
         update$4(delta);
     }
-    function timeWarp(duration, rate) {
+    function timewarp(duration, rate) {
         if (rate === void 0) { rate = 0; }
-        timeWarpList.push({ duration: duration, rate: rate });
+        timewarpList.push({ duration: duration, rate: rate });
     }
-    function getTimeWarp() {
-        if (timeWarpList.length === 0)
+    function getTimewarp() {
+        if (timewarpList.length === 0)
             return { duration: Infinity, rate: 1 };
-        return timeWarpList[0];
+        return timewarpList[0];
     }
-    function getTimeWarps() {
-        return timeWarpList;
+    function getTimewarps() {
+        return timewarpList;
     }
 
     var Lighter = (function () {
@@ -5315,12 +5315,12 @@ var Brass = (function (exports, p5) {
             },
             set: function (value) {
                 this._blur = value;
-                this.light(this.color);
+                this.fill(this.color);
             },
             enumerable: false,
             configurable: true
         });
-        Lighter.prototype.light = function () {
+        Lighter.prototype.fill = function () {
             var colArgs = [];
             for (var _i = 0; _i < arguments.length; _i++) {
                 colArgs[_i] = arguments[_i];
@@ -5416,8 +5416,8 @@ var Brass = (function (exports, p5) {
     exports.getSound = getSound;
     exports.getTestStatus = getTestStatus;
     exports.getTime = getTime;
-    exports.getTimeWarp = getTimeWarp;
-    exports.getTimeWarps = getTimeWarps;
+    exports.getTimewarp = getTimewarp;
+    exports.getTimewarps = getTimewarps;
     exports.getWorld = getWorld;
     exports.hasDrawTarget = hasDrawTarget;
     exports.init = init;
@@ -5438,7 +5438,7 @@ var Brass = (function (exports, p5) {
     exports.setLoadingTips = setLoadingTips;
     exports.setParticleLimit = setParticleLimit;
     exports.setTestStatus = setTestStatus;
-    exports.timeWarp = timeWarp;
+    exports.timewarp = timewarp;
     exports.update = update;
     exports.watchVector = watchVector;
 

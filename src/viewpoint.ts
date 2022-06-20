@@ -1,3 +1,10 @@
+/**
+ * Like a camera, handles translations and zoom.
+ * Options to follow the position of any vector, like the player position.
+ * @module
+ */
+
+
 import { getP5DrawTarget, P5DrawTarget } from "./drawSurface";
 import { getTime } from "./time";
 import { Vector2 } from "./vector3";

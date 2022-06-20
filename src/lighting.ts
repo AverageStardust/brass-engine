@@ -1,6 +1,12 @@
+/**
+ * Used to add lighting effects to games.
+ * Only simple p5.js effects as of now.
+ * @module
+ */
+
 import p5 from "p5";
-import { DrawSurfaceAbstract, getP5DrawTarget, P5DrawBuffer, P5DrawSurface, P5DrawTarget, P5DrawSurfaceMap } from "./drawSurface";
-import { ColorArgs, createColor, createFastGraphics } from "./common";
+import { getP5DrawTarget, P5DrawBuffer, P5DrawSurface } from "./drawSurface";
+import { ColorArgs, createColor } from "./common";
 import { getDefaultViewpoint } from "./viewpoint";
 
 
@@ -53,14 +59,14 @@ export class Lighter {
 
 	set blur(value: number) {
 		this._blur = value;
-		this.light(this.color);
+		this.fill(this.color);
 	}
 
 	get blur() {
 		return this._blur;
 	}
 
-	light(...colArgs: ColorArgs) {
+	fill(...colArgs: ColorArgs) {
 		const lightCanvas = this.getLightCanvas();
 
 		const col = createColor(...colArgs);

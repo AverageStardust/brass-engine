@@ -1,6 +1,6 @@
 /// <reference types="matter-js" />
 import p5 from "p5";
-import REGL from "./regl";
+import REGL from "../types/regl";
 type Opaque<T, S> = T & {
     __opaque__: S;
 };
@@ -321,9 +321,9 @@ declare function setTestStatus(newStatus: boolean | string): void;
 declare function getTestStatus(): string | true | null;
 declare function init$1(options?: InitOptions): void;
 declare function update(delta?: number): void;
-declare function timeWarp(duration: number, rate?: number): void;
-declare function getTimeWarp(): Timewarp | undefined;
-declare function getTimeWarps(): Timewarp[];
+declare function timewarp(duration: number, rate?: number): void;
+declare function getTimewarp(): Timewarp | undefined;
+declare function getTimewarps(): Timewarp[];
 declare function disableContextMenu(): void;
 declare abstract class InputDeviceAbstract {
     private readonly buttonStateChanges;
@@ -390,7 +390,7 @@ declare class Lighter {
     end(d?: P5DrawSurface): void;
     set blur(value: number);
     get blur(): number;
-    light(...colArgs: ColorArgs): this;
+    fill(...colArgs: ColorArgs): this;
     point(x: number, y: number, r: number): this;
     cone(x: number, y: number, angle: number, width?: number, distance?: number): this;
     world(): this;
@@ -819,4 +819,4 @@ declare function getSimTime(): number;
 declare function setLoadingTips(tips: string[]): void;
 declare function drawFPS(d?: P5DrawTarget): void;
 declare function drawLoading(d?: P5DrawTarget): void;
-export { Heap, MaxHeap, MinHeap, MappedHeap, MappedMaxHeap, MappedMinHeap, init$1 as init, update, setTestStatus, getTestStatus, timeWarp, getTimeWarp, getTimeWarps, InputMapper, disableContextMenu, Lighter, loadImageEarly, loadImageLate, loadImageDynamic, getImage, loadSoundEarly, loadSoundLate, getSound, enableUnsafeWorldLoading, loadWorldEarly, loadWorldLate, getWorld, loaded, loadProgress, setParticleLimit, emit, emitSingle, draw as drawParticles, ParticleAbstract, VelocityParticleAbstract, AStarPathfinder, RectBody, CircleBody, PolyBody, GridBody, RayBody, drawColliders, P5Tilemap, getTime, getExactTime, getSimTime, drawFPS, drawLoading, setLoadingTips, Vertex2, Vertex3, Vector2, Vector3, watchVector, DrawTarget, P5DrawTarget, CanvasDrawTarget, setDrawTarget, hasDrawTarget, getDrawTarget, getP5DrawTarget, getCanvasDrawTarget, resize, getRegl, refreshRegl, refreshReglFast, displayRegl, ClassicViewpoint, Viewpoint, setDefaultViewpoint, getDefaultViewpoint };
+export { Heap, MaxHeap, MinHeap, MappedHeap, MappedMaxHeap, MappedMinHeap, init$1 as init, update, setTestStatus, getTestStatus, timewarp, getTimewarp, getTimewarps, InputMapper, disableContextMenu, Lighter, loadImageEarly, loadImageLate, loadImageDynamic, getImage, loadSoundEarly, loadSoundLate, getSound, enableUnsafeWorldLoading, loadWorldEarly, loadWorldLate, getWorld, loaded, loadProgress, setParticleLimit, emit, emitSingle, draw as drawParticles, ParticleAbstract, VelocityParticleAbstract, AStarPathfinder, RectBody, CircleBody, PolyBody, GridBody, RayBody, drawColliders, P5Tilemap, getTime, getExactTime, getSimTime, drawFPS, drawLoading, setLoadingTips, Vertex2, Vertex3, Vector2, Vector3, watchVector, DrawTarget, P5DrawTarget, CanvasDrawTarget, setDrawTarget, hasDrawTarget, getDrawTarget, getP5DrawTarget, getCanvasDrawTarget, resize, getRegl, refreshRegl, refreshReglFast, displayRegl, ClassicViewpoint, Viewpoint, setDefaultViewpoint, getDefaultViewpoint };

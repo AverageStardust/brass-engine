@@ -1,3 +1,9 @@
+/**
+ * Simple flexible particles. 
+ * They do not interact with Matter.js physics but can collide with tilemaps.
+ * @module
+ */
+
 import { getP5DrawTarget, P5DrawSurfaceMap } from "./drawSurface";
 import { TilemapAbstract } from "./tilemap";
 import { getTime } from "./time";

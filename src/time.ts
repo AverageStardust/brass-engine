@@ -1,3 +1,8 @@
+/**
+ * Measures time, as it says on the tin.
+ * @module
+ */
+
 let lastUpdateTime = 0;
 let simTime = 0;
 

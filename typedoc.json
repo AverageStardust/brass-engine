@@ -1,8 +1,16 @@
 {
 	"name": "Brass Engine",
-	"entryPoints": ["./src/main.ts"],
+	"includeVersion": true,
+	"entryPoints": [
+		"./src"
+	],
+	"entryPointStrategy": "expand",
 	"readme": "./docsREADME.md",
-	"plugin": ["typedoc-plugin-missing-exports"],
+	"plugin": [
+		"typedoc-plugin-missing-exports",
+		"nlfurniss-typedoc-plugin-sourcefile-url"
+	],
 	"excludeExternals": true,
+	"sourcefile-url-prefix": "https://github.com/WDSTEVE/brass-engine/tree/main/src/",
 	"out": "./docs"
 }

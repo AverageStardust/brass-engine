@@ -1,3 +1,8 @@
+/**
+ * Handles vector math.
+ * @module
+ */
+
 // author WD_STEVE
 // version 3.3.1
 // JS only

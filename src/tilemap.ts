@@ -1,9 +1,13 @@
-import { getP5DrawTarget, P5DrawTarget, P5DrawSurfaceMap, DrawBuffer } from "./drawSurface";
+/**
+ * Stores and draws game-worlds on a square grid.
+ * @module
+ */
+
+import { getP5DrawTarget, P5DrawTarget, P5DrawSurfaceMap } from "./drawSurface";
 import { getExactTime, getTime } from "./time";
 import { cloneDynamicArray, createDynamicArray, createFastGraphics, decodeDynamicTypedArray, DynamicArray, DynamicArrayType, DynamicTypedArray, DynamicTypedArrayType, encodeDynamicTypedArray, Pool, safeBind, assert } from "./common";
 import { getDefaultViewpoint } from "./viewpoint";
 import { GridBody } from "./physics";
-import { Vector2, Vertex2 } from "./vector3";
 import p5 from "p5";
 
 

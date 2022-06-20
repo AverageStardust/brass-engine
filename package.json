@@ -19,6 +19,7 @@
     "tslib": "^2.0",
     "typedoc": "^0.22.0",
     "typedoc-plugin-missing-exports": "^0.22.0",
+    "nlfurniss-typedoc-plugin-sourcefile-url": "^2.0.0",
     "rollup": "^2.68.0",
     "rollup-plugin-ts": "^3.0.0",
     "rollup-plugin-terser": "^7.0.2",

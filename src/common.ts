@@ -1,3 +1,8 @@
+/**
+ * Common functionality used by all of Brass engine.
+ * @module
+ */
+
 import p5 from "p5";
 
 
