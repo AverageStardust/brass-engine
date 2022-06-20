@@ -20,7 +20,7 @@ Either way you have tools like tilemap, lighting and input systems.
 
 ## Example Projects
 
-[Paintball Deme](https://wdsteve.github.io/brass-engine/examples/rainbowShooter)
+[Paintball Demo](https://wdsteve.github.io/brass-engine/examples/rainbowShooter)
 <br>
 [Particle and time-warping](https://wdsteve.github.io/brass-engine/examples/particleWarp)
 <br>
