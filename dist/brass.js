@@ -166,18 +166,7 @@ var Brass = (function (exports, p5) {
             var canvas = document.createElement("canvas");
             _this = _super.call(this, canvas, pInst) || this;
             _this._glAttributes = {};
-            for (var p in p5__default["default"].prototype) {
-                if (!_this[p]) {
-                    if (typeof p5__default["default"].prototype[p] === "function") {
-                        _this[p] = p5__default["default"].prototype[p].bind(_this);
-                    }
-                    else {
-                        _this[p] = p5__default["default"].prototype[p];
-                    }
-                }
-            }
-            _this.pInst = (pInst !== null && pInst !== void 0 ? pInst : window);
-            p5__default["default"].prototype._initializeInstanceVariables.apply(_this);
+            applyP5Prototype(_this, pInst);
             _this.canvas = canvas;
             _this.width = width;
             _this.height = height;
@@ -205,6 +194,21 @@ var Brass = (function (exports, p5) {
         };
         return FastGraphics;
     }(p5__default["default"].Element));
+    function applyP5Prototype(obj, pInst) {
+        obj.pInst = (pInst !== null && pInst !== void 0 ? pInst : window);
+        for (var p in p5__default["default"].prototype) {
+            if (obj[p])
+                continue;
+            if (typeof p5__default["default"].prototype[p] === "function") {
+                obj[p] = p5__default["default"].prototype[p].bind(obj);
+            }
+            else {
+                obj[p] = p5__default["default"].prototype[p];
+            }
+        }
+        p5__default["default"].prototype._initializeInstanceVariables.apply(obj);
+        return obj;
+    }
     var Pool = (function () {
         function Pool(initalSize, limited, generator, cleaner) {
             this.pool = Array(initalSize).fill(null).map(generator);
@@ -1893,58 +1897,82 @@ var Brass = (function (exports, p5) {
     var drawTargets = new Map();
     var _regl = null;
     var doReglRefresh = false;
-    function init$4(sketch, doRegl, drawTarget) {
-        var defaultDrawTarget;
-        var defaultP5DrawTarget;
-        var defaultCanvasDrawTarget;
-        if (drawTarget === undefined) {
-            sketch.createCanvas(windowWidth, windowHeight);
-            defaultDrawTarget = new P5DrawTarget(function () { return ({
-                x: sketch.width,
-                y: sketch.height
-            }); }, sketch);
-            defaultP5DrawTarget = defaultDrawTarget;
-        }
-        else if (drawTarget instanceof DrawTarget) {
-            defaultDrawTarget = drawTarget;
-            if (defaultDrawTarget instanceof P5DrawTarget) {
-                defaultP5DrawTarget = defaultDrawTarget;
-            }
-            if (defaultDrawTarget instanceof CanvasDrawTarget) {
-                defaultCanvasDrawTarget = defaultDrawTarget;
-            }
-        }
-        else if (drawTarget instanceof p5__default["default"].Graphics) {
-            defaultDrawTarget = new P5DrawTarget(function () { return ({
-                x: drawTarget.width,
-                y: drawTarget.height
-            }); }, drawTarget);
-            defaultP5DrawTarget = defaultDrawTarget;
-        }
-        else {
-            throw Error("Can't make default drawTarget in Brass.init(), bad value");
-        }
-        if (!defaultDrawTarget)
+    var sketch$1;
+    function init$4(_sketch, doRegl, drawTarget) {
+        sketch$1 = _sketch;
+        initDefaultDrawTarget(drawTarget);
+        if (!hasDrawTarget("default"))
             return;
-        setDrawTarget("default", defaultDrawTarget);
-        if (doRegl && defaultDrawTarget instanceof CanvasDrawTarget) {
-            console.warn("Found a CanvasDrawTarget as default in Brass.init() but regl is not enabled");
-        }
-        if (!defaultP5DrawTarget) {
-            defaultP5DrawTarget = new P5DrawTarget();
-        }
-        setDrawTarget("defaultP5", defaultP5DrawTarget);
+        resetAndSyncDefaultP5DrawTarget();
+        var defaultDrawTarget = getDrawTarget("default");
+        displayDrawTarget(defaultDrawTarget);
         if (doRegl) {
-            if (!defaultCanvasDrawTarget) {
-                defaultCanvasDrawTarget = new CanvasDrawTarget();
-            }
-            setDrawTarget("defaultRegl", defaultCanvasDrawTarget);
-            var canvas = getCanvasDrawTarget("defaultRegl").getMaps().canvas;
+            var canvas = defaultDrawTarget.getMaps().canvas;
             _regl = createREGL({ canvas: canvas });
         }
     }
+    function initDefaultDrawTarget(drawTarget) {
+        if (drawTarget === undefined) {
+            sketch$1.createCanvas(windowWidth, windowHeight);
+            var drawTarget_1 = new P5DrawTarget(function () { return ({
+                x: sketch$1.width,
+                y: sketch$1.height
+            }); }, sketch$1);
+            setDrawTarget("default", drawTarget_1);
+            setDrawTarget("defaultP5", drawTarget_1);
+        }
+        else {
+            noCanvas();
+            if (drawTarget instanceof DrawTarget) {
+                setDrawTarget("default", drawTarget);
+                if (drawTarget instanceof P5DrawTarget) {
+                    setDrawTarget("defaultP5", drawTarget);
+                }
+                if (drawTarget instanceof CanvasDrawTarget) {
+                    setDrawTarget("defaultRegl", drawTarget);
+                }
+            }
+            else if (drawTarget instanceof p5__default["default"].Graphics) {
+                var p5DrawTarget = new P5DrawTarget(function () { return ({
+                    x: drawTarget.width,
+                    y: drawTarget.height
+                }); }, drawTarget);
+                setDrawTarget("default", p5DrawTarget);
+                setDrawTarget("defaultP5", p5DrawTarget);
+            }
+            else {
+                throw Error("Can't make default drawTarget in Brass.init(), bad value");
+            }
+        }
+    }
+    function displayDrawTarget(drawTarget) {
+        var htmlCanvas;
+        if (drawTarget instanceof P5DrawTarget) {
+            htmlCanvas = drawTarget.getMaps().canvas.canvas;
+        }
+        if (drawTarget instanceof CanvasDrawTarget) {
+            htmlCanvas = drawTarget.getMaps().canvas;
+        }
+        if (htmlCanvas) {
+            if (sketch$1._userNode) {
+                sketch$1._userNode.appendChild(htmlCanvas);
+            }
+            else {
+                if (document.getElementsByTagName("main").length === 0) {
+                    var main = document.createElement("main");
+                    document.body.appendChild(main);
+                }
+                document.getElementsByTagName("main")[0].appendChild(htmlCanvas);
+            }
+            htmlCanvas.style.display = "block";
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
     function setDrawTarget(name, drawTarget) {
-        if (drawTargets.has(name)) {
+        if (hasDrawTarget(name)) {
             throw Error("Can't overwrite (".concat(name, ") DrawTarget"));
         }
         drawTargets.set(name, drawTarget);
@@ -1956,7 +1984,7 @@ var Brass = (function (exports, p5) {
         }
         return drawTarget;
     }
-    var hasDrawTarget = drawTargets.has;
+    var hasDrawTarget = drawTargets.has.bind(drawTargets);
     function getP5DrawTarget(name) {
         var drawTarget = getDrawTarget(name);
         if (!(drawTarget instanceof P5DrawTarget)) {
@@ -1972,10 +2000,17 @@ var Brass = (function (exports, p5) {
         return drawTarget;
     }
     function resize(width, height) {
-        if (width === void 0) { width = window.innerWidth; }
-        if (height === void 0) { height = window.innerHeight; }
-        getDrawTarget("default").setSizer(function () { return ({ x: width, y: height }); });
+        getDrawTarget("default").refresh();
+        resetAndSyncDefaultP5DrawTarget();
         honorReglRefresh();
+    }
+    function resetAndSyncDefaultP5DrawTarget() {
+        if (hasDrawTarget("defaultP5")) {
+            var canvas = getDrawTarget("defaultP5").getMaps().canvas;
+            canvas.resetMatrix();
+            sketch$1.width = canvas.width;
+            sketch$1.height = canvas.height;
+        }
     }
     function getRegl() {
         assert(_regl !== null, "Could not access regl; Include regl.js and enable it in Brass.init() first");
@@ -2009,6 +2044,7 @@ var Brass = (function (exports, p5) {
     var DrawSurfaceAbstract = (function () {
         function DrawSurfaceAbstract(creator, resizer) {
             if (resizer === void 0) { resizer = creator; }
+            this.id = Symbol();
             this.creator = creator;
             this.resizer = resizer;
             this.setMaps(null);
@@ -2036,6 +2072,11 @@ var Brass = (function (exports, p5) {
                 this.setMaps(this.resizer(size, this.maps));
             }
             this.size = size;
+        };
+        DrawSurfaceAbstract.prototype.hasName = function (name) {
+            if (!hasDrawTarget(name))
+                return false;
+            return getDrawTarget(name).id === this.id;
         };
         DrawSurfaceAbstract.prototype.setMaps = function (maps) {
             if (maps === null) {
@@ -2082,7 +2123,6 @@ var Brass = (function (exports, p5) {
             if (resizer === void 0) { resizer = creator; }
             if (sizer === void 0) { sizer = defaultMatchSizer; }
             var _this = _super.call(this, creator, resizer) || this;
-            _this.id = Symbol();
             _this.sizer = sizer;
             _this.size = _this.getSizerResult();
             _this.setMaps(_this.creator(_this.size));
@@ -2099,7 +2139,7 @@ var Brass = (function (exports, p5) {
             var e_1, _a, e_2, _b;
             if (causes === void 0) { causes = []; }
             var size = this.getSizerResult();
-            if (this.size.x === size.x && this.size.y === size.y)
+            if (this.size !== undefined && this.size.x === size.x && this.size.y === size.y)
                 return;
             try {
                 for (var causes_1 = __values(causes), causes_1_1 = causes_1.next(); !causes_1_1.done; causes_1_1 = causes_1.next()) {
@@ -2134,7 +2174,7 @@ var Brass = (function (exports, p5) {
             }
         };
         DrawTarget.prototype.getSizerResult = function () {
-            var floatSize = this.sizer();
+            var floatSize = this.sizer(this);
             return {
                 x: Math.floor(floatSize.x),
                 y: Math.floor(floatSize.y)
@@ -2153,7 +2193,7 @@ var Brass = (function (exports, p5) {
                 }
                 else {
                     if (arg.width !== x || arg.height !== y) {
-                        throw Error("P5DrawTarget found initial albedo map was of the wrong size");
+                        arg.resizeCanvas(x, y, true);
                     }
                     return { canvas: arg };
                 }
@@ -2178,7 +2218,7 @@ var Brass = (function (exports, p5) {
                 }
                 else {
                     if (arg.width !== x || arg.height !== y) {
-                        throw Error("P5DrawTarget found initial albedo map was of the wrong size");
+                        arg.resizeCanvas(x, y, true);
                     }
                     return { canvas: arg };
                 }
@@ -2212,7 +2252,10 @@ var Brass = (function (exports, p5) {
         }
         return CanvasDrawTarget;
     }(DrawTarget));
-    function defaultMatchSizer() {
+    function defaultMatchSizer(self) {
+        if (self.hasName("default")) {
+            return { x: window.innerWidth, y: window.innerHeight };
+        }
         return getDrawTarget("default").getSize();
     }
 
@@ -2849,8 +2892,8 @@ var Brass = (function (exports, p5) {
             get: function () {
                 if (this.integerTranslation) {
                     return this.translation.copy()
-                        .multScalar(this.scale).round()
-                        .divScalar(this.scale);
+                        .multScalar(this.effectiveScale).round()
+                        .divScalar(this.effectiveScale);
                 }
                 return this.translation.copy();
             },
@@ -3074,10 +3117,10 @@ var Brass = (function (exports, p5) {
         g.text(tip, g.width * 0.05 - strSize * 0.03, g.height * 0.65 - strSize * 0.03, width * 0.9, Infinity);
         g.strokeWeight(Math.min(g.width, g.height) * 0.1);
         g.stroke(offHue, 100, 10);
-        line(g.width * 0.1, g.height * 0.5, g.width * 0.9, g.height * 0.5);
+        g.line(g.width * 0.1, g.height * 0.5, g.width * 0.9, g.height * 0.5);
         g.strokeWeight(Math.min(g.width, g.height) * 0.08);
         g.stroke(offHue, 70, 60);
-        line(g.width * 0.1, g.height * 0.5, g.width * 0.1 + g.width * 0.8 * loadProgress(), g.height * 0.5);
+        g.line(g.width * 0.1, g.height * 0.5, g.width * 0.1 + g.width * 0.8 * loadProgress(), g.height * 0.5);
         g.pop();
     }
 
@@ -5180,7 +5223,6 @@ var Brass = (function (exports, p5) {
     var maxTimeDelta, targetTimeDelta, minTimeDelta;
     var timewarpList = [];
     var runningPhysics = false;
-    p5__default["default"].disableFriendlyErrors = true;
     window.addEventListener("load", function () {
         window.addEventListener("error", function (error) { return setTestStatus(error.message); });
     });
@@ -5218,6 +5260,7 @@ var Brass = (function (exports, p5) {
             }
             sketch = globalThis;
         }
+        sketch.disableFriendlyErrors = true;
         init$5();
         init$4(sketch, (_a = options.regl) !== null && _a !== void 0 ? _a : false, options.drawTarget);
         init$2(options.viewpoint);
@@ -5238,10 +5281,10 @@ var Brass = (function (exports, p5) {
             }
         }
         if (sketch.draw === undefined) {
-            sketch.draw = defaultGlobalDraw;
+            sketch.draw = defaultSketchDraw;
         }
         if (sketch.windowResized === undefined) {
-            sketch.windowResized = function () { return resize(window.innerWidth, window.innerHeight); };
+            sketch.windowResized = function () { return resize(); };
         }
         inited = true;
     }
@@ -5250,7 +5293,7 @@ var Brass = (function (exports, p5) {
             return;
         throw Error("Brass must be initialized before ".concat(action, "; Run Brass.init()"));
     }
-    function defaultGlobalDraw() {
+    function defaultSketchDraw() {
         if (!loaded()) {
             drawLoading();
             return;
@@ -5263,8 +5306,10 @@ var Brass = (function (exports, p5) {
         if (sketch.brassUpdate !== undefined)
             sketch.brassUpdate(simDelta);
         updateLate(simDelta);
-        if (sketch.brassDraw !== undefined)
+        if (sketch.brassDraw !== undefined) {
+            resetAndSyncDefaultP5DrawTarget();
             sketch.brassDraw(simDelta);
+        }
     }
     function updateSimTiming(realDelta) {
         var simDelta = 0;

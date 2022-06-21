@@ -159,8 +159,8 @@ export abstract class ViewpointAbstract {
 	protected get effectiveTranslation() {
 		if (this.integerTranslation) {
 			return this.translation.copy()
-				.multScalar(this.scale).round()
-				.divScalar(this.scale);
+				.multScalar(this.effectiveScale).round()
+				.divScalar(this.effectiveScale);
 		}
 
 		return this.translation.copy();

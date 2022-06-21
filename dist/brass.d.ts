@@ -192,7 +192,7 @@ declare class Vector3 {
     ]);
 }
 declare function watchVector<T extends Vector2 | Vector3>(vector: T, watcher: Function): T;
-type P5DrawSurfaceMap = (p5.Graphics | p5);
+type P5DrawSurfaceMap = p5.Graphics | p5;
 type P5DrawSurface = DrawSurfaceAbstract<{
     canvas: P5DrawSurfaceMap;
 }>;
@@ -209,6 +209,7 @@ declare function displayRegl(d?: P5DrawTarget): void;
 declare abstract class DrawSurfaceAbstract<T extends {
     [key: string]: any;
 }> {
+    id: symbol;
     protected abstract size: Vertex2 | null;
     protected readonly creator: (size: Vertex2) => T;
     protected readonly resizer: (size: Vertex2, oldMaps: T) => T;
@@ -221,16 +222,16 @@ declare abstract class DrawSurfaceAbstract<T extends {
     };
     abstract getMaps(size?: Vertex2): T;
     sizeMaps(size: Vertex2): void;
+    hasName(name: string): boolean;
     protected setMaps(maps: T | null): void;
     private getMap;
     protected throwSizeError(): never;
 }
 declare class DrawTarget<T> extends DrawSurfaceAbstract<T> {
-    private id;
     protected size: Vertex2;
     private sizer;
-    constructor(creator: (size: Vertex2) => T, resizer?: (size: Vertex2, oldMaps: T) => T, sizer?: () => Vertex2);
-    setSizer(sizer: () => Vertex2): void;
+    constructor(creator: (size: Vertex2) => T, resizer?: (size: Vertex2, oldMaps: T) => T, sizer?: (self: DrawTarget<T>) => Vertex2);
+    setSizer(sizer: (self: DrawTarget<T>) => Vertex2): void;
     getMaps(): T;
     refresh(causes?: Symbol[]): void;
     private getSizerResult;
@@ -238,12 +239,12 @@ declare class DrawTarget<T> extends DrawSurfaceAbstract<T> {
 declare class P5DrawTarget extends DrawTarget<{
     canvas: P5DrawSurfaceMap;
 }> {
-    constructor(sizer?: () => Vertex2, arg?: p5.RENDERER | P5DrawSurfaceMap);
+    constructor(sizer?: (self: P5DrawTarget) => Vertex2, arg?: p5.RENDERER | P5DrawSurfaceMap);
 }
 declare class CanvasDrawTarget extends DrawTarget<{
     canvas: HTMLCanvasElement;
 }> {
-    constructor(sizer?: () => Vertex2);
+    constructor(sizer?: (self: CanvasDrawTarget) => Vertex2);
 }
 interface AbstractViewpointOptions {
     integerTranslation?: boolean;

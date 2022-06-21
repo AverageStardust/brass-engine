@@ -5,7 +5,7 @@
 
 import p5 from "p5";
 import { init as initInput, update as updateInput } from "./inputMapper";
-import { DrawTarget, init as initDrawSurface, resize } from "./drawSurface";
+import { DrawTarget, getDrawTarget, hasDrawTarget, init as initDrawSurface, resetAndSyncDefaultP5DrawTarget, resize } from "./drawSurface";
 import { init as initLoader, loaded } from "./loader";
 import { init as initViewpoint, updateViewpoints, ViewpointAbstract } from "./viewpoint";
 import { deltaSimTime, update as updateTime } from "./time";
@@ -52,9 +52,6 @@ let runningPhysics = false;
 
 
 
-// @ts-ignore because types are wrong
-p5.disableFriendlyErrors = true;
-
 window.addEventListener("load", () => {
 	window.addEventListener("error", (error) => setTestStatus(error.message));
 });
@@ -92,6 +89,8 @@ export function init(options: InitOptions = {}) {
 		sketch = globalThis as unknown as p5;
 	}
 
+	sketch.disableFriendlyErrors = true;
+
 	initInput();
 
 	initDrawSurface(sketch, options.regl ?? false, options.drawTarget);
@@ -118,7 +117,7 @@ export function init(options: InitOptions = {}) {
 	}
 
 	if (sketch.draw === undefined) {
-		sketch.draw = defaultGlobalDraw;
+		sketch.draw = defaultSketchDraw;
 	}
 
 	if (sketch.windowResized === undefined) {
@@ -133,7 +132,7 @@ function enforceInit(action: string) {
 	throw Error(`Brass must be initialized before ${action}; Run Brass.init()`);
 }
 
-function defaultGlobalDraw() {
+function defaultSketchDraw() {
 	if (!loaded()) {
 		drawLoading();
 		return;
@@ -153,7 +152,11 @@ function defaultGlobalDraw() {
 	updateLate(simDelta);
 
 	// @ts-ignore because this is outside of Brass engine and can't be type checked
-	if (sketch.brassDraw !== undefined) sketch.brassDraw(simDelta);
+	if (sketch.brassDraw !== undefined) {
+		resetAndSyncDefaultP5DrawTarget();
+		// @ts-ignore
+		sketch.brassDraw(simDelta);
+	}
 }
 
 function updateSimTiming(realDelta: number) {

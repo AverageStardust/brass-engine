@@ -63,7 +63,6 @@ class FastGraphics extends p5.Element {
 	height: number;
 	_pixelDensity: number;
 
-	pInst: p5;
 	canvas: HTMLCanvasElement;
 	_renderer: any;
 
@@ -74,28 +73,13 @@ class FastGraphics extends p5.Element {
 
 		// @ts-ignore because this is all hacks
 		this._glAttributes = {};
-		for (var p in p5.prototype) {
-			// @ts-ignore because this is all hacks
-			if (!this[p]) {
-				// @ts-ignore because this is all hacks
-				if (typeof p5.prototype[p] === "function") {
-					// @ts-ignore because this is all hacks
-					this[p] = p5.prototype[p].bind(this);
-				} else {
-					// @ts-ignore because this is all hacks
-					this[p] = p5.prototype[p];
-				}
-			}
-		}
 
-		this.pInst = (pInst ?? window) as p5;
+		applyP5Prototype(this, pInst);
 
-		// @ts-ignore because this is all hacks
-		p5.prototype._initializeInstanceVariables.apply(this);
 		this.canvas = canvas;
 		this.width = width;
 		this.height = height;
-		this._pixelDensity = this.pInst.pixelDensity();
+		this._pixelDensity = (this as unknown as any).pInst.pixelDensity();
 
 		if (renderer === WEBGL) {
 			// @ts-ignore because this is all hacks
@@ -125,7 +109,28 @@ class FastGraphics extends p5.Element {
 	}
 }
 
+function applyP5Prototype(obj: unknown, pInst?: p5): typeof obj & p5 {
+	// @ts-ignore because this is all hacks
+	obj.pInst = (pInst ?? window) as p5;
 
+	for (const p in p5.prototype) {
+		// @ts-ignore because this is all hacks
+		if (obj[p]) continue;
+		// @ts-ignore because this is all hacks
+		if (typeof p5.prototype[p] === "function") {
+			// @ts-ignore because this is all hacks
+			obj[p] = p5.prototype[p].bind(obj);
+		} else {
+			// @ts-ignore because this is all hacks
+			obj[p] = p5.prototype[p];
+		}
+	}
+
+	// @ts-ignore because this is all hacks
+	p5.prototype._initializeInstanceVariables.apply(obj);
+
+	return obj as typeof obj & p5;
+}
 
 export class Pool<T> {
 	private readonly pool: T[];

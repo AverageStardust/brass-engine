@@ -158,12 +158,12 @@ export function drawLoading(d = getP5DrawTarget("defaultP5")) {
 	g.strokeWeight(Math.min(g.width, g.height) * 0.1);
 
 	g.stroke(offHue, 100, 10);
-	line(g.width * 0.1, g.height * 0.5, g.width * 0.9, g.height * 0.5);
+	g.line(g.width * 0.1, g.height * 0.5, g.width * 0.9, g.height * 0.5);
 
 	g.strokeWeight(Math.min(g.width, g.height) * 0.08);
 
 	g.stroke(offHue, 70, 60);
-	line(g.width * 0.1, g.height * 0.5,
+	g.line(g.width * 0.1, g.height * 0.5,
 		g.width * 0.1 + g.width * 0.8 * loadProgress(), g.height * 0.5);
 
 	g.pop();

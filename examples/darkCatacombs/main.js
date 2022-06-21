@@ -1,11 +1,22 @@
 /// <reference path = "../declareBrass.ts"/>
 
-let viewpoint, tilemap, tilesheet;
+const startPosition = { x: 30, y: 33 };
+let drawTarget, viewpoint, tilemap, tilesheet;
 
 async function setup() {
-	Brass.init();
+	viewpoint = new Brass.Viewpoint(32, Brass.Vector2.fromObjFast(startPosition), {
+		integerScaling: true
+	});
 
-	viewpoint = new Brass.Viewpoint(64);
+	Brass.init({
+		viewpoint
+	});
+
+	Brass.getDrawTarget("defaultP5").setSizer(() => {
+		const edgeWidth = Math.min(window.innerWidth, window.innerHeight);
+		viewpoint.scale = ceil(edgeWidth / 12);
+		return { x: edgeWidth, y: edgeWidth };
+	});
 
 	tilemap = new Brass.P5Tilemap(128, 128, {
 		fields: {
@@ -22,10 +33,12 @@ async function setup() {
 		}
 	});
 
-	tilesheet = await Brass.loadImageLate("tilesheet.png");
-	tilemap.import(await Brass.loadWorldLate({
+	Brass.loadImageLate("tilesheet.png")
+		.then((image) => tilesheet = image);
+	Brass.loadWorldLate({
 		"tile": "uint8"
-	}, "tilemap.json"));
+	}, "tilemap.json")
+		.then((world) => tilemap.import(world));
 }
 
 function brassUpdate() {
