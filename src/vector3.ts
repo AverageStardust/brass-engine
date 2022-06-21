@@ -4,7 +4,7 @@
  */
 
 // author WD_STEVE
-// version 3.3.1
+// version 3.3.3
 // JS only
 
 export type Vertex2 = { x: number, y: number };
@@ -202,6 +202,13 @@ export class Vector2 {
 		return Math.atan2(vec.y - this.y, vec.x - this.x);
 	}
 
+	angleBetween(vec: Vertex2) {
+		const cosAngleBetween =
+			(this.x * vec.x + this.y * vec.y) /
+			(Math.hypot(this.x, this.y) * Math.hypot(vec.x, vec.y))
+		return Math.acos(Math.max(0, Math.min(1, cosAngleBetween)));
+	}
+
 	rotate(angle: number) {
 		const cosAngle = Math.cos(angle);
 		const sinAngle = Math.sin(angle);
@@ -217,9 +224,10 @@ export class Vector2 {
 	}
 
 	cross(vec: Vertex2) {
-		const top = vec.y * this.x - vec.x - this.y;
-		const bottom = this.x * vec.y + this.y * vec.y;
-		return Math.atan(top / bottom);
+		const x = this.x * vec.y + this.y * vec.y;
+		const y = vec.y * this.x - vec.x - this.y;
+		this.x = x;
+		this.y = y;
 	}
 
 	dist(vec: Vertex2) {

@@ -7,7 +7,9 @@
 import p5 from "p5";
 import { getP5DrawTarget, P5DrawBuffer, P5DrawSurface } from "./drawSurface";
 import { ColorArgs, createColor } from "./common";
-import { getDefaultViewpoint } from "./viewpoint";
+import { getDefaultViewpoint, Viewpoint, ViewpointAbstract } from "./viewpoint";
+import { Vector2, Vertex2 } from "./vector3";
+import { RayBody } from "./physics";
 
 
 
@@ -27,6 +29,7 @@ export class P5Lighter {
 	private resolution: number;
 	private _blur: number;
 	private color: p5.Color;
+	private viewpoint: ViewpointAbstract | null = null;
 
 	constructor(options: P5LighterOptions = {}) {
 		this.resolution = options.resolution ?? 0.25;
@@ -36,14 +39,17 @@ export class P5Lighter {
 
 	// light
 	begin(v = getDefaultViewpoint(), d = getP5DrawTarget("defaultP5")) {
+		const newContext = !this.lightMap.hasSize();
 		this.lightMap.sizeMaps(d.getSize(this.resolution))
+		if(newContext) this.fill(this.color);
 
 		this.resetLightMap();
 
 		const originalScale = v.scale;
 		v.scale *= this.resolution;
-		v.view(d);
+		v.view(this.lightMap);
 		v.scale = originalScale;
+		this.viewpoint = v;
 
 		return this;
 	}
@@ -58,6 +64,8 @@ export class P5Lighter {
 		g.image(this.getLightCanvas() as any, 0, 0, width, height);
 
 		g.pop();
+
+		this.viewpoint = null;
 	}
 
 	set blur(value: number) {
@@ -117,6 +125,110 @@ export class P5Lighter {
 		return this;
 	}
 
+	directional(x: number, y: number, radius: number, quality = 100, raySteps = 10, rayWidth = 0.05) {
+		if (this.viewpoint === null) this.throwBeginError();
+
+		// light is drawn and simulated through an area centered on the screen
+		// this area is a circle with minimum radius to fill the screen
+
+		// find center drawing area
+		const viewArea = this.viewpoint.getWorldViewArea();
+		const center = new Vector2(
+			(viewArea.minX + viewArea.maxX) / 2,
+			(viewArea.minY + viewArea.maxY) / 2
+		);
+		const centerRadius = Math.hypot(
+			viewArea.minX - viewArea.maxX,
+			viewArea.minY - viewArea.maxY) * 0.6;
+		const vec = new Vector2(x, y);
+
+		// find if light is in drawing area
+		const U0 = center.copy().sub(vec);
+		const negativeU0 = vec.copy().sub(center);
+		const centerDist = U0.mag;
+		const lightInArea = centerDist < centerRadius;
+
+		// find angle between center, light, and tangential edge of circle.
+		let lightCircleTagentAngle;
+		if (lightInArea) {
+			lightCircleTagentAngle = HALF_PI;
+		} else {
+			lightCircleTagentAngle = Math.asin(centerRadius / centerDist);
+		}
+
+		// array of points on edge of lit area
+		const points: Vector2[] = [];
+		// list of rays to trace (in reverse order) to find points
+		const paths: { start: Vector2, end: Vector2 }[] = [];
+
+		// range and step between angles from light
+		const centerAngle = negativeU0.angle;
+		const startAngle = centerAngle + HALF_PI - lightCircleTagentAngle;
+		const endAngle = centerAngle + HALF_PI * 3 + lightCircleTagentAngle;
+		const stepAngle = TWO_PI / quality;
+
+		for (let angle = startAngle;
+			angle <= endAngle;
+			angle += stepAngle) {
+			const rayDirection = Vector2.fromDirMag(angle, centerRadius)
+				.add(center).sub(vec).norm();
+			this.findDirectionalLineSegment(
+				U0, centerRadius, vec, rayDirection,
+				radius, lightInArea, points, paths);
+		}
+
+		this.castDirectionalRays(points, paths, raySteps, rayWidth);
+
+		const lightCanvas = this.getLightCanvas();
+
+		lightCanvas.beginShape();
+		for (const vert of points) {
+			lightCanvas.vertex(vert.x, vert.y);
+		}
+		lightCanvas.endShape(CLOSE);
+	}
+
+	// find line segments inside the drawing area at the rayDirection
+	// add point on the outside of the area if the light is outside of the area
+	private findDirectionalLineSegment(
+		U0: Vector2, centerRadius: number, vec: Vector2, rayDirection: Vector2,
+		radius: number, lightInArea: boolean, points: Vector2[], paths: { start: Vector2, end: Vector2 }[]) {
+		const U1 = rayDirection.copy().multScalar(U0.dot(rayDirection));
+		const U2 = U0.copy().sub(U1);
+		const nearDist = U2.mag;
+		if (nearDist > centerRadius) return; // ray does not enter drawing area
+
+		const intersectDist = Math.sqrt(centerRadius * centerRadius - nearDist * nearDist);
+		const intersect = rayDirection.copy().multScalar(intersectDist);
+		const startOffset = U1.copy().sub(intersect);
+		if (!lightInArea && startOffset.mag > radius) return; // line segment does not reach drawing area
+
+		const lineStart = startOffset.limit(radius).add(vec);
+		const lineEnd = U1.copy().add(intersect).limit(radius).add(vec);
+
+		if (lightInArea) {
+			lineStart.set(vec); // cull line segment to start at light
+		} else {
+			points.push(lineStart); // add point where ray enters drawing area
+		}
+
+		paths.push({
+			start: lineStart,
+			end: lineEnd,
+		});
+	}
+
+	private castDirectionalRays(
+		points: Vector2[], paths: { start: Vector2, end: Vector2 }[], raySteps: number, rayWidth: number) {
+		for (let i = paths.length - 1; i >= 0; i--) {
+			const path = paths[i];
+			const ray = new RayBody(path.start.x, path.start.y, rayWidth);
+			const endPoint = ray.cast(path.end.sub(path.start), raySteps).point;
+			ray.kill();
+			points.push(endPoint);
+		}
+	}
+
 	private resetLightMap() {
 		const lightCanvas = this.getLightCanvas();
 
@@ -129,7 +241,11 @@ export class P5Lighter {
 	}
 
 	private getLightCanvas() {
-		if (!this.lightMap.hasSize()) throw Error(`Lighter.begin() must be ran before using lighting`);
+		if (!this.lightMap.hasSize()) this.throwBeginError();
 		return this.lightMap.getMaps().canvas;
+	}
+
+	private throwBeginError(): never {
+		throw Error(`Lighter.begin() must be ran before using lighting`)
 	}
 }

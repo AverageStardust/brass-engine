@@ -110,9 +110,10 @@ declare class Vector2 {
     limit(limit?: number): this;
     setAngle(angle: number): this;
     angleTo(vec: Vertex2): number;
+    angleBetween(vec: Vertex2): number;
     rotate(angle: number): this;
     dot(vec: Vertex2): number;
-    cross(vec: Vertex2): number;
+    cross(vec: Vertex2): void;
     dist(vec: Vertex2): number;
     distSq(vec: Vertex2): number;
     get mag(): number;
@@ -270,17 +271,23 @@ declare abstract class ViewpointAbstract {
     protected shakePosition: Vector2;
     constructor(scale: number, translation: Vector2, options?: AbstractViewpointOptions);
     abstract update(delta: number): void;
-    view(d?: P5DrawTarget): void;
-    getViewArea(d?: P5DrawTarget): {
+    view(d?: P5DrawSurface): void;
+    getScreenViewArea(d?: P5DrawSurface): {
         minX: number;
         maxX: number;
         minY: number;
         maxY: number;
     };
+    getWorldViewArea(d?: P5DrawSurface): {
+        minX: number;
+        minY: number;
+        maxX: number;
+        maxY: number;
+    };
     traslateScreen(screenTranslation: Vector2): void;
     screenToWorld(screenCoord: Vector2, d?: P5DrawTarget): Vector2;
     worldToScreen(worldCoord: Vector2, d?: P5DrawTarget): Vector2;
-    protected abstract getViewOrigin(g: P5DrawTarget): Vector2;
+    protected abstract getViewOrigin(g: P5DrawSurface): Vector2;
     protected get effectiveTranslation(): Vector2;
     protected get effectiveScale(): number;
     shake(strength: number, duration?: number): void;
@@ -393,6 +400,7 @@ declare class P5Lighter {
     private resolution;
     private _blur;
     private color;
+    private viewpoint;
     constructor(options?: P5LighterOptions);
     begin(v?: ViewpointAbstract, d?: P5DrawTarget): this;
     end(d?: P5DrawSurface): void;
@@ -402,8 +410,12 @@ declare class P5Lighter {
     point(x: number, y: number, r: number): this;
     cone(x: number, y: number, angle: number, width?: number, distance?: number): this;
     world(): this;
+    directional(x: number, y: number, radius: number, quality?: number, raySteps?: number, rayWidth?: number): void;
+    private findDirectionalLineSegment;
+    private castDirectionalRays;
     private resetLightMap;
     private getLightCanvas;
+    private throwBeginError;
 }
 interface Collision {
     body: BodyAbstract;
@@ -476,7 +488,7 @@ declare abstract class MaterialBodyAbstract extends BodyAbstract {
     rotate(rotation: number): this;
     applyForce(force: Vertex2, position?: Vector2): this;
     kill(): void;
-    protected destroy(): void;
+    protected remove(): void;
 }
 declare class RectBody extends MaterialBodyAbstract {
     constructor(x: number, y: number, width: number, height: number, options?: Matter.IBodyDefinition);
@@ -523,11 +535,16 @@ declare class RayBody extends BodyAbstract {
     rotate(_: number): this;
     applyForce(): this;
     kill(): void;
-    protected destroy(): void;
-    cast(delta: number, steps?: number): {
+    protected remove(): void;
+    castOverTime(delta: number, steps?: number): {
         point: Vector2;
         dist: Number;
         body: null | MaterialBodyAbstract;
+    };
+    cast(displacment: Vector2, steps?: number): {
+        point: Vector2;
+        dist: number;
+        body: MaterialBodyAbstract | null;
     };
 }
 type SparseableDynamicArrayType = "sparse" | DynamicArrayType;

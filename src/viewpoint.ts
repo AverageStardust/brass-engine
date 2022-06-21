@@ -5,7 +5,7 @@
  */
 
 
-import { getP5DrawTarget, P5DrawTarget } from "./drawSurface";
+import { getP5DrawTarget, P5DrawBuffer, P5DrawSurface, P5DrawTarget } from "./drawSurface";
 import { getTime } from "./time";
 import { Vector2 } from "./vector3";
 
@@ -85,7 +85,7 @@ export abstract class ViewpointAbstract {
 	// camera
 	abstract update(delta: number): void;
 
-	view(d = getP5DrawTarget("defaultP5")) {
+	view(d: P5DrawSurface = getP5DrawTarget("defaultP5")) {
 		const g = d.getMaps().canvas;
 
 		const viewOrigin = this.getViewOrigin(d);
@@ -99,17 +99,31 @@ export abstract class ViewpointAbstract {
 		g.translate(-this.shakePosition.x, -this.shakePosition.y);
 	}
 
-	getViewArea(d = getP5DrawTarget("defaultP5")) {
+	getScreenViewArea(d: P5DrawSurface = getP5DrawTarget("defaultP5")) {
+		const g = d.getMaps().canvas;
+
+		const viewOrigin = this.getViewOrigin(d);
+
+		return {
+			minX: 0 - viewOrigin.x,
+			maxX: g.width - viewOrigin.x,
+			minY: 0 - viewOrigin.y,
+			maxY: g.height - viewOrigin.y
+		};
+	}
+
+	getWorldViewArea(d: P5DrawSurface = getP5DrawTarget("defaultP5")) {
 		const g = d.getMaps().canvas;
 
 		const translation = this.effectiveTranslation;
-		translation.sub(this.getViewOrigin(d));
+
+		const { x: minX, y: minY } =
+			this.screenToWorld(new Vector2());
+		const { x: maxX, y: maxY } =
+			this.screenToWorld(new Vector2(g.width, g.height));
 
 		return {
-			minX: translation.x,
-			maxX: translation.x + g.width,
-			minY: translation.y,
-			maxY: translation.y + g.height
+			minX, minY, maxX, maxY
 		};
 	}
 
@@ -140,7 +154,7 @@ export abstract class ViewpointAbstract {
 		const g = d.getMaps().canvas;
 
 		const coord = worldCoord.copy();
-		
+
 		coord.sub(this.shakePosition);
 
 		const translation = this.effectiveTranslation;
@@ -154,7 +168,7 @@ export abstract class ViewpointAbstract {
 		return coord;
 	}
 
-	protected abstract getViewOrigin(g: P5DrawTarget): Vector2;
+	protected abstract getViewOrigin(g: P5DrawSurface): Vector2;
 
 	protected get effectiveTranslation() {
 		if (this.integerTranslation) {

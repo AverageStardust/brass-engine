@@ -38,7 +38,7 @@ export function update(delta: number) {
 
 export function draw(v = getDefaultViewpoint(), d = getP5DrawTarget("defaultP5")) {
 	const g = d.getMaps().canvas;
-	const viewArea = v.getViewArea(d);
+	const viewArea = v.getWorldViewArea(d);
 
 	for (const [_, particle] of particles.entries()) {
 		const visibleX = particle.position.x + particle.radius > viewArea.minX &&

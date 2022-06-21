@@ -65,6 +65,10 @@ function handleActiveCollisions({ pairs }: Matter.IEventCollision<Matter.Engine>
 	});
 }
 
+export function isPhysicsRunning() {
+	return inited;
+}
+
 function enforceInit(action: string) {
 	if (inited) return;
 	throw Error(`Matter must be enabled in Brass.init() before ${action}`);
@@ -80,7 +84,7 @@ export function update(delta: number) {
 	lastDelta = delta;
 
 	for (const [_, ray] of rays.entries()) {
-		const { body, point } = ray.cast(delta);
+		const { body, point } = ray.castOverTime(delta);
 		ray.position = point.copy();
 
 		if (!body) continue;
@@ -210,7 +214,7 @@ abstract class MaterialBodyAbstract extends BodyAbstract {
 
 	protected setBody(body: Matter.Body) {
 		if (this.body !== undefined) {
-			this.destroy();
+			this.remove();
 		}
 
 		this.body = body as InternalMatterBody;
@@ -328,10 +332,10 @@ abstract class MaterialBodyAbstract extends BodyAbstract {
 
 	kill() {
 		super.kill();
-		this.destroy();
+		this.remove();
 	}
 
-	protected destroy() {
+	protected remove() {
 		const categoryIndex = this.collisionCategoryToIndex(this.body.collisionFilter.category);
 		bodies[categoryIndex].delete(this.body.id);
 		Matter.World.remove(world, this.body);
@@ -646,18 +650,24 @@ export class RayBody extends BodyAbstract {
 
 	kill() {
 		super.kill();
-		this.destroy();
+		this.remove();
 	}
 
-	protected destroy() {
+	protected remove() {
 		rays.delete(this.id);
 	}
 
-	cast(delta: number, steps = 20): {
+	castOverTime(delta: number, steps?: number): {
 		point: Vector2,
 		dist: Number,
 		body: null | MaterialBodyAbstract
 	} {
+		const timeSteps = (delta / 1000 * 60);
+		const displacment = this.velocity.copy().multScalar(spaceScale * timeSteps);
+		return this.cast(displacment, steps);
+	}
+
+	cast(displacment: Vector2, steps = 20) {
 		const testBrassBodies: MaterialBodyAbstract[] = [];
 
 		for (let i = 0; i < 32; i++) {
@@ -667,8 +677,6 @@ export class RayBody extends BodyAbstract {
 
 		const testBodies = testBrassBodies.map((brassBody) => brassBody.body);
 
-		const timeSteps = (delta / 1000 * 60);
-		const displacment = this.velocity.copy().multScalar(spaceScale * timeSteps);
 		const start = this.position.copy().multScalar(spaceScale);
 
 		let testPoint = 1,
@@ -714,7 +722,7 @@ export class RayBody extends BodyAbstract {
 
 		return {
 			point: hitEnd.divScalar(spaceScale),
-			dist: this.velocity.mag * timeSteps * hitPoint,
+			dist: displacment.mag * hitPoint,
 			body: hitBody
 		};
 	}

@@ -7,7 +7,7 @@ import { getP5DrawTarget, P5DrawTarget, P5DrawSurfaceMap } from "./drawSurface";
 import { getExactTime, getTime } from "./time";
 import { cloneDynamicArray, createDynamicArray, createFastGraphics, decodeDynamicTypedArray, DynamicArray, DynamicArrayType, DynamicTypedArray, DynamicTypedArrayType, encodeDynamicTypedArray, Pool, safeBind, assert } from "./common";
 import { getDefaultViewpoint } from "./viewpoint";
-import { GridBody } from "./physics";
+import { GridBody, isPhysicsRunning } from "./physics";
 import p5 from "p5";
 
 
@@ -156,7 +156,13 @@ export abstract class TilemapAbstract {
 
 		this.solidFieldId = this.fieldIds[solidFieldName];
 
+		if (isPhysicsRunning()) {
+			if (options.body === undefined) {
+				console.warn("Matter physics is running but Tilemap does not have body; If this is intentional pass false for the body option");
+			}
+		}
 		this.hasBody = !!options.body;
+
 		this.autoMaintainBody = options.autoMaintainBody ?? true;
 
 		this.getTileData = this.bindOptionsFunction(options.getTileData) ?? this.get;
@@ -471,7 +477,7 @@ export class P5Tilemap extends TilemapAbstract {
 
 	draw(v = getDefaultViewpoint(), d = getP5DrawTarget("defaultP5")) {
 		const g = d.getMaps().canvas;
-		const viewArea = v.getViewArea(d);
+		const viewArea = v.getWorldViewArea(d);
 
 		// lock drawing to inside tile map
 		viewArea.minX = Math.max(0, viewArea.minX / this.tileSize);
@@ -548,10 +554,9 @@ export class P5Tilemap extends TilemapAbstract {
 	}
 
 	private padChunks(alwaysCache: boolean, v = getDefaultViewpoint(), d: P5DrawTarget) {
-		const g = d.getMaps().canvas;
 		assert(this.chunkPool !== null);
 
-		const viewArea = v.getViewArea(d);
+		const viewArea = v.getWorldViewArea(d);
 
 		// add padding and lock drawing to inside tile map
 		viewArea.minX = Math.max(0,

@@ -665,6 +665,11 @@ var Brass = (function (exports, p5) {
         Vector2.prototype.angleTo = function (vec) {
             return Math.atan2(vec.y - this.y, vec.x - this.x);
         };
+        Vector2.prototype.angleBetween = function (vec) {
+            var cosAngleBetween = (this.x * vec.x + this.y * vec.y) /
+                (Math.hypot(this.x, this.y) * Math.hypot(vec.x, vec.y));
+            return Math.acos(Math.max(0, Math.min(1, cosAngleBetween)));
+        };
         Vector2.prototype.rotate = function (angle) {
             var cosAngle = Math.cos(angle);
             var sinAngle = Math.sin(angle);
@@ -677,9 +682,10 @@ var Brass = (function (exports, p5) {
             return this.x * vec.x + this.y * vec.y;
         };
         Vector2.prototype.cross = function (vec) {
-            var top = vec.y * this.x - vec.x - this.y;
-            var bottom = this.x * vec.y + this.y * vec.y;
-            return Math.atan(top / bottom);
+            var x = this.x * vec.y + this.y * vec.y;
+            var y = vec.y * this.x - vec.x - this.y;
+            this.x = x;
+            this.y = y;
         };
         Vector2.prototype.dist = function (vec) {
             return Math.hypot(this.x - vec.x, this.y - vec.y);
@@ -2848,16 +2854,28 @@ var Brass = (function (exports, p5) {
             g.translate(-translation.x, -translation.y);
             g.translate(-this.shakePosition.x, -this.shakePosition.y);
         };
-        ViewpointAbstract.prototype.getViewArea = function (d) {
+        ViewpointAbstract.prototype.getScreenViewArea = function (d) {
             if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
             var g = d.getMaps().canvas;
-            var translation = this.effectiveTranslation;
-            translation.sub(this.getViewOrigin(d));
+            var viewOrigin = this.getViewOrigin(d);
             return {
-                minX: translation.x,
-                maxX: translation.x + g.width,
-                minY: translation.y,
-                maxY: translation.y + g.height
+                minX: 0 - viewOrigin.x,
+                maxX: g.width - viewOrigin.x,
+                minY: 0 - viewOrigin.y,
+                maxY: g.height - viewOrigin.y
+            };
+        };
+        ViewpointAbstract.prototype.getWorldViewArea = function (d) {
+            if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+            var g = d.getMaps().canvas;
+            this.effectiveTranslation;
+            var _a = this.screenToWorld(new Vector2()), minX = _a.x, minY = _a.y;
+            var _b = this.screenToWorld(new Vector2(g.width, g.height)), maxX = _b.x, maxY = _b.y;
+            return {
+                minX: minX,
+                minY: minY,
+                maxX: maxX,
+                maxY: maxY
             };
         };
         ViewpointAbstract.prototype.traslateScreen = function (screenTranslation) {
@@ -3154,7 +3172,7 @@ var Brass = (function (exports, p5) {
         if (v === void 0) { v = getDefaultViewpoint(); }
         if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
         var g = d.getMaps().canvas;
-        var viewArea = v.getViewArea(d);
+        var viewArea = v.getWorldViewArea(d);
         try {
             for (var _b = __values(particles.entries()), _c = _b.next(); !_c.done; _c = _b.next()) {
                 var _d = __read(_c.value, 2), _ = _d[0], particle = _d[1];
@@ -4002,6 +4020,9 @@ var Brass = (function (exports, p5) {
             bodyB.triggerSensors({ self: bodyB, body: bodyA, points: points });
         });
     }
+    function isPhysicsRunning() {
+        return inited$1;
+    }
     function enforceInit$1(action) {
         if (inited$1)
             return;
@@ -4019,7 +4040,7 @@ var Brass = (function (exports, p5) {
         try {
             for (var _b = __values(rays.entries()), _c = _b.next(); !_c.done; _c = _b.next()) {
                 var _d = __read(_c.value, 2), _ = _d[0], ray = _d[1];
-                var _e = ray.cast(delta), body = _e.body, point_1 = _e.point;
+                var _e = ray.castOverTime(delta), body = _e.body, point_1 = _e.point;
                 ray.position = point_1.copy();
                 if (!body)
                     continue;
@@ -4147,7 +4168,7 @@ var Brass = (function (exports, p5) {
         }
         MaterialBodyAbstract.prototype.setBody = function (body) {
             if (this.body !== undefined) {
-                this.destroy();
+                this.remove();
             }
             this.body = body;
             this.body.__brassBody__ = this;
@@ -4275,9 +4296,9 @@ var Brass = (function (exports, p5) {
         };
         MaterialBodyAbstract.prototype.kill = function () {
             _super.prototype.kill.call(this);
-            this.destroy();
+            this.remove();
         };
-        MaterialBodyAbstract.prototype.destroy = function () {
+        MaterialBodyAbstract.prototype.remove = function () {
             var categoryIndex = this.collisionCategoryToIndex(this.body.collisionFilter.category);
             bodies[categoryIndex].delete(this.body.id);
             Matter.World.remove(world, this.body);
@@ -4592,12 +4613,17 @@ var Brass = (function (exports, p5) {
         };
         RayBody.prototype.kill = function () {
             _super.prototype.kill.call(this);
-            this.destroy();
+            this.remove();
         };
-        RayBody.prototype.destroy = function () {
+        RayBody.prototype.remove = function () {
             rays.delete(this.id);
         };
-        RayBody.prototype.cast = function (delta, steps) {
+        RayBody.prototype.castOverTime = function (delta, steps) {
+            var timeSteps = (delta / 1000 * 60);
+            var displacment = this.velocity.copy().multScalar(spaceScale * timeSteps);
+            return this.cast(displacment, steps);
+        };
+        RayBody.prototype.cast = function (displacment, steps) {
             if (steps === void 0) { steps = 20; }
             var testBrassBodies = [];
             for (var i = 0; i < 32; i++) {
@@ -4606,8 +4632,6 @@ var Brass = (function (exports, p5) {
                 testBrassBodies.push.apply(testBrassBodies, __spreadArray([], __read(Array.from(bodies[i].values())), false));
             }
             var testBodies = testBrassBodies.map(function (brassBody) { return brassBody.body; });
-            var timeSteps = (delta / 1000 * 60);
-            var displacment = this.velocity.copy().multScalar(spaceScale * timeSteps);
             var start = this.position.copy().multScalar(spaceScale);
             var testPoint = 1, testJump = 0.5, hits = [], hitEnd = displacment.copy().multScalar(testPoint).add(start), hitPoint = 1;
             for (var i = 0; i < steps; i++) {
@@ -4648,7 +4672,7 @@ var Brass = (function (exports, p5) {
             }
             return {
                 point: hitEnd.divScalar(spaceScale),
-                dist: this.velocity.mag * timeSteps * hitPoint,
+                dist: displacment.mag * hitPoint,
                 body: hitBody
             };
         };
@@ -4703,6 +4727,11 @@ var Brass = (function (exports, p5) {
                 this.fields.push(this.createField(fieldType));
             }
             this.solidFieldId = this.fieldIds[solidFieldName];
+            if (isPhysicsRunning()) {
+                if (options.body === undefined) {
+                    console.warn("Matter physics is running but Tilemap does not have body; If this is intentional pass false for the body option");
+                }
+            }
             this.hasBody = !!options.body;
             this.autoMaintainBody = (_d = options.autoMaintainBody) !== null && _d !== void 0 ? _d : true;
             this.getTileData = (_e = this.bindOptionsFunction(options.getTileData)) !== null && _e !== void 0 ? _e : this.get;
@@ -4969,7 +4998,7 @@ var Brass = (function (exports, p5) {
             if (v === void 0) { v = getDefaultViewpoint(); }
             if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
             var g = d.getMaps().canvas;
-            var viewArea = v.getViewArea(d);
+            var viewArea = v.getWorldViewArea(d);
             viewArea.minX = Math.max(0, viewArea.minX / this.tileSize);
             viewArea.minY = Math.max(0, viewArea.minY / this.tileSize);
             viewArea.maxX = Math.min(this.width, viewArea.maxX / this.tileSize);
@@ -5022,9 +5051,8 @@ var Brass = (function (exports, p5) {
         };
         P5Tilemap.prototype.padChunks = function (alwaysCache, v, d) {
             if (v === void 0) { v = getDefaultViewpoint(); }
-            d.getMaps().canvas;
             assert(this.chunkPool !== null);
-            var viewArea = v.getViewArea(d);
+            var viewArea = v.getWorldViewArea(d);
             viewArea.minX = Math.max(0, viewArea.minX / this.tileSize - this.drawCachePadding);
             viewArea.minY = Math.max(0, viewArea.minY / this.tileSize - this.drawCachePadding);
             viewArea.maxX = Math.min(this.width, viewArea.maxX / this.tileSize + this.drawCachePadding);
@@ -5364,6 +5392,7 @@ var Brass = (function (exports, p5) {
             if (options === void 0) { options = {}; }
             var _a, _b, _c;
             this.lightMap = new P5DrawBuffer();
+            this.viewpoint = null;
             this.resolution = (_a = options.resolution) !== null && _a !== void 0 ? _a : 0.25;
             this._blur = (_b = options.blur) !== null && _b !== void 0 ? _b : 1;
             this.color = (_c = options.color) !== null && _c !== void 0 ? _c : createColor(255);
@@ -5371,12 +5400,16 @@ var Brass = (function (exports, p5) {
         P5Lighter.prototype.begin = function (v, d) {
             if (v === void 0) { v = getDefaultViewpoint(); }
             if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+            var newContext = !this.lightMap.hasSize();
             this.lightMap.sizeMaps(d.getSize(this.resolution));
+            if (newContext)
+                this.fill(this.color);
             this.resetLightMap();
             var originalScale = v.scale;
             v.scale *= this.resolution;
-            v.view(d);
+            v.view(this.lightMap);
             v.scale = originalScale;
+            this.viewpoint = v;
             return this;
         };
         P5Lighter.prototype.end = function (d) {
@@ -5387,6 +5420,7 @@ var Brass = (function (exports, p5) {
             g.blendMode(MULTIPLY);
             g.image(this.getLightCanvas(), 0, 0, width, height);
             g.pop();
+            this.viewpoint = null;
         };
         Object.defineProperty(P5Lighter.prototype, "blur", {
             get: function () {
@@ -5435,6 +5469,90 @@ var Brass = (function (exports, p5) {
             lightCanvas.background(this.color);
             return this;
         };
+        P5Lighter.prototype.directional = function (x, y, radius, quality, raySteps, rayWidth) {
+            var e_1, _a;
+            if (quality === void 0) { quality = 100; }
+            if (raySteps === void 0) { raySteps = 10; }
+            if (rayWidth === void 0) { rayWidth = 0.05; }
+            if (this.viewpoint === null)
+                this.throwBeginError();
+            var viewArea = this.viewpoint.getWorldViewArea();
+            var center = new Vector2((viewArea.minX + viewArea.maxX) / 2, (viewArea.minY + viewArea.maxY) / 2);
+            var centerRadius = Math.hypot(viewArea.minX - viewArea.maxX, viewArea.minY - viewArea.maxY) * 0.6;
+            var vec = new Vector2(x, y);
+            var U0 = center.copy().sub(vec);
+            var negativeU0 = vec.copy().sub(center);
+            var centerDist = U0.mag;
+            var lightInArea = centerDist < centerRadius;
+            var lightCircleTagentAngle;
+            if (lightInArea) {
+                lightCircleTagentAngle = HALF_PI;
+            }
+            else {
+                lightCircleTagentAngle = Math.asin(centerRadius / centerDist);
+            }
+            var points = [];
+            var paths = [];
+            var centerAngle = negativeU0.angle;
+            var startAngle = centerAngle + HALF_PI - lightCircleTagentAngle;
+            var endAngle = centerAngle + HALF_PI * 3 + lightCircleTagentAngle;
+            var stepAngle = TWO_PI / quality;
+            for (var angle = startAngle; angle <= endAngle; angle += stepAngle) {
+                var rayDirection = Vector2.fromDirMag(angle, centerRadius)
+                    .add(center).sub(vec).norm();
+                this.findDirectionalLineSegment(U0, centerRadius, vec, rayDirection, radius, lightInArea, points, paths);
+            }
+            this.castDirectionalRays(points, paths, raySteps, rayWidth);
+            var lightCanvas = this.getLightCanvas();
+            lightCanvas.beginShape();
+            try {
+                for (var points_1 = __values(points), points_1_1 = points_1.next(); !points_1_1.done; points_1_1 = points_1.next()) {
+                    var vert = points_1_1.value;
+                    lightCanvas.vertex(vert.x, vert.y);
+                }
+            }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
+                try {
+                    if (points_1_1 && !points_1_1.done && (_a = points_1.return)) _a.call(points_1);
+                }
+                finally { if (e_1) throw e_1.error; }
+            }
+            lightCanvas.endShape(CLOSE);
+        };
+        P5Lighter.prototype.findDirectionalLineSegment = function (U0, centerRadius, vec, rayDirection, radius, lightInArea, points, paths) {
+            var U1 = rayDirection.copy().multScalar(U0.dot(rayDirection));
+            var U2 = U0.copy().sub(U1);
+            var nearDist = U2.mag;
+            if (nearDist > centerRadius)
+                return;
+            var intersectDist = Math.sqrt(centerRadius * centerRadius - nearDist * nearDist);
+            var intersect = rayDirection.copy().multScalar(intersectDist);
+            var startOffset = U1.copy().sub(intersect);
+            if (!lightInArea && startOffset.mag > radius)
+                return;
+            var lineStart = startOffset.limit(radius).add(vec);
+            var lineEnd = U1.copy().add(intersect).limit(radius).add(vec);
+            if (lightInArea) {
+                lineStart.set(vec);
+            }
+            else {
+                points.push(lineStart);
+            }
+            paths.push({
+                start: lineStart,
+                end: lineEnd,
+            });
+        };
+        P5Lighter.prototype.castDirectionalRays = function (points, paths, raySteps, rayWidth) {
+            for (var i = paths.length - 1; i >= 0; i--) {
+                var path = paths[i];
+                var ray = new RayBody(path.start.x, path.start.y, rayWidth);
+                var endPoint = ray.cast(path.end.sub(path.start), raySteps).point;
+                ray.kill();
+                points.push(endPoint);
+            }
+        };
         P5Lighter.prototype.resetLightMap = function () {
             var lightCanvas = this.getLightCanvas();
             lightCanvas.push();
@@ -5445,8 +5563,11 @@ var Brass = (function (exports, p5) {
         };
         P5Lighter.prototype.getLightCanvas = function () {
             if (!this.lightMap.hasSize())
-                throw Error("Lighter.begin() must be ran before using lighting");
+                this.throwBeginError();
             return this.lightMap.getMaps().canvas;
+        };
+        P5Lighter.prototype.throwBeginError = function () {
+            throw Error("Lighter.begin() must be ran before using lighting");
         };
         return P5Lighter;
     }());
