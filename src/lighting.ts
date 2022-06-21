@@ -125,7 +125,7 @@ export class P5Lighter {
 		return this;
 	}
 
-	directional(x: number, y: number, radius: number, quality = 100, raySteps = 10, rayWidth = 0.05) {
+	directional(x: number, y: number, radius: number, quality = 100, raySteps = 10, rayWidth = 0.01) {
 		if (this.viewpoint === null) this.throwBeginError();
 
 		// light is drawn and simulated through an area centered on the screen

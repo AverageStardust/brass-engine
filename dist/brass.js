@@ -1904,26 +1904,27 @@ var Brass = (function (exports, p5) {
     var _regl = null;
     var doReglRefresh = false;
     var sketch$1;
+    var setWidth = window.innerWidth, setHeight = window.innerHeight;
     function init$4(_sketch, doRegl, drawTarget) {
         sketch$1 = _sketch;
-        initDefaultDrawTarget(drawTarget);
+        setWidth = window.innerWidth;
+        setHeight = window.innerHeight;
+        initDefaultDrawTarget(doRegl, drawTarget);
         if (!hasDrawTarget("default"))
             return;
         resetAndSyncDefaultP5DrawTarget();
         var defaultDrawTarget = getDrawTarget("default");
         displayDrawTarget(defaultDrawTarget);
         if (doRegl) {
-            var canvas = defaultDrawTarget.getMaps().canvas;
+            var defaultReglTarget = getDrawTarget("defaultRegl");
+            var canvas = defaultReglTarget.getMaps().canvas;
             _regl = createREGL({ canvas: canvas });
         }
     }
-    function initDefaultDrawTarget(drawTarget) {
+    function initDefaultDrawTarget(doRegl, drawTarget) {
         if (drawTarget === undefined) {
             sketch$1.createCanvas(windowWidth, windowHeight);
-            var drawTarget_1 = new P5DrawTarget(function () { return ({
-                x: sketch$1.width,
-                y: sketch$1.height
-            }); }, sketch$1);
+            var drawTarget_1 = new P5DrawTarget(undefined, sketch$1);
             setDrawTarget("default", drawTarget_1);
             setDrawTarget("defaultP5", drawTarget_1);
         }
@@ -1939,16 +1940,17 @@ var Brass = (function (exports, p5) {
                 }
             }
             else if (drawTarget instanceof p5__default["default"].Graphics) {
-                var p5DrawTarget = new P5DrawTarget(function () { return ({
-                    x: drawTarget.width,
-                    y: drawTarget.height
-                }); }, drawTarget);
+                var p5DrawTarget = new P5DrawTarget(undefined, drawTarget);
                 setDrawTarget("default", p5DrawTarget);
                 setDrawTarget("defaultP5", p5DrawTarget);
             }
             else {
                 throw Error("Can't make default drawTarget in Brass.init(), bad value");
             }
+        }
+        if (doRegl) {
+            var drawTarget_2 = new CanvasDrawTarget();
+            setDrawTarget("defaultRegl", drawTarget_2);
         }
     }
     function displayDrawTarget(drawTarget) {
@@ -2006,6 +2008,10 @@ var Brass = (function (exports, p5) {
         return drawTarget;
     }
     function resize(width, height) {
+        if (width === void 0) { width = window.innerWidth; }
+        if (height === void 0) { height = window.innerHeight; }
+        setWidth = width;
+        setHeight = height;
         getDrawTarget("default").refresh();
         resetAndSyncDefaultP5DrawTarget();
         honorReglRefresh();
@@ -2259,8 +2265,8 @@ var Brass = (function (exports, p5) {
         return CanvasDrawTarget;
     }(DrawTarget));
     function defaultMatchSizer(self) {
-        if (self.hasName("default")) {
-            return { x: window.innerWidth, y: window.innerHeight };
+        if (!hasDrawTarget("default") || self.hasName("default")) {
+            return { x: setWidth, y: setHeight };
         }
         return getDrawTarget("default").getSize();
     }
@@ -5312,7 +5318,7 @@ var Brass = (function (exports, p5) {
             sketch.draw = defaultSketchDraw;
         }
         if (sketch.windowResized === undefined) {
-            sketch.windowResized = function () { return resize(); };
+            sketch.windowResized = function () { return resize(window.innerWidth, window.innerHeight); };
         }
         inited = true;
     }
@@ -5473,7 +5479,7 @@ var Brass = (function (exports, p5) {
             var e_1, _a;
             if (quality === void 0) { quality = 100; }
             if (raySteps === void 0) { raySteps = 10; }
-            if (rayWidth === void 0) { rayWidth = 0.05; }
+            if (rayWidth === void 0) { rayWidth = 0.01; }
             if (this.viewpoint === null)
                 this.throwBeginError();
             var viewArea = this.viewpoint.getWorldViewArea();

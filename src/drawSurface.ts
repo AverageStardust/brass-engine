@@ -7,7 +7,7 @@
 import p5 from "p5";
 import REGL from "../types/regl";
 import { assert, createFastGraphics } from "./common";
-import { Vector2, Vertex2 } from "./vector3";
+import { Vertex2 } from "./vector3";
 
 
 
@@ -21,12 +21,15 @@ let drawTargets: Map<string, DrawTarget<any>> = new Map();
 let _regl: REGL.Regl | null = null;
 let doReglRefresh = false;
 let sketch: p5;
+let setWidth = window.innerWidth, setHeight = window.innerHeight;
 
 
 
 export function init(_sketch: p5, doRegl: boolean, drawTarget?: p5.Graphics | DrawTarget<any>) {
 	sketch = _sketch;
-	initDefaultDrawTarget(drawTarget);
+	setWidth = window.innerWidth;
+	setHeight = window.innerHeight;
+	initDefaultDrawTarget(doRegl, drawTarget);
 
 	if (!hasDrawTarget("default")) return;
 
@@ -37,20 +40,17 @@ export function init(_sketch: p5, doRegl: boolean, drawTarget?: p5.Graphics | Dr
 	displayDrawTarget(defaultDrawTarget);
 
 	if (doRegl) {
-		const canvas = defaultDrawTarget.getMaps().canvas;
+		const defaultReglTarget = getDrawTarget("defaultRegl");
+		const canvas = defaultReglTarget.getMaps().canvas;
 		_regl = createREGL({ canvas });
 	}
 }
 
-function initDefaultDrawTarget(drawTarget?: p5.Graphics | DrawTarget<any>) {
+function initDefaultDrawTarget(doRegl: boolean, drawTarget?: p5.Graphics | DrawTarget<any>) {
 	if (drawTarget === undefined) {
 		sketch.createCanvas(windowWidth, windowHeight);
 
-		const drawTarget = new P5DrawTarget(
-			() => ({
-				x: sketch.width,
-				y: sketch.height
-			}), sketch);
+		const drawTarget = new P5DrawTarget(undefined, sketch);
 		setDrawTarget("default", drawTarget);
 		setDrawTarget("defaultP5", drawTarget);
 	} else {
@@ -65,17 +65,17 @@ function initDefaultDrawTarget(drawTarget?: p5.Graphics | DrawTarget<any>) {
 			}
 			// @ts-ignore because p5.Graphics is typed wrong
 		} else if (drawTarget instanceof p5.Graphics) {
-			const p5DrawTarget = new P5DrawTarget(
-				() => ({
-					x: drawTarget.width,
-					y: drawTarget.height
-				}),
-				drawTarget);
+			const p5DrawTarget = new P5DrawTarget(undefined, drawTarget);
 			setDrawTarget("default", p5DrawTarget);
 			setDrawTarget("defaultP5", p5DrawTarget);
 		} else {
 			throw Error("Can't make default drawTarget in Brass.init(), bad value");
 		}
+	}
+
+	if (doRegl) {
+		const drawTarget = new CanvasDrawTarget();
+		setDrawTarget("defaultRegl", drawTarget);
 	}
 }
 
@@ -144,6 +144,8 @@ export function getCanvasDrawTarget(name: string): CanvasDrawTarget {
 }
 
 export function resize(width = window.innerWidth, height = window.innerHeight) {
+	setWidth = width;
+	setHeight = height;
 	getDrawTarget("default").refresh();
 	resetAndSyncDefaultP5DrawTarget();
 	honorReglRefresh();
@@ -393,8 +395,8 @@ export class CanvasDrawTarget extends DrawTarget<{ canvas: HTMLCanvasElement }> 
 }
 
 function defaultMatchSizer(self: DrawSurfaceAbstract<any>) {
-	if (self.hasName("default")) {
-		return { x: window.innerWidth, y: window.innerHeight };
+	if (!hasDrawTarget("default") || self.hasName("default")) {
+		return { x: setWidth, y: setHeight };
 	}
 	return getDrawTarget("default").getSize();
 }
