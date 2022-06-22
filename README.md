@@ -1,16 +1,17 @@
 # Brass Engine
 
-Make games with the flexibility of p5.js, the power of Matter.js, and the speed
+Make games with the flexibility of p5.js, the features of Matter.js, and the speed
 of REGL.
 ___
-**Brass is still in alpha, the API will break often.** <br> Brass is flexible,
-you can write p5 style code or lean into the engine's power. After running
+**Brass is still in alpha, the API will break often.** <br> 
+Write p5 style code with the power of a game engine. After running
 `Brass.init()` everything is in one easy namespace. Brass engine loads from one
 easy file, it requires p5.js; Brass can optionally pull in other libraries.
 Either way you have tools like tilemap, lighting and input systems.
 ___
 ## Docs
-[All public functions and classes are found in the Brass namespace during runtime.](https://wdsteve.github.io/brass-engine/docs)
+**All public functions and classes are found in the Brass namespace during runtime.**<br>
+[Docs Link](https://wdsteve.github.io/brass-engine/docs)
 ___
 ## Example Projects
 [Paintball Demo](https://wdsteve.github.io/brass-engine/examples/rainbowShooter)
