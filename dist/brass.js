@@ -1,6 +1,6 @@
 // library : Brass Engine
-// version : 0.16.0dev
-// author  : WD_STEVE
+// version : 0.16.0
+// author  : Wyatt Durbano (WD_STEVE)
 // required: p5
 // optional: p5.sound, matter.js, regl.js
 

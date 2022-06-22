@@ -3,8 +3,8 @@ import { terser } from "rollup-plugin-terser";
 
 const banner =
     `// library : Brass Engine
-// version : 0.16.0dev
-// author  : WD_STEVE
+// version : ${require('./package.json').version}
+// author  : Wyatt Durbano (WD_STEVE)
 // required: p5
 // optional: p5.sound, matter.js, regl.js
 `;

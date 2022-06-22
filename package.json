@@ -1,6 +1,6 @@
 {
   "name": "brass_engine",
-  "version": "0.16.0dev",
+  "version": "0.16.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -12,7 +12,7 @@
     "test": "node test.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Wyatt Durbano",
   "license": "ISC",
   "devDependencies": {
     "typescript": "^4.0.0",
