@@ -8,8 +8,9 @@ import p5 from "p5";
 import { getP5DrawTarget, P5DrawBuffer, P5DrawSurface } from "./drawSurface";
 import { ColorArgs, createColor } from "./common";
 import { getDefaultViewpoint, Viewpoint, ViewpointAbstract } from "./viewpoint";
-import { Vector2, Vertex2 } from "./vector3";
+import { Vector2 } from "./vector3";
 import { RayBody } from "./physics";
+import { getSimTime } from "./time";
 
 
 
@@ -22,6 +23,16 @@ interface P5LighterOptions extends LighterAbstractOptions {
 	color?: p5.Color;
 }
 
+interface DirectionalOptions {
+	cacheName?: any;
+	cacheTime?: number;
+	rays?: number;
+	raySteps?: number;
+	rayWidth?: number;
+	raysCollideWith?: "everything" | "nothing" | number | number[];
+	drawOffscreen?: boolean;
+}
+
 
 
 export class P5Lighter {
@@ -29,6 +40,7 @@ export class P5Lighter {
 	private resolution: number;
 	private _blur: number;
 	private color: p5.Color;
+	private directionalCache: Map<any, { time: number, points: Vector2[] }> = new Map();
 	private viewpoint: ViewpointAbstract | null = null;
 
 	constructor(options: P5LighterOptions = {}) {
@@ -41,7 +53,7 @@ export class P5Lighter {
 	begin(v = getDefaultViewpoint(), d = getP5DrawTarget("defaultP5")) {
 		const newContext = !this.lightMap.hasSize();
 		this.lightMap.sizeMaps(d.getSize(this.resolution))
-		if(newContext) this.fill(this.color);
+		if (newContext) this.fill(this.color);
 
 		this.resetLightMap();
 
@@ -85,8 +97,8 @@ export class P5Lighter {
 		lightCanvas.fill(col);
 
 		if (this._blur > 0) {
-			const r = red(col), g = green(col), b = blue(col);
-			lightCanvas.stroke(r / 2, g / 2, b / 2);
+			const r = red(col), g = green(col), b = blue(col), a = alpha(col);
+			lightCanvas.stroke(r, g, b, a / 2);
 			lightCanvas.strokeWeight(this._blur);
 		} else {
 			lightCanvas.noStroke();
@@ -105,7 +117,7 @@ export class P5Lighter {
 		return this;
 	}
 
-	cone(x: number, y: number, angle: number, width = HALF_PI, distance = 1000) {
+	cone(x: number, y: number, angle: number, width = HALF_PI, distance = 100) {
 		const lightCanvas = this.getLightCanvas();
 
 		lightCanvas.triangle(x, y,
@@ -117,29 +129,76 @@ export class P5Lighter {
 		return this;
 	}
 
-	world() {
+	world(vignette = 0) {
 		const lightCanvas = this.getLightCanvas();
+		if (this.viewpoint === null) this.throwBeginError();
 
-		lightCanvas.background(this.color);
+		const area = this.viewpoint.getWorldViewArea();
+		const areaWidth = area.maxX - area.minX;
+		const areaHeight = area.maxY - area.minY;
+
+		const lightMapSize = this.lightMap.getSize();
+		const paddingX = areaWidth * ((4 / lightMapSize.x) - vignette) + this._blur * 2;
+		const paddingY = areaHeight * ((4 / lightMapSize.y) - vignette) + this._blur * 2;
+
+		lightCanvas.rect(
+			area.minX - paddingX * 0.5,
+			area.minY - paddingY * 0.5,
+			areaWidth + paddingX * 1,
+			areaHeight + paddingY * 1);
 
 		return this;
 	}
 
-	directional(x: number, y: number, radius: number, quality = 100, raySteps = 10, rayWidth = 0.01) {
-		if (this.viewpoint === null) this.throwBeginError();
+	directional(x: number, y: number, radius: number, options: DirectionalOptions = {}) {
+		let points: Vector2[];
 
+		let cache = this.directionalCache.get(options.cacheName);
+		if (options.cacheName !== undefined) {
+			if (cache === undefined ||
+				getSimTime() > cache.time + (options.cacheTime ?? Infinity)) {
+				cache = {
+					time: getSimTime(),
+					points: this.simulateDirectional(x, y, radius, options)
+				};
+				this.directionalCache.set(options.cacheName, cache);
+			}
+			points = cache.points;
+		} else {
+			points = this.simulateDirectional(x, y, radius, options);
+		}
+
+		const lightCanvas = this.getLightCanvas();
+
+		lightCanvas.beginShape();
+		for (const vert of points) {
+			lightCanvas.vertex(vert.x, vert.y);
+		}
+		lightCanvas.endShape(CLOSE);
+	}
+
+	private simulateDirectional(x: number, y: number, radius: number, options: DirectionalOptions) {
 		// light is drawn and simulated through an area centered on the screen
 		// this area is a circle with minimum radius to fill the screen
 
 		// find center drawing area
+		if (this.viewpoint === null) this.throwBeginError();
 		const viewArea = this.viewpoint.getWorldViewArea();
-		const center = new Vector2(
-			(viewArea.minX + viewArea.maxX) / 2,
-			(viewArea.minY + viewArea.maxY) / 2
-		);
-		const centerRadius = Math.hypot(
-			viewArea.minX - viewArea.maxX,
-			viewArea.minY - viewArea.maxY) * 0.6;
+		let center, centerRadius;
+
+		if (options.drawOffscreen ?? false) {
+			center = new Vector2(x, y);
+			centerRadius = radius;
+		} else {
+			center = new Vector2(
+				(viewArea.minX + viewArea.maxX) / 2,
+				(viewArea.minY + viewArea.maxY) / 2
+			);
+			centerRadius = Math.hypot(
+				viewArea.minX - viewArea.maxX,
+				viewArea.minY - viewArea.maxY) * 0.6;
+		}
+
 		const vec = new Vector2(x, y);
 
 		// find if light is in drawing area
@@ -165,7 +224,7 @@ export class P5Lighter {
 		const centerAngle = negativeU0.angle;
 		const startAngle = centerAngle + HALF_PI - lightCircleTagentAngle;
 		const endAngle = centerAngle + HALF_PI * 3 + lightCircleTagentAngle;
-		const stepAngle = TWO_PI / quality;
+		const stepAngle = TWO_PI / (options.rays ?? 50);
 
 		for (let angle = startAngle;
 			angle <= endAngle;
@@ -177,15 +236,9 @@ export class P5Lighter {
 				radius, lightInArea, points, paths);
 		}
 
-		this.castDirectionalRays(points, paths, raySteps, rayWidth);
+		this.castDirectionalRays(points, paths, options);
 
-		const lightCanvas = this.getLightCanvas();
-
-		lightCanvas.beginShape();
-		for (const vert of points) {
-			lightCanvas.vertex(vert.x, vert.y);
-		}
-		lightCanvas.endShape(CLOSE);
+		return points;
 	}
 
 	// find line segments inside the drawing area at the rayDirection
@@ -219,11 +272,12 @@ export class P5Lighter {
 	}
 
 	private castDirectionalRays(
-		points: Vector2[], paths: { start: Vector2, end: Vector2 }[], raySteps: number, rayWidth: number) {
+		points: Vector2[], paths: { start: Vector2, end: Vector2 }[], options: DirectionalOptions) {
 		for (let i = paths.length - 1; i >= 0; i--) {
 			const path = paths[i];
-			const ray = new RayBody(path.start.x, path.start.y, rayWidth);
-			const endPoint = ray.cast(path.end.sub(path.start), raySteps).point;
+			const ray = new RayBody(path.start.x, path.start.y, options.rayWidth ?? 0.01);
+			ray.collidesWith = options.raysCollideWith ?? "everything";
+			const endPoint = ray.cast(path.end.sub(path.start), options.raySteps ?? 10).point;
 			ray.kill();
 			points.push(endPoint);
 		}

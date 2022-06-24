@@ -20,7 +20,7 @@ type InternalMatterBody = Matter.Body & { collisionFilter: { category: Collision
 type CollisionFilterIndex = Opaque<number, "CollisionFilterIndex">; // index for bitmask, between 0 and 31 inclusive
 type CollisionFilterMask = Opaque<number, "CollisionFilterMask">; // bitmask for what categories to collide with
 type CollisionFilterCategory = Opaque<number, "CollisionFilterCategory">; // bitmask with one bit set for collisions
-type MatterWorldDefinition = Matter.IEngineDefinition & { spaceScale: number };
+export type MatterWorldDefinition = Partial<Matter.IEngineDefinition & { spaceScale: number }>;
 
 
 
@@ -35,7 +35,7 @@ const forceUnit = 1e-6;
 
 
 
-export function init(_options: Partial<MatterWorldDefinition> = {}) {
+export function init(_options: MatterWorldDefinition = {}) {
 	if (typeof Matter !== "object") {
 		throw Error("Matter was not found; Can't initialize Brass physics without Matter.js initialized first");
 	}
@@ -146,7 +146,7 @@ export abstract class BodyAbstract {
 	abstract set static(isStatic: boolean)
 	abstract set ghost(isGhost: boolean)
 	abstract set collisionCategory(category: number)
-	abstract set collidesWith(category: number | number[])
+	abstract set collidesWith(category: "everything" | "nothing" | number | number[])
 
 	addSensor(callback: CollisionCallback) {
 		this.sensors.push(callback);
@@ -296,9 +296,13 @@ abstract class MaterialBodyAbstract extends BodyAbstract {
 		bodies[categoryIndex as CollisionFilterIndex].set(this.body.id, this);
 	}
 
-	set collidesWith(category: number | number[]) {
+	set collidesWith(category: "everything" | "nothing" | number | number[]) {
 		this.body.collisionFilter.mask = 0;
-		if (Array.isArray(category)) {
+		if (category === "everything") {
+			this.body.collisionFilter.mask = 0xFFFFFFFF;
+		} else if (category === "nothing") {
+			this.body.collisionFilter.mask = 0;
+		} else if (Array.isArray(category)) {
 			category.map((subCategory) => this.setCollidesWith(subCategory));
 		} else {
 			this.setCollidesWith(category);
@@ -617,9 +621,13 @@ export class RayBody extends BodyAbstract {
 
 	set collisionCategory(_: number) { }
 
-	set collidesWith(category: number | number[]) {
+	set collidesWith(category: "everything" | "nothing" | number | number[]) {
 		this.mask = 0 as CollisionFilterMask;
-		if (Array.isArray(category)) {
+		if (category === "everything") {
+			this.mask = 0xFFFFFFFF as CollisionFilterMask;
+		} else if (category === "nothing") {
+			this.mask = 0 as CollisionFilterMask;
+		} else if (Array.isArray(category)) {
 			category.map((subCategory) => this.setCollidesWith(subCategory));
 		} else {
 			this.setCollidesWith(category);
@@ -663,11 +671,12 @@ export class RayBody extends BodyAbstract {
 		body: null | MaterialBodyAbstract
 	} {
 		const timeSteps = (delta / 1000 * 60);
-		const displacment = this.velocity.copy().multScalar(spaceScale * timeSteps);
-		return this.cast(displacment, steps);
+		const displacement = this.velocity.copy().multScalar(timeSteps);
+		return this.cast(displacement, steps);
 	}
 
-	cast(displacment: Vector2, steps = 20) {
+	cast(_displacement: Vector2, steps = 20) {
+		const displacement = _displacement.multScalar(spaceScale);
 		const testBrassBodies: MaterialBodyAbstract[] = [];
 
 		for (let i = 0; i < 32; i++) {
@@ -682,10 +691,10 @@ export class RayBody extends BodyAbstract {
 		let testPoint = 1,
 			testJump = 0.5,
 			hits: Matter.ICollision[] = [],
-			hitEnd = displacment.copy().multScalar(testPoint).add(start),
+			hitEnd = displacement.copy().multScalar(testPoint).add(start),
 			hitPoint = 1;
 		for (let i = 0; i < steps; i++) {
-			const end = displacment.copy().multScalar(testPoint).add(start);
+			const end = displacement.copy().multScalar(testPoint).add(start);
 			const currentHits = Matter.Query.ray(testBodies, start, end, this.width * spaceScale);
 			if (currentHits.length < 1) {
 				if (i === 0) break;
@@ -722,7 +731,7 @@ export class RayBody extends BodyAbstract {
 
 		return {
 			point: hitEnd.divScalar(spaceScale),
-			dist: displacment.mag * hitPoint,
+			dist: displacement.mag * hitPoint,
 			body: hitBody
 		};
 	}

@@ -34,6 +34,7 @@ const safariCapabilities = {
 let childProcess;
 
 function init() {
+	return;
 	console.log("Opening examples ...");
 	childProcess = exec("npm run examples", (error, _, stderr) => {
 		if (error) throw error;

@@ -4268,7 +4268,13 @@ var Brass = (function (exports, p5) {
             set: function (category) {
                 var _this = this;
                 this.body.collisionFilter.mask = 0;
-                if (Array.isArray(category)) {
+                if (category === "everything") {
+                    this.body.collisionFilter.mask = 0xFFFFFFFF;
+                }
+                else if (category === "nothing") {
+                    this.body.collisionFilter.mask = 0;
+                }
+                else if (Array.isArray(category)) {
                     category.map(function (subCategory) { return _this.setCollidesWith(subCategory); });
                 }
                 else {
@@ -4591,7 +4597,13 @@ var Brass = (function (exports, p5) {
             set: function (category) {
                 var _this = this;
                 this.mask = 0;
-                if (Array.isArray(category)) {
+                if (category === "everything") {
+                    this.mask = 0xFFFFFFFF;
+                }
+                else if (category === "nothing") {
+                    this.mask = 0;
+                }
+                else if (Array.isArray(category)) {
                     category.map(function (subCategory) { return _this.setCollidesWith(subCategory); });
                 }
                 else {
@@ -4626,11 +4638,12 @@ var Brass = (function (exports, p5) {
         };
         RayBody.prototype.castOverTime = function (delta, steps) {
             var timeSteps = (delta / 1000 * 60);
-            var displacment = this.velocity.copy().multScalar(spaceScale * timeSteps);
-            return this.cast(displacment, steps);
+            var displacement = this.velocity.copy().multScalar(timeSteps);
+            return this.cast(displacement, steps);
         };
-        RayBody.prototype.cast = function (displacment, steps) {
+        RayBody.prototype.cast = function (_displacement, steps) {
             if (steps === void 0) { steps = 20; }
+            var displacement = _displacement.multScalar(spaceScale);
             var testBrassBodies = [];
             for (var i = 0; i < 32; i++) {
                 if (!(this.mask & (1 << i)))
@@ -4639,9 +4652,9 @@ var Brass = (function (exports, p5) {
             }
             var testBodies = testBrassBodies.map(function (brassBody) { return brassBody.body; });
             var start = this.position.copy().multScalar(spaceScale);
-            var testPoint = 1, testJump = 0.5, hits = [], hitEnd = displacment.copy().multScalar(testPoint).add(start), hitPoint = 1;
+            var testPoint = 1, testJump = 0.5, hits = [], hitEnd = displacement.copy().multScalar(testPoint).add(start), hitPoint = 1;
             for (var i = 0; i < steps; i++) {
-                var end = displacment.copy().multScalar(testPoint).add(start);
+                var end = displacement.copy().multScalar(testPoint).add(start);
                 var currentHits = Matter.Query.ray(testBodies, start, end, this.width * spaceScale);
                 if (currentHits.length < 1) {
                     if (i === 0)
@@ -4678,7 +4691,7 @@ var Brass = (function (exports, p5) {
             }
             return {
                 point: hitEnd.divScalar(spaceScale),
-                dist: displacment.mag * hitPoint,
+                dist: displacement.mag * hitPoint,
                 body: hitBody
             };
         };
@@ -5398,6 +5411,7 @@ var Brass = (function (exports, p5) {
             if (options === void 0) { options = {}; }
             var _a, _b, _c;
             this.lightMap = new P5DrawBuffer();
+            this.directionalCache = new Map();
             this.viewpoint = null;
             this.resolution = (_a = options.resolution) !== null && _a !== void 0 ? _a : 0.25;
             this._blur = (_b = options.blur) !== null && _b !== void 0 ? _b : 1;
@@ -5448,8 +5462,8 @@ var Brass = (function (exports, p5) {
             var col = createColor.apply(void 0, __spreadArray([], __read(colArgs), false));
             lightCanvas.fill(col);
             if (this._blur > 0) {
-                var r = red(col), g = green(col), b = blue(col);
-                lightCanvas.stroke(r / 2, g / 2, b / 2);
+                var r = red(col), g = green(col), b = blue(col), a = alpha(col);
+                lightCanvas.stroke(r, g, b, a / 2);
                 lightCanvas.strokeWeight(this._blur);
             }
             else {
@@ -5465,26 +5479,76 @@ var Brass = (function (exports, p5) {
         };
         P5Lighter.prototype.cone = function (x, y, angle, width, distance) {
             if (width === void 0) { width = HALF_PI; }
-            if (distance === void 0) { distance = 1000; }
+            if (distance === void 0) { distance = 100; }
             var lightCanvas = this.getLightCanvas();
             lightCanvas.triangle(x, y, x + Math.cos(angle - width / 2) * distance, y + Math.sin(angle - width / 2) * distance, x + Math.cos(angle + width / 2) * distance, y + Math.sin(angle + width / 2) * distance);
             return this;
         };
-        P5Lighter.prototype.world = function () {
+        P5Lighter.prototype.world = function (vignette) {
+            if (vignette === void 0) { vignette = 0; }
             var lightCanvas = this.getLightCanvas();
-            lightCanvas.background(this.color);
+            if (this.viewpoint === null)
+                this.throwBeginError();
+            var area = this.viewpoint.getWorldViewArea();
+            var areaWidth = area.maxX - area.minX;
+            var areaHeight = area.maxY - area.minY;
+            var lightMapSize = this.lightMap.getSize();
+            var paddingX = areaWidth * ((4 / lightMapSize.x) - vignette) + this._blur * 2;
+            var paddingY = areaHeight * ((4 / lightMapSize.y) - vignette) + this._blur * 2;
+            lightCanvas.rect(area.minX - paddingX * 0.5, area.minY - paddingY * 0.5, areaWidth + paddingX * 1, areaHeight + paddingY * 1);
             return this;
         };
-        P5Lighter.prototype.directional = function (x, y, radius, quality, raySteps, rayWidth) {
+        P5Lighter.prototype.directional = function (x, y, radius, options) {
             var e_1, _a;
-            if (quality === void 0) { quality = 100; }
-            if (raySteps === void 0) { raySteps = 10; }
-            if (rayWidth === void 0) { rayWidth = 0.01; }
+            var _b;
+            if (options === void 0) { options = {}; }
+            var points;
+            var cache = this.directionalCache.get(options.cacheName);
+            if (options.cacheName !== undefined) {
+                if (cache === undefined ||
+                    getSimTime() > cache.time + ((_b = options.cacheTime) !== null && _b !== void 0 ? _b : Infinity)) {
+                    cache = {
+                        time: getSimTime(),
+                        points: this.simulateDirectional(x, y, radius, options)
+                    };
+                    this.directionalCache.set(options.cacheName, cache);
+                }
+                points = cache.points;
+            }
+            else {
+                points = this.simulateDirectional(x, y, radius, options);
+            }
+            var lightCanvas = this.getLightCanvas();
+            lightCanvas.beginShape();
+            try {
+                for (var points_1 = __values(points), points_1_1 = points_1.next(); !points_1_1.done; points_1_1 = points_1.next()) {
+                    var vert = points_1_1.value;
+                    lightCanvas.vertex(vert.x, vert.y);
+                }
+            }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
+                try {
+                    if (points_1_1 && !points_1_1.done && (_a = points_1.return)) _a.call(points_1);
+                }
+                finally { if (e_1) throw e_1.error; }
+            }
+            lightCanvas.endShape(CLOSE);
+        };
+        P5Lighter.prototype.simulateDirectional = function (x, y, radius, options) {
+            var _a, _b;
             if (this.viewpoint === null)
                 this.throwBeginError();
             var viewArea = this.viewpoint.getWorldViewArea();
-            var center = new Vector2((viewArea.minX + viewArea.maxX) / 2, (viewArea.minY + viewArea.maxY) / 2);
-            var centerRadius = Math.hypot(viewArea.minX - viewArea.maxX, viewArea.minY - viewArea.maxY) * 0.6;
+            var center, centerRadius;
+            if ((_a = options.drawOffscreen) !== null && _a !== void 0 ? _a : false) {
+                center = new Vector2(x, y);
+                centerRadius = radius;
+            }
+            else {
+                center = new Vector2((viewArea.minX + viewArea.maxX) / 2, (viewArea.minY + viewArea.maxY) / 2);
+                centerRadius = Math.hypot(viewArea.minX - viewArea.maxX, viewArea.minY - viewArea.maxY) * 0.6;
+            }
             var vec = new Vector2(x, y);
             var U0 = center.copy().sub(vec);
             var negativeU0 = vec.copy().sub(center);
@@ -5502,29 +5566,14 @@ var Brass = (function (exports, p5) {
             var centerAngle = negativeU0.angle;
             var startAngle = centerAngle + HALF_PI - lightCircleTagentAngle;
             var endAngle = centerAngle + HALF_PI * 3 + lightCircleTagentAngle;
-            var stepAngle = TWO_PI / quality;
+            var stepAngle = TWO_PI / ((_b = options.rays) !== null && _b !== void 0 ? _b : 50);
             for (var angle = startAngle; angle <= endAngle; angle += stepAngle) {
                 var rayDirection = Vector2.fromDirMag(angle, centerRadius)
                     .add(center).sub(vec).norm();
                 this.findDirectionalLineSegment(U0, centerRadius, vec, rayDirection, radius, lightInArea, points, paths);
             }
-            this.castDirectionalRays(points, paths, raySteps, rayWidth);
-            var lightCanvas = this.getLightCanvas();
-            lightCanvas.beginShape();
-            try {
-                for (var points_1 = __values(points), points_1_1 = points_1.next(); !points_1_1.done; points_1_1 = points_1.next()) {
-                    var vert = points_1_1.value;
-                    lightCanvas.vertex(vert.x, vert.y);
-                }
-            }
-            catch (e_1_1) { e_1 = { error: e_1_1 }; }
-            finally {
-                try {
-                    if (points_1_1 && !points_1_1.done && (_a = points_1.return)) _a.call(points_1);
-                }
-                finally { if (e_1) throw e_1.error; }
-            }
-            lightCanvas.endShape(CLOSE);
+            this.castDirectionalRays(points, paths, options);
+            return points;
         };
         P5Lighter.prototype.findDirectionalLineSegment = function (U0, centerRadius, vec, rayDirection, radius, lightInArea, points, paths) {
             var U1 = rayDirection.copy().multScalar(U0.dot(rayDirection));
@@ -5550,11 +5599,13 @@ var Brass = (function (exports, p5) {
                 end: lineEnd,
             });
         };
-        P5Lighter.prototype.castDirectionalRays = function (points, paths, raySteps, rayWidth) {
+        P5Lighter.prototype.castDirectionalRays = function (points, paths, options) {
+            var _a, _b, _c;
             for (var i = paths.length - 1; i >= 0; i--) {
                 var path = paths[i];
-                var ray = new RayBody(path.start.x, path.start.y, rayWidth);
-                var endPoint = ray.cast(path.end.sub(path.start), raySteps).point;
+                var ray = new RayBody(path.start.x, path.start.y, (_a = options.rayWidth) !== null && _a !== void 0 ? _a : 0.01);
+                ray.collidesWith = (_b = options.raysCollideWith) !== null && _b !== void 0 ? _b : "everything";
+                var endPoint = ray.cast(path.end.sub(path.start), (_c = options.raySteps) !== null && _c !== void 0 ? _c : 10).point;
                 ray.kill();
                 points.push(endPoint);
             }

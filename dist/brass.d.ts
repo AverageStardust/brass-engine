@@ -312,6 +312,139 @@ declare class Viewpoint extends ViewpointAbstract {
     set target(value: Vector2);
     get target(): Vector2;
 }
+interface Collision {
+    body: BodyAbstract;
+    self: BodyAbstract;
+    points: Vector2[];
+}
+type CollisionCallback = (collision: Collision) => void;
+type InternalMatterBody = Matter.Body & {
+    collisionFilter: {
+        category: CollisionFilterCategory;
+    };
+    __brassBody__: MaterialBodyAbstract;
+};
+type CollisionFilterIndex = Opaque<number, "CollisionFilterIndex">;
+type CollisionFilterMask = Opaque<number, "CollisionFilterMask">;
+type CollisionFilterCategory = Opaque<number, "CollisionFilterCategory">;
+type MatterWorldDefinition = Partial<Matter.IEngineDefinition & {
+    spaceScale: number;
+}>;
+declare function drawColliders(weight?: number, d?: P5DrawTarget): void;
+declare abstract class BodyAbstract {
+    private sensors;
+    alive: boolean;
+    data: any;
+    constructor();
+    abstract get position(): Vector2;
+    abstract get velocity(): Vector2;
+    abstract get angle(): number;
+    abstract get angularVelocity(): number;
+    abstract get static(): boolean;
+    abstract get ghost(): boolean;
+    abstract set position(position: Vector2);
+    abstract set velocity(velocity: Vector2);
+    abstract set angle(angle: number);
+    abstract set angularVelocity(angularVelocity: number);
+    abstract set static(isStatic: boolean);
+    abstract set ghost(isGhost: boolean);
+    abstract set collisionCategory(category: number);
+    abstract set collidesWith(category: "everything" | "nothing" | number | number[]);
+    addSensor(callback: CollisionCallback): this;
+    removeSensor(callback: CollisionCallback): this;
+    triggerSensors(collision: Collision): this;
+    abstract rotate(rotation: number): this;
+    abstract applyForce(force: Vertex2, position?: Vertex2): this;
+    kill(): void;
+    protected validateCollisionIndex(index: number): CollisionFilterCategory;
+    protected validateCollisionMask(mask: number): CollisionFilterMask;
+    protected collisionIndexToCategory(index: number): CollisionFilterCategory;
+    protected collisionCategoryToIndex(category: number): CollisionFilterIndex;
+}
+declare abstract class MaterialBodyAbstract extends BodyAbstract {
+    body: InternalMatterBody;
+    constructor(body: Matter.Body);
+    protected setBody(body: Matter.Body): void;
+    protected removeBody(): void;
+    get position(): Vector2;
+    private setPosition;
+    get velocity(): Vector2;
+    private setVelocity;
+    get angle(): number;
+    get angularVelocity(): number;
+    get static(): boolean;
+    get ghost(): boolean;
+    set position(position: Vertex2);
+    set velocity(velocity: Vertex2);
+    set angle(angle: number);
+    set angularVelocity(angularVelocity: number);
+    set static(isStatic: boolean);
+    set ghost(isGhost: boolean);
+    set collisionCategory(categoryIndex: number);
+    set collidesWith(category: "everything" | "nothing" | number | number[]);
+    private setCollidesWith;
+    rotate(rotation: number): this;
+    applyForce(force: Vertex2, position?: Vector2): this;
+    kill(): void;
+    protected remove(): void;
+}
+declare class RectBody extends MaterialBodyAbstract {
+    constructor(x: number, y: number, width: number, height: number, options?: Matter.IBodyDefinition);
+}
+declare class CircleBody extends MaterialBodyAbstract {
+    constructor(x: number, y: number, radius: number, options?: Matter.IBodyDefinition);
+}
+declare class PolyBody extends MaterialBodyAbstract {
+    constructor(x: number, y: number, verts: Vertex2[][], options?: Matter.IBodyDefinition);
+}
+declare class GridBody extends MaterialBodyAbstract {
+    private readonly x;
+    private readonly y;
+    private readonly width;
+    private readonly height;
+    private readonly gridScale;
+    private readonly options;
+    constructor(width: number, height: number, grid: ArrayLike<any>, options?: Matter.IBodyDefinition, gridScale?: number);
+    buildBody(grid: ArrayLike<any>, minX?: number, minY?: number, maxX?: number, maxY?: number): void;
+    get static(): boolean;
+    private buildParts;
+}
+declare class RayBody extends BodyAbstract {
+    private id;
+    position: Vector2;
+    velocity: Vector2;
+    private width;
+    private mask;
+    constructor(x: number, y: number, width?: number, options?: {
+        velocity?: Vertex2;
+        mask?: number;
+    });
+    get angle(): number;
+    get angularVelocity(): number;
+    get static(): boolean;
+    get ghost(): boolean;
+    set angle(_: number);
+    set angularVelocity(_: number);
+    set static(isStatic: boolean);
+    set ghost(isGhost: boolean);
+    set collisionCategory(_: number);
+    set collidesWith(category: "everything" | "nothing" | number | number[]);
+    private setCollidesWith;
+    rotate(_: number): this;
+    applyForce(): this;
+    kill(): void;
+    protected remove(): void;
+    castOverTime(delta: number, steps?: number): {
+        point: Vector2;
+        dist: Number;
+        body: null | MaterialBodyAbstract;
+    };
+    cast(_displacement: Vector2, steps?: number): {
+        point: Vector2;
+        dist: number;
+        body: MaterialBodyAbstract | null;
+    };
+}
 declare global {
     let _targetFrameRate: number;
 }
@@ -327,13 +460,13 @@ interface InitOptions {
     maxTimeDelta?: number;
     minTimeDelta?: number;
     sound?: boolean;
-    matter?: boolean | Partial<Matter.IEngineDefinition>;
+    matter?: boolean | MatterWorldDefinition;
     regl?: boolean;
 }
 declare function setTestStatus(newStatus: boolean | string): void;
 declare function getTestStatus(): string | true | null;
-declare function init$1(options?: InitOptions): void;
-declare function update(delta?: number): void;
+declare function init$2(options?: InitOptions): void;
+declare function update$0(delta?: number): void;
 declare function timewarp(duration: number, rate?: number): void;
 declare function getTimewarp(): Timewarp | undefined;
 declare function getTimewarps(): Timewarp[];
@@ -395,11 +528,21 @@ interface P5LighterOptions extends LighterAbstractOptions {
     blur?: number;
     color?: p5.Color;
 }
+interface DirectionalOptions {
+    cacheName?: any;
+    cacheTime?: number;
+    rays?: number;
+    raySteps?: number;
+    rayWidth?: number;
+    raysCollideWith?: "everything" | "nothing" | number | number[];
+    drawOffscreen?: boolean;
+}
 declare class P5Lighter {
     private lightMap;
     private resolution;
     private _blur;
     private color;
+    private directionalCache;
     private viewpoint;
     constructor(options?: P5LighterOptions);
     begin(v?: ViewpointAbstract, d?: P5DrawTarget): this;
@@ -409,143 +552,14 @@ declare class P5Lighter {
     fill(...colArgs: ColorArgs): this;
     point(x: number, y: number, r: number): this;
     cone(x: number, y: number, angle: number, width?: number, distance?: number): this;
-    world(): this;
-    directional(x: number, y: number, radius: number, quality?: number, raySteps?: number, rayWidth?: number): void;
+    world(vignette?: number): this;
+    directional(x: number, y: number, radius: number, options?: DirectionalOptions): void;
+    private simulateDirectional;
     private findDirectionalLineSegment;
     private castDirectionalRays;
     private resetLightMap;
     private getLightCanvas;
     private throwBeginError;
-}
-interface Collision {
-    body: BodyAbstract;
-    self: BodyAbstract;
-    points: Vector2[];
-}
-type CollisionCallback = (collision: Collision) => void;
-type InternalMatterBody = Matter.Body & {
-    collisionFilter: {
-        category: CollisionFilterCategory;
-    };
-    __brassBody__: MaterialBodyAbstract;
-};
-type CollisionFilterIndex = Opaque<number, "CollisionFilterIndex">;
-type CollisionFilterMask = Opaque<number, "CollisionFilterMask">;
-type CollisionFilterCategory = Opaque<number, "CollisionFilterCategory">;
-declare function drawColliders(weight?: number, d?: P5DrawTarget): void;
-declare abstract class BodyAbstract {
-    private sensors;
-    alive: boolean;
-    data: any;
-    constructor();
-    abstract get position(): Vector2;
-    abstract get velocity(): Vector2;
-    abstract get angle(): number;
-    abstract get angularVelocity(): number;
-    abstract get static(): boolean;
-    abstract get ghost(): boolean;
-    abstract set position(position: Vector2);
-    abstract set velocity(velocity: Vector2);
-    abstract set angle(angle: number);
-    abstract set angularVelocity(angularVelocity: number);
-    abstract set static(isStatic: boolean);
-    abstract set ghost(isGhost: boolean);
-    abstract set collisionCategory(category: number);
-    abstract set collidesWith(category: number | number[]);
-    addSensor(callback: CollisionCallback): this;
-    removeSensor(callback: CollisionCallback): this;
-    triggerSensors(collision: Collision): this;
-    abstract rotate(rotation: number): this;
-    abstract applyForce(force: Vertex2, position?: Vertex2): this;
-    kill(): void;
-    protected validateCollisionIndex(index: number): CollisionFilterCategory;
-    protected validateCollisionMask(mask: number): CollisionFilterMask;
-    protected collisionIndexToCategory(index: number): CollisionFilterCategory;
-    protected collisionCategoryToIndex(category: number): CollisionFilterIndex;
-}
-declare abstract class MaterialBodyAbstract extends BodyAbstract {
-    body: InternalMatterBody;
-    constructor(body: Matter.Body);
-    protected setBody(body: Matter.Body): void;
-    protected removeBody(): void;
-    get position(): Vector2;
-    private setPosition;
-    get velocity(): Vector2;
-    private setVelocity;
-    get angle(): number;
-    get angularVelocity(): number;
-    get static(): boolean;
-    get ghost(): boolean;
-    set position(position: Vertex2);
-    set velocity(velocity: Vertex2);
-    set angle(angle: number);
-    set angularVelocity(angularVelocity: number);
-    set static(isStatic: boolean);
-    set ghost(isGhost: boolean);
-    set collisionCategory(categoryIndex: number);
-    set collidesWith(category: number | number[]);
-    private setCollidesWith;
-    rotate(rotation: number): this;
-    applyForce(force: Vertex2, position?: Vector2): this;
-    kill(): void;
-    protected remove(): void;
-}
-declare class RectBody extends MaterialBodyAbstract {
-    constructor(x: number, y: number, width: number, height: number, options?: Matter.IBodyDefinition);
-}
-declare class CircleBody extends MaterialBodyAbstract {
-    constructor(x: number, y: number, radius: number, options?: Matter.IBodyDefinition);
-}
-declare class PolyBody extends MaterialBodyAbstract {
-    constructor(x: number, y: number, verts: Vertex2[][], options?: Matter.IBodyDefinition);
-}
-declare class GridBody extends MaterialBodyAbstract {
-    private readonly x;
-    private readonly y;
-    private readonly width;
-    private readonly height;
-    private readonly gridScale;
-    private readonly options;
-    constructor(width: number, height: number, grid: ArrayLike<any>, options?: Matter.IBodyDefinition, gridScale?: number);
-    buildBody(grid: ArrayLike<any>, minX?: number, minY?: number, maxX?: number, maxY?: number): void;
-    get static(): boolean;
-    private buildParts;
-}
-declare class RayBody extends BodyAbstract {
-    private id;
-    position: Vector2;
-    velocity: Vector2;
-    private width;
-    private mask;
-    constructor(x: number, y: number, width?: number, options?: {
-        velocity?: Vertex2;
-        mask?: number;
-    });
-    get angle(): number;
-    get angularVelocity(): number;
-    get static(): boolean;
-    get ghost(): boolean;
-    set angle(_: number);
-    set angularVelocity(_: number);
-    set static(isStatic: boolean);
-    set ghost(isGhost: boolean);
-    set collisionCategory(_: number);
-    set collidesWith(category: number | number[]);
-    private setCollidesWith;
-    rotate(_: number): this;
-    applyForce(): this;
-    kill(): void;
-    protected remove(): void;
-    castOverTime(delta: number, steps?: number): {
-        point: Vector2;
-        dist: Number;
-        body: null | MaterialBodyAbstract;
-    };
-    cast(displacment: Vector2, steps?: number): {
-        point: Vector2;
-        dist: number;
-        body: MaterialBodyAbstract | null;
-    };
 }
 type SparseableDynamicArrayType = "sparse" | DynamicArrayType;
 type FieldDeclaration = {
@@ -844,4 +858,4 @@ declare function getSimTime(): number;
 declare function setLoadingTips(tips: string[]): void;
 declare function drawFPS(d?: P5DrawTarget): void;
 declare function drawLoading(d?: P5DrawTarget): void;
-export { Heap, MaxHeap, MinHeap, MappedHeap, MappedMaxHeap, MappedMinHeap, init$1 as init, update, setTestStatus, getTestStatus, timewarp, getTimewarp, getTimewarps, InputMapper, disableContextMenu, P5Lighter, loadImageEarly, loadImageLate, loadImageDynamic, getImage, loadSoundEarly, loadSoundLate, getSound, enableUnsafeWorldLoading, loadWorldEarly, loadWorldLate, getWorld, loaded, loadProgress, setParticleLimit, emit, emitSingle, draw as drawParticles, ParticleAbstract, VelocityParticleAbstract, AStarPathfinder, RectBody, CircleBody, PolyBody, GridBody, RayBody, drawColliders, P5Tilemap, getTime, getExactTime, getSimTime, drawFPS, drawLoading, setLoadingTips, Vertex2, Vertex3, Vector2, Vector3, watchVector, DrawTarget, P5DrawTarget, CanvasDrawTarget, setDrawTarget, hasDrawTarget, getDrawTarget, getP5DrawTarget, getCanvasDrawTarget, resize, getRegl, refreshRegl, refreshReglFast, displayRegl, ClassicViewpoint, Viewpoint, setDefaultViewpoint, getDefaultViewpoint };
+export { Heap, MaxHeap, MinHeap, MappedHeap, MappedMaxHeap, MappedMinHeap, init$2 as init, update$0 as update, setTestStatus, getTestStatus, timewarp, getTimewarp, getTimewarps, InputMapper, disableContextMenu, P5Lighter, loadImageEarly, loadImageLate, loadImageDynamic, getImage, loadSoundEarly, loadSoundLate, getSound, enableUnsafeWorldLoading, loadWorldEarly, loadWorldLate, getWorld, loaded, loadProgress, setParticleLimit, emit, emitSingle, draw as drawParticles, ParticleAbstract, VelocityParticleAbstract, AStarPathfinder, RectBody, CircleBody, PolyBody, GridBody, RayBody, drawColliders, P5Tilemap, getTime, getExactTime, getSimTime, drawFPS, drawLoading, setLoadingTips, Vertex2, Vertex3, Vector2, Vector3, watchVector, DrawTarget, P5DrawTarget, CanvasDrawTarget, setDrawTarget, hasDrawTarget, getDrawTarget, getP5DrawTarget, getCanvasDrawTarget, resize, getRegl, refreshRegl, refreshReglFast, displayRegl, ClassicViewpoint, Viewpoint, setDefaultViewpoint, getDefaultViewpoint };

@@ -12,7 +12,7 @@ import { deltaSimTime, update as updateTime } from "./time";
 import { drawLoading } from "./ui";
 import { update as updateParticles } from "./particle";
 import { update as updatePathfinders } from "./pathfinder";
-import { init as initPhysics, update as updatePhysics } from "./physics";
+import { init as initPhysics, MatterWorldDefinition, update as updatePhysics } from "./physics";
 import { update as updateTilemaps } from "./tilemap";
 
 
@@ -37,7 +37,7 @@ interface InitOptions {
 	minTimeDelta?: number;
 
 	sound?: boolean;
-	matter?: boolean | Partial<Matter.IEngineDefinition>;
+	matter?: boolean | MatterWorldDefinition;
 	regl?: boolean;
 }
 
