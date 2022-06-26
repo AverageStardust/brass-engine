@@ -14,12 +14,11 @@ ___
 [Docs Link](https://wdsteve.github.io/brass-engine/docs)
 ___
 ## Example Projects
-[Paintball Demo](https://wdsteve.github.io/brass-engine/examples/rainbowShooter)
-<br>
-[Particle and time-warping](https://wdsteve.github.io/brass-engine/examples/particleWarp)
-<br>
-[WIP REGL.js stuff](https://wdsteve.github.io/brass-engine/examples/shaderTest)
-<br>
+[Paintball Demo](https://wdsteve.github.io/brass-engine/examples/rainbowShooter)<br>
+[Particle and time-warping](https://wdsteve.github.io/brass-engine/examples/particleWarp)<br>
+[P5Lighter example](https://wdsteve.github.io/brass-engine/examples/darkCatacombs)<br>
+[Old tilemap example](https://wdsteve.github.io/brass-engine/examples/tilemapBullets)<br>
+[WIP REGL.js stuff](https://wdsteve.github.io/brass-engine/examples/shaderTest)<br>
 ___
 ## Future ideas, no promises!
 ### 0.17.0
