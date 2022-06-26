@@ -3182,11 +3182,7 @@ var Brass = (function (exports, p5) {
         try {
             for (var _b = __values(particles.entries()), _c = _b.next(); !_c.done; _c = _b.next()) {
                 var _d = __read(_c.value, 2), _ = _d[0], particle = _d[1];
-                var visibleX = particle.position.x + particle.radius > viewArea.minX &&
-                    particle.position.x - particle.radius < viewArea.maxX;
-                var visibleY = particle.position.y + particle.radius > viewArea.minY &&
-                    particle.position.y - particle.radius < viewArea.maxY;
-                if (visibleX && visibleY) {
+                if (particle.visable(viewArea)) {
                     g.push();
                     g.translate(particle.position.x, particle.position.y);
                     g.scale(particle.radius);
@@ -3203,6 +3199,42 @@ var Brass = (function (exports, p5) {
             finally { if (e_2) throw e_2.error; }
         }
     }
+    function forEachParticle(func) {
+        var e_3, _a;
+        try {
+            for (var _b = __values(particles.entries()), _c = _b.next(); !_c.done; _c = _b.next()) {
+                var _d = __read(_c.value, 2), _ = _d[0], particle = _d[1];
+                func(particle);
+            }
+        }
+        catch (e_3_1) { e_3 = { error: e_3_1 }; }
+        finally {
+            try {
+                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+            }
+            finally { if (e_3) throw e_3.error; }
+        }
+    }
+    function forEachVisableParticle(func, v, d) {
+        var e_4, _a;
+        if (v === void 0) { v = getDefaultViewpoint(); }
+        if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+        var viewArea = v.getWorldViewArea(d);
+        try {
+            for (var _b = __values(particles.entries()), _c = _b.next(); !_c.done; _c = _b.next()) {
+                var _d = __read(_c.value, 2), _ = _d[0], particle = _d[1];
+                if (particle.visable(viewArea))
+                    func(particle);
+            }
+        }
+        catch (e_4_1) { e_4 = { error: e_4_1 }; }
+        finally {
+            try {
+                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+            }
+            finally { if (e_4) throw e_4.error; }
+        }
+    }
     function removeParticles(amount) {
         var sortedParticles = __spreadArray([], __read(particles.entries()), false).sort(function (a, b) { return a[1].radius - b[1].radius; });
         amount = Math.min(amount, Math.floor(sortedParticles.length / 5));
@@ -3214,7 +3246,7 @@ var Brass = (function (exports, p5) {
     function setParticleLimit(limit) {
         particleLimit = limit;
     }
-    function emit(classVar, amount, position) {
+    function emitParticles(classVar, amount, position) {
         var data = [];
         for (var _i = 3; _i < arguments.length; _i++) {
             data[_i - 3] = arguments[_i];
@@ -3222,11 +3254,11 @@ var Brass = (function (exports, p5) {
         var limitFilled = particles.size / particleLimit;
         amount *= Math.max(0.1, 1 - Math.pow(limitFilled * 0.9, 6));
         while (amount > 1 || amount > Math.random()) {
-            emitParticle(classVar, position, data);
+            spawnParticle(classVar, position, data);
             amount--;
         }
     }
-    function emitSingle(classVar, position) {
+    function emitParticle(classVar, position) {
         var data = [];
         for (var _i = 2; _i < arguments.length; _i++) {
             data[_i - 2] = arguments[_i];
@@ -3235,9 +3267,9 @@ var Brass = (function (exports, p5) {
         if (limitFilled > 1 &&
             limitFilled > 1 + Math.random())
             return;
-        emitParticle(classVar, position, data);
+        spawnParticle(classVar, position, data);
     }
-    function emitParticle(classVar, position, data) {
+    function spawnParticle(classVar, position, data) {
         var particle = new (classVar.bind.apply(classVar, __spreadArray([void 0, Vector2.fromObjFast(position)], __read(data), false)))();
         particles.set(Symbol(), particle);
     }
@@ -3256,6 +3288,12 @@ var Brass = (function (exports, p5) {
         };
         ParticleAbstract.prototype.alive = function () {
             return this.age < 1;
+        };
+        ParticleAbstract.prototype.visable = function (viewArea) {
+            return (this.position.x + this.radius > viewArea.minX &&
+                this.position.x - this.radius < viewArea.maxX &&
+                this.position.y + this.radius > viewArea.minY &&
+                this.position.y - this.radius < viewArea.maxY);
         };
         ParticleAbstract.prototype.kill = function () { };
         Object.defineProperty(ParticleAbstract.prototype, "age", {
@@ -4691,7 +4729,7 @@ var Brass = (function (exports, p5) {
             }
             return {
                 point: hitEnd.divScalar(spaceScale),
-                dist: displacement.mag * hitPoint,
+                dist: displacement.mag * hitPoint / spaceScale,
                 body: hitBody
             };
         };
@@ -5410,7 +5448,7 @@ var Brass = (function (exports, p5) {
         function P5Lighter(options) {
             if (options === void 0) { options = {}; }
             var _a, _b, _c;
-            this.lightMap = new P5DrawBuffer();
+            this.lightSurface = new P5DrawBuffer();
             this.directionalCache = new Map();
             this.viewpoint = null;
             this.resolution = (_a = options.resolution) !== null && _a !== void 0 ? _a : 0.25;
@@ -5420,14 +5458,14 @@ var Brass = (function (exports, p5) {
         P5Lighter.prototype.begin = function (v, d) {
             if (v === void 0) { v = getDefaultViewpoint(); }
             if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
-            var newContext = !this.lightMap.hasSize();
-            this.lightMap.sizeMaps(d.getSize(this.resolution));
+            var newContext = !this.lightSurface.hasSize();
+            this.lightSurface.sizeMaps(d.getSize(this.resolution));
             if (newContext)
                 this.fill(this.color);
-            this.resetLightMap();
+            this.resetLightCanvas();
             var originalScale = v.scale;
             v.scale *= this.resolution;
-            v.view(this.lightMap);
+            v.view(this.lightSurface);
             v.scale = originalScale;
             this.viewpoint = v;
             return this;
@@ -5440,7 +5478,6 @@ var Brass = (function (exports, p5) {
             g.blendMode(MULTIPLY);
             g.image(this.getLightCanvas(), 0, 0, width, height);
             g.pop();
-            this.viewpoint = null;
         };
         Object.defineProperty(P5Lighter.prototype, "blur", {
             get: function () {
@@ -5492,9 +5529,9 @@ var Brass = (function (exports, p5) {
             var area = this.viewpoint.getWorldViewArea();
             var areaWidth = area.maxX - area.minX;
             var areaHeight = area.maxY - area.minY;
-            var lightMapSize = this.lightMap.getSize();
-            var paddingX = areaWidth * ((4 / lightMapSize.x) - vignette) + this._blur * 2;
-            var paddingY = areaHeight * ((4 / lightMapSize.y) - vignette) + this._blur * 2;
+            var lightSurfaceSize = this.lightSurface.getSize();
+            var paddingX = areaWidth * ((4 / lightSurfaceSize.x) - vignette) + this._blur * 2;
+            var paddingY = areaHeight * ((4 / lightSurfaceSize.y) - vignette) + this._blur * 2;
             lightCanvas.rect(area.minX - paddingX * 0.5, area.minY - paddingY * 0.5, areaWidth + paddingX * 1, areaHeight + paddingY * 1);
             return this;
         };
@@ -5610,7 +5647,7 @@ var Brass = (function (exports, p5) {
                 points.push(endPoint);
             }
         };
-        P5Lighter.prototype.resetLightMap = function () {
+        P5Lighter.prototype.resetLightCanvas = function () {
             var lightCanvas = this.getLightCanvas();
             lightCanvas.push();
             lightCanvas.blendMode(BLEND);
@@ -5619,10 +5656,19 @@ var Brass = (function (exports, p5) {
             lightCanvas.resetMatrix();
         };
         P5Lighter.prototype.getLightCanvas = function () {
-            if (!this.lightMap.hasSize())
+            if (!this.lightSurface.hasSize())
                 this.throwBeginError();
-            return this.lightMap.getMaps().canvas;
+            return this.lightSurface.getMaps().canvas;
         };
+        Object.defineProperty(P5Lighter.prototype, "lightCanvas", {
+            get: function () {
+                if (!this.lightSurface.hasSize())
+                    return null;
+                return this.lightSurface.getMaps().canvas;
+            },
+            enumerable: false,
+            configurable: true
+        });
         P5Lighter.prototype.throwBeginError = function () {
             throw Error("Lighter.begin() must be ran before using lighting");
         };
@@ -5659,9 +5705,11 @@ var Brass = (function (exports, p5) {
     exports.drawFPS = drawFPS;
     exports.drawLoading = drawLoading;
     exports.drawParticles = draw;
-    exports.emit = emit;
-    exports.emitSingle = emitSingle;
+    exports.emitParticle = emitParticle;
+    exports.emitParticles = emitParticles;
     exports.enableUnsafeWorldLoading = enableUnsafeWorldLoading;
+    exports.forEachParticle = forEachParticle;
+    exports.forEachVisableParticle = forEachVisableParticle;
     exports.getCanvasDrawTarget = getCanvasDrawTarget;
     exports.getDefaultViewpoint = getDefaultViewpoint;
     exports.getDrawTarget = getDrawTarget;

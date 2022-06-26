@@ -538,7 +538,7 @@ interface DirectionalOptions {
     drawOffscreen?: boolean;
 }
 declare class P5Lighter {
-    private lightMap;
+    private lightSurface;
     private resolution;
     private _blur;
     private color;
@@ -557,8 +557,9 @@ declare class P5Lighter {
     private simulateDirectional;
     private findDirectionalLineSegment;
     private castDirectionalRays;
-    private resetLightMap;
+    private resetLightCanvas;
     private getLightCanvas;
+    get lightCanvas(): p5 | null;
     private throwBeginError;
 }
 type SparseableDynamicArrayType = "sparse" | DynamicArrayType;
@@ -706,9 +707,11 @@ declare function loadWorldLate(fields: FieldDeclaration, ...args: AssetDefinitio
 declare function getWorld(name: string): TilemapWorld | null;
 type ParticleClass = new (position: Vector2, ...rest: any[]) => ParticleAbstract;
 declare function draw(v?: ViewpointAbstract, d?: P5DrawTarget): void;
+declare function forEachParticle(func: (particle: ParticleAbstract) => void): void;
+declare function forEachVisableParticle(func: (particle: ParticleAbstract) => void, v?: ViewpointAbstract, d?: P5DrawTarget): void;
 declare function setParticleLimit(limit: number): void;
-declare function emit(classVar: ParticleClass, amount: number, position: Vertex2, ...data: any[]): void;
-declare function emitSingle(classVar: ParticleClass, position: Vertex2, ...data: any[]): void;
+declare function emitParticles(classVar: ParticleClass, amount: number, position: Vertex2, ...data: any[]): void;
+declare function emitParticle(classVar: ParticleClass, position: Vertex2, ...data: any[]): void;
 declare class ParticleAbstract {
     position: Vector2;
     radius: number;
@@ -718,6 +721,12 @@ declare class ParticleAbstract {
     update(delta: number): void;
     draw(g: P5DrawSurfaceMap): void;
     alive(): boolean;
+    visable(viewArea: {
+        minX: number;
+        minY: number;
+        maxX: number;
+        maxY: number;
+    }): boolean;
     kill(): void;
     get age(): number;
 }
@@ -858,4 +867,4 @@ declare function getSimTime(): number;
 declare function setLoadingTips(tips: string[]): void;
 declare function drawFPS(d?: P5DrawTarget): void;
 declare function drawLoading(d?: P5DrawTarget): void;
-export { Heap, MaxHeap, MinHeap, MappedHeap, MappedMaxHeap, MappedMinHeap, init$2 as init, update$0 as update, setTestStatus, getTestStatus, timewarp, getTimewarp, getTimewarps, InputMapper, disableContextMenu, P5Lighter, loadImageEarly, loadImageLate, loadImageDynamic, getImage, loadSoundEarly, loadSoundLate, getSound, enableUnsafeWorldLoading, loadWorldEarly, loadWorldLate, getWorld, loaded, loadProgress, setParticleLimit, emit, emitSingle, draw as drawParticles, ParticleAbstract, VelocityParticleAbstract, AStarPathfinder, RectBody, CircleBody, PolyBody, GridBody, RayBody, drawColliders, P5Tilemap, getTime, getExactTime, getSimTime, drawFPS, drawLoading, setLoadingTips, Vertex2, Vertex3, Vector2, Vector3, watchVector, DrawTarget, P5DrawTarget, CanvasDrawTarget, setDrawTarget, hasDrawTarget, getDrawTarget, getP5DrawTarget, getCanvasDrawTarget, resize, getRegl, refreshRegl, refreshReglFast, displayRegl, ClassicViewpoint, Viewpoint, setDefaultViewpoint, getDefaultViewpoint };
+export { Heap, MaxHeap, MinHeap, MappedHeap, MappedMaxHeap, MappedMinHeap, init$2 as init, update$0 as update, setTestStatus, getTestStatus, timewarp, getTimewarp, getTimewarps, InputMapper, disableContextMenu, P5Lighter, loadImageEarly, loadImageLate, loadImageDynamic, getImage, loadSoundEarly, loadSoundLate, getSound, enableUnsafeWorldLoading, loadWorldEarly, loadWorldLate, getWorld, loaded, loadProgress, setParticleLimit, emitParticles, emitParticle, forEachParticle, forEachVisableParticle, draw as drawParticles, ParticleAbstract, VelocityParticleAbstract, AStarPathfinder, RectBody, CircleBody, PolyBody, GridBody, RayBody, drawColliders, P5Tilemap, getTime, getExactTime, getSimTime, drawFPS, drawLoading, setLoadingTips, Vertex2, Vertex3, Vector2, Vector3, watchVector, DrawTarget, P5DrawTarget, CanvasDrawTarget, setDrawTarget, hasDrawTarget, getDrawTarget, getP5DrawTarget, getCanvasDrawTarget, resize, getRegl, refreshRegl, refreshReglFast, displayRegl, ClassicViewpoint, Viewpoint, setDefaultViewpoint, getDefaultViewpoint };

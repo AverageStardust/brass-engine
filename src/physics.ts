@@ -687,7 +687,7 @@ export class RayBody extends BodyAbstract {
 		const testBodies = testBrassBodies.map((brassBody) => brassBody.body);
 
 		const start = this.position.copy().multScalar(spaceScale);
-
+		
 		let testPoint = 1,
 			testJump = 0.5,
 			hits: Matter.ICollision[] = [],
@@ -728,10 +728,10 @@ export class RayBody extends BodyAbstract {
 		} else {
 			hitBody = (hits[0].parentA as InternalMatterBody).__brassBody__;
 		}
-
+		
 		return {
 			point: hitEnd.divScalar(spaceScale),
-			dist: displacement.mag * hitPoint,
+			dist: displacement.mag * hitPoint / spaceScale,
 			body: hitBody
 		};
 	}

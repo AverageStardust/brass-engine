@@ -13,7 +13,7 @@ function brassUpdate(delta) {
 		const rate = sin(Brass.getTime() * 0.002) * 0.8 + 1;
 		Brass.timewarp(50, rate);
 	}
-	Brass.emit(Particle, delta * 0.15, { x: width / 2, y: height / 2 });
+	Brass.emitParticles(Particle, delta * 0.15, { x: width / 2, y: height / 2 });
 }
 
 function brassDraw(delta) {

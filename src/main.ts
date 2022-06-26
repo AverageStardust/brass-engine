@@ -53,8 +53,10 @@ export {
 
 export {
 	setParticleLimit,
-	emit,
-	emitSingle,
+	emitParticles,
+	emitParticle,
+	forEachParticle,
+	forEachVisableParticle,
 	draw as drawParticles,
 
 	ParticleAbstract,

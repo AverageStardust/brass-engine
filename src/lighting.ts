@@ -36,7 +36,7 @@ interface DirectionalOptions {
 
 
 export class P5Lighter {
-	private lightMap: P5DrawBuffer = new P5DrawBuffer();
+	private lightSurface: P5DrawBuffer = new P5DrawBuffer();
 	private resolution: number;
 	private _blur: number;
 	private color: p5.Color;
@@ -51,15 +51,15 @@ export class P5Lighter {
 
 	// light
 	begin(v = getDefaultViewpoint(), d = getP5DrawTarget("defaultP5")) {
-		const newContext = !this.lightMap.hasSize();
-		this.lightMap.sizeMaps(d.getSize(this.resolution))
+		const newContext = !this.lightSurface.hasSize();
+		this.lightSurface.sizeMaps(d.getSize(this.resolution))
 		if (newContext) this.fill(this.color);
 
-		this.resetLightMap();
+		this.resetLightCanvas();
 
 		const originalScale = v.scale;
 		v.scale *= this.resolution;
-		v.view(this.lightMap);
+		v.view(this.lightSurface);
 		v.scale = originalScale;
 		this.viewpoint = v;
 
@@ -76,8 +76,6 @@ export class P5Lighter {
 		g.image(this.getLightCanvas() as any, 0, 0, width, height);
 
 		g.pop();
-
-		this.viewpoint = null;
 	}
 
 	set blur(value: number) {
@@ -137,9 +135,9 @@ export class P5Lighter {
 		const areaWidth = area.maxX - area.minX;
 		const areaHeight = area.maxY - area.minY;
 
-		const lightMapSize = this.lightMap.getSize();
-		const paddingX = areaWidth * ((4 / lightMapSize.x) - vignette) + this._blur * 2;
-		const paddingY = areaHeight * ((4 / lightMapSize.y) - vignette) + this._blur * 2;
+		const lightSurfaceSize = this.lightSurface.getSize();
+		const paddingX = areaWidth * ((4 / lightSurfaceSize.x) - vignette) + this._blur * 2;
+		const paddingY = areaHeight * ((4 / lightSurfaceSize.y) - vignette) + this._blur * 2;
 
 		lightCanvas.rect(
 			area.minX - paddingX * 0.5,
@@ -283,7 +281,7 @@ export class P5Lighter {
 		}
 	}
 
-	private resetLightMap() {
+	private resetLightCanvas() {
 		const lightCanvas = this.getLightCanvas();
 
 		lightCanvas.push();
@@ -295,11 +293,16 @@ export class P5Lighter {
 	}
 
 	private getLightCanvas() {
-		if (!this.lightMap.hasSize()) this.throwBeginError();
-		return this.lightMap.getMaps().canvas;
+		if (!this.lightSurface.hasSize()) this.throwBeginError();
+		return this.lightSurface.getMaps().canvas;
+	}
+
+	get lightCanvas() {
+		if (!this.lightSurface.hasSize()) return null;
+		return this.lightSurface.getMaps().canvas;
 	}
 
 	private throwBeginError(): never {
-		throw Error(`Lighter.begin() must be ran before using lighting`)
+		throw Error(`Lighter.begin() must be ran before using lighting`);
 	}
 }

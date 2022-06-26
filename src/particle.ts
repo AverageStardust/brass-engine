@@ -41,12 +41,7 @@ export function draw(v = getDefaultViewpoint(), d = getP5DrawTarget("defaultP5")
 	const viewArea = v.getWorldViewArea(d);
 
 	for (const [_, particle] of particles.entries()) {
-		const visibleX = particle.position.x + particle.radius > viewArea.minX &&
-			particle.position.x - particle.radius < viewArea.maxX;
-		const visibleY = particle.position.y + particle.radius > viewArea.minY &&
-			particle.position.y - particle.radius < viewArea.maxY;
-
-		if (visibleX && visibleY) {
+		if (particle.visable(viewArea)) {
 			g.push();
 
 			g.translate(particle.position.x, particle.position.y);
@@ -56,6 +51,21 @@ export function draw(v = getDefaultViewpoint(), d = getP5DrawTarget("defaultP5")
 
 			g.pop();
 		}
+	}
+}
+
+export function forEachParticle(func: (particle: ParticleAbstract) => void) {
+	for (const [_, particle] of particles.entries()) {
+		func(particle);
+	}
+}
+
+export function forEachVisableParticle(func: (particle: ParticleAbstract) => void,
+	v = getDefaultViewpoint(), d = getP5DrawTarget("defaultP5")) {
+	const viewArea = v.getWorldViewArea(d);
+
+	for (const [_, particle] of particles.entries()) {
+		if (particle.visable(viewArea)) func(particle);
 	}
 }
 
@@ -77,30 +87,30 @@ export function setParticleLimit(limit: number) {
 	particleLimit = limit;
 }
 
-export function emit(classVar: ParticleClass, amount: number, position: Vertex2, ...data: any[]) {
+export function emitParticles(classVar: ParticleClass, amount: number, position: Vertex2, ...data: any[]) {
 	// percent of limit filled
 	const limitFilled = particles.size / particleLimit;
 	// spawn less when near/over limit
 	amount *= Math.max(0.1, 1 - Math.pow(limitFilled * 0.9, 6));
 
 	while (amount > 1 || amount > Math.random()) {
-		emitParticle(classVar, position, data);
+		spawnParticle(classVar, position, data);
 
 		amount--;
 	}
 }
 
-export function emitSingle(classVar: ParticleClass, position: Vertex2, ...data: any[]) {
+export function emitParticle(classVar: ParticleClass, position: Vertex2, ...data: any[]) {
 	// percent of limit filled
 	const limitFilled = particles.size / particleLimit;
 	// don't spawn less when over limit
 	if (limitFilled > 1 &&
 		limitFilled > 1 + Math.random()) return;
 
-	emitParticle(classVar, position, data);
+	spawnParticle(classVar, position, data);
 }
 
-function emitParticle(classVar: ParticleClass, position: Vertex2, data: any[]) {
+function spawnParticle(classVar: ParticleClass, position: Vertex2, data: any[]) {
 	const particle = new classVar(Vector2.fromObjFast(position), ...data);
 
 	particles.set(Symbol(), particle);
@@ -132,6 +142,16 @@ export class ParticleAbstract {
 
 	alive() {
 		return this.age < 1;
+	}
+
+	visable(viewArea: {
+		minX: number, minY: number, maxX: number, maxY: number
+	}) {
+		return (
+			this.position.x + this.radius > viewArea.minX &&
+			this.position.x - this.radius < viewArea.maxX &&
+			this.position.y + this.radius > viewArea.minY &&
+			this.position.y - this.radius < viewArea.maxY);
 	}
 
 	// what to do when particle dies, nothing by default
