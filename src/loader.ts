@@ -115,9 +115,9 @@ function loadAssetLate(...assets: QueuedAsset[]) {
 }
 
 function loadQueuedAssets() {
-    const assetEntry = loadQueue.shift();
     if (!inited) return; // loading will restart after Brass.init()
     if (loadingAssets >= 2) return;
+    const assetEntry = loadQueue.shift();
 
     // check when late loading is done, reset counts
     if (loaded()) {

@@ -205,8 +205,7 @@ class Player {
 		if (!this.candleLit) return;
 		const { x, y } = this.body.position;
 		lighter.fill(255);
-		const candleRadius = 5 + noise(Brass.getSimTime() * 0.005) * 0.5;
-		lighter.directional(x, y, candleRadius, {
+		lighter.directional(x, y, 5.2, {
 			cacheName: "playerLight",
 			cacheTime: drawFresh ? 0 : 100,
 			rays: 50,

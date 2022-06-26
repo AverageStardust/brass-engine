@@ -2333,11 +2333,11 @@ var Brass = (function (exports, p5) {
         queueMicrotask(loadQueuedAssets);
     }
     function loadQueuedAssets() {
-        var assetEntry = loadQueue.shift();
         if (!inited$2)
             return;
         if (loadingAssets >= 2)
             return;
+        var assetEntry = loadQueue.shift();
         if (loaded()) {
             totalLateAssets = 0;
             loadedLateAssets = 0;
