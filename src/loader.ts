@@ -524,11 +524,11 @@ function parseAssetDefinition(type: AssetType, args: AssetDefinitionArgs): Asset
 
     const pathParts = fullPath.split(".");
 
-    const basePath = pathParts.shift() as string;
     let extension = "";
-    if (pathParts.length > 0) {
-        extension = "." + pathParts.join(".");
+    if (pathParts.length > 1) {
+        extension = "." + pathParts.pop();
     }
+    const basePath = pathParts.join(".");
 
     const validExtensions = assetTypeExtensions[type];
     if (!validExtensions.has(extension)) {

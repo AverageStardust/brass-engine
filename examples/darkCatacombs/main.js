@@ -1,32 +1,58 @@
-/// <reference path = "../declareBrass.ts"/>
+let viewpoint; // location and zoom of camera
+let lighter; // class used to light scene
 
-const startPosition = { x: 30.499999, y: 33.499999 };
-const ReaperState = {
-	hidden: 0,
-	show: 1,
-	hide: 2
+const startPosition = {
+	x: 30.499999,
+	y: 33.499999
 };
-const candles = new Map();
-// list of positions for identical hallways
-// when the player is inside one hallway they can be seamlessly teleported to another
-const warpPoints = [];
-let viewpoint, tilemap, tilesheet, lighter, player, reaper;
+let player;
+
+let reaper;
+const ReaperState = {
+	hidden: 0, // invisible, waiting for change to emerge
+	show: 1, // peaking out of darkness
+	hide: 2 // player got too close, running into darkness
+};
+
 // 0: outside, bright
 // 1: inside, dark
 let areaDarkness = 0;
+// clear lighting data, start from a clear slate
 let drawFresh = false;
+
+// texture atlas
+let tilesheet;
+
+// the game world/map, loaded fromTiled
+let tilemap;
+
+// where the candles are in the map
+const candles = new Map();
+
+// list identical hallways (there positions)
+// when the player is inside one hallway they can be seamlessly teleported to another
+// this makes the player totally disoriented
+const warpPoints = [];
+
+// sound effects
+const creepyNoiseAmp = 0.13;
+const footstepSounds = [];
+let breathSound;
 
 function load() {
 	Brass.loadImageLate("tilesheet.png")
 		.then((image) => tilesheet = image);
+
+	// load world from Tiled map
 	Brass.loadWorldLate({
-		"tile": "uint8",
-	}, "tilemap.json")
+			"tile": "uint8",
+		}, "tilemap.json")
 		.then((world) => {
 			tilemap.import(world);
 			for (let x = 0; x < tilemap.width; x++) {
 				for (let y = 0; y < tilemap.height; y++) {
 					const tile = tilemap.get(x, y);
+					// find special tiles in map for later
 					if (tile === 8) {
 						warpPoints.push(new Brass.Vector2(x + 0.5, y + 0.5));
 					} else if (tile === 14) {
@@ -37,6 +63,12 @@ function load() {
 				}
 			}
 		});
+
+	Brass.loadSoundLate("breath.mp3");
+
+	for (let i = 0; i < 4; i++) {
+		Brass.loadSoundLate(`step${i}.mp3`);
+	}
 }
 
 function setup() {
@@ -48,7 +80,8 @@ function setup() {
 		viewpoint,
 		matter: {
 			spaceScale: 20
-		}
+		},
+		sound: true
 	});
 
 	load();
@@ -56,7 +89,10 @@ function setup() {
 	Brass.getDrawTarget("defaultP5").setSizer(() => {
 		const edgeWidth = Math.min(window.innerWidth, window.innerHeight);
 		viewpoint.scale = edgeWidth / 12;
-		return { x: edgeWidth, y: edgeWidth };
+		return {
+			x: edgeWidth,
+			y: edgeWidth
+		};
 	});
 
 	tilemap = new Brass.P5Tilemap(128, 128, {
@@ -65,7 +101,7 @@ function setup() {
 			"candles": "sparse"
 		},
 		body: true,
-		drawTile: function (tile, x, y, g) {
+		drawTile: function(tile, x, y, g) {
 			if (tile === 0) return;
 			if (tile === 8) tile = 7;
 			tile--;
@@ -75,19 +111,27 @@ function setup() {
 			g.noSmooth();
 			g.image(tilesheet, x, y, 1, 1, u * 16, v * 16, 16, 16);
 		},
-		isTileSolid: function (tile) {
+		isTileSolid: function(tile) {
 			return tile === 1;
 		}
 	});
 
-	lighter = new Brass.P5Lighter({ resolution: 0.5, blur: 0.6 });
+	lighter = new Brass.P5Lighter({
+		resolution: 0.5,
+		blur: 0.6
+	});
 
 	player = new Player();
-
 	reaper = new Reaper();
 }
 
+let firstFrame = true;
+
 function brassUpdate(delta) {
+	if(firstFrame) {
+		creepyNoise();
+		firstFrame = false;
+	}
 	player.update(delta);
 	reaper.update(delta);
 	for (const candle of candles.values()) {
@@ -125,6 +169,20 @@ function brassDraw() {
 	drawFresh = false;
 }
 
+function creepyNoise() {
+	setTimeout(creepyNoise, random(12000, 20000));
+	if(areaDarkness < 1) return;
+	if (random() < 0.3) {
+		Brass.getSound("breath.mp3").play(0, 0.7, creepyNoiseAmp);
+	} else {
+		const stepCount = random(3, 8);
+		const steps = stepSequence();
+		for (let i = 0; i < stepCount; i++) {
+			steps.next().value.play(i * 0.9, 0.7, creepyNoiseAmp);
+		}
+	}
+}
+
 class Player {
 	constructor() {
 		this.body = new Brass.CircleBody(startPosition.x, startPosition.y, 0.4, {
@@ -145,7 +203,7 @@ class Player {
 		this.speed = pow(this.speed, pow(0.9965, delta));
 		this.body.applyForce(this.input.vector.get("movement").multScalar(0.03 * this.speed));
 		this.body.velocity.multScalar(Math.pow(0.98, delta));
-
+		
 		for (const candle of candles.values()) {
 			if (candle.position.dist(this.body.position) < 1) {
 				if (!this.candleLit && candle.lit) {
@@ -187,13 +245,19 @@ class Player {
 
 		this.walkCycle = (this.walkCycle + this.body.velocity.mag * 0.8) % 1;
 
-		const { x, y } = this.body.position;
+		const {
+			x,
+			y
+		} = this.body.position;
 		areaDarkness = Math.min(1, (Math.max(0, x - 34) + Math.max(0, y - 41)) * 0.1);
 		viewpoint.target = this.body.position;
 	}
 
 	draw() {
-		const { x, y } = this.body.position;
+		const {
+			x,
+			y
+		} = this.body.position;
 		const walkFootUpRatio = Math.min(1.5, 0.5 + this.body.velocity.mag * 12);
 		const frame = Math.round(Math.sin(this.walkCycle * TWO_PI) * walkFootUpRatio) + 1;
 
@@ -203,8 +267,11 @@ class Player {
 
 	drawLight() {
 		if (!this.candleLit) return;
-		const { x, y } = this.body.position;
-		lighter.fill(255);
+		const {
+			x,
+			y
+		} = this.body.position;
+		lighter.fill(255, noise(6371, Brass.getSimTime() * 0.001) * 50 + 200);
 		lighter.directional(x, y, 5.2, {
 			cacheName: "playerLight",
 			cacheTime: drawFresh ? 0 : 100,
@@ -214,6 +281,15 @@ class Player {
 	}
 }
 
+function* stepSequence() {
+	let lastStep = null;
+	while (true) {
+		const step = floor(random(4));
+		if (step === lastStep) continue;
+		lastStep = step;
+		yield Brass.getSound(`step${step}.mp3`);
+	}
+}
 
 class Reaper {
 	constructor() {
@@ -288,7 +364,10 @@ class Reaper {
 
 	draw() {
 		if (this.state === ReaperState.hidden) return;
-		const { x, y } = this.hidePosition.copy()
+		const {
+			x,
+			y
+		} = this.hidePosition.copy()
 			.mix(this.showPosition, this.showProgress);
 		drawingContext.globalAlpha = pow(this.showProgress, 0.2);
 		image(tilesheet, x - 0.5, y - 0.5, 1, 1, 80, 32, 16, 16);
@@ -318,7 +397,7 @@ class Reaper {
 
 class Candle {
 	constructor(x, y, lit) {
-		this.id = Symbol();
+		this.id = floor(random(Number.MAX_SAFE_INTEGER));
 		this.position = new Brass.Vector2(x + 0.5, y + 0.5);
 		this.lit = lit;
 		candles.set(this.id, this);
@@ -332,8 +411,11 @@ class Candle {
 
 	drawLight() {
 		if (!this.lit) return;
-		lighter.fill(255);
-		const { x, y } = this.position;
+		lighter.fill(255, noise(this.id, Brass.getSimTime() * 0.001) * 50 + 200);
+		const {
+			x,
+			y
+		} = this.position;
 		lighter.directional(x, y, 5.2, {
 			cacheName: this.id,
 			rays: 50,
@@ -343,7 +425,10 @@ class Candle {
 	}
 
 	light() {
-		const { x, y } = this.position.copy().floor();
+		const {
+			x,
+			y
+		} = this.position.copy().floor();
 		tilemap.set(15, x, y);
 		this.lit = true;
 	}

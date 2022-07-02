@@ -6,7 +6,7 @@
 
 import { Opaque } from "./common";
 import { getP5DrawTarget } from "./drawSurface";
-import { Vector2, Vertex2, watchVector } from "./vector3";
+import { Vector2, Vertex2, watchVector } from "./vector";
 
 
 

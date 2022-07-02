@@ -8,7 +8,7 @@ import { expect, MappedHeap, Opaque } from "./common";
 import { getP5DrawTarget } from "./drawSurface";
 import { TilemapAbstract } from "./tilemap";
 import { getExactTime, getTime } from "./time";
-import { Vector2, Vertex2 } from "./vector3";
+import { Vector2, Vertex2 } from "./vector";
 
 
 

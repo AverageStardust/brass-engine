@@ -1,5 +1,5 @@
 // library : Brass Engine
-// version : 0.16.2
+// version : 0.17.0dev
 // author  : Wyatt Durbano (WD_STEVE)
 // required: p5
 // optional: p5.sound, matter.js, regl.js
@@ -2771,11 +2771,11 @@ var Brass = (function (exports, p5) {
         if (name === undefined)
             name = fullPath;
         var pathParts = fullPath.split(".");
-        var basePath = pathParts.shift();
         var extension = "";
-        if (pathParts.length > 0) {
-            extension = "." + pathParts.join(".");
+        if (pathParts.length > 1) {
+            extension = "." + pathParts.pop();
         }
+        var basePath = pathParts.join(".");
         var validExtensions = assetTypeExtensions[type];
         if (!validExtensions.has(extension)) {
             throw Error("Can't load (".concat(extension, ") file as a ").concat(type, " file, try ").concat(Array.from(validExtensions).join(" ")));
@@ -3273,50 +3273,50 @@ var Brass = (function (exports, p5) {
         var particle = new (classVar.bind.apply(classVar, __spreadArray([void 0, Vector2.fromObjFast(position)], __read(data), false)))();
         particles.set(Symbol(), particle);
     }
-    var ParticleAbstract = (function () {
-        function ParticleAbstract(position) {
+    var Particle = (function () {
+        function Particle(position) {
             this.radius = 1;
             this.lifetime = 5000;
             this.position = Vector2.fromObj(position);
             this.spawnTime = getTime();
         }
-        ParticleAbstract.prototype.update = function (delta) { };
-        ParticleAbstract.prototype.draw = function (g) {
+        Particle.prototype.update = function (delta) { };
+        Particle.prototype.draw = function (g) {
             g.noStroke();
             g.fill(255, 0, 255);
             g.circle(0, 0, 2);
         };
-        ParticleAbstract.prototype.alive = function () {
+        Particle.prototype.alive = function () {
             return this.age < 1;
         };
-        ParticleAbstract.prototype.visable = function (viewArea) {
+        Particle.prototype.visable = function (viewArea) {
             return (this.position.x + this.radius > viewArea.minX &&
                 this.position.x - this.radius < viewArea.maxX &&
                 this.position.y + this.radius > viewArea.minY &&
                 this.position.y - this.radius < viewArea.maxY);
         };
-        ParticleAbstract.prototype.kill = function () { };
-        Object.defineProperty(ParticleAbstract.prototype, "age", {
+        Particle.prototype.kill = function () { };
+        Object.defineProperty(Particle.prototype, "age", {
             get: function () {
                 return (getTime() - this.spawnTime) / this.lifetime;
             },
             enumerable: false,
             configurable: true
         });
-        return ParticleAbstract;
+        return Particle;
     }());
-    var VelocityParticleAbstract = (function (_super) {
-        __extends(VelocityParticleAbstract, _super);
-        function VelocityParticleAbstract(position, velocity) {
+    var VelocityParticle = (function (_super) {
+        __extends(VelocityParticle, _super);
+        function VelocityParticle(position, velocity) {
             if (velocity === void 0) { velocity = new Vector2(); }
             var _this = _super.call(this, position) || this;
             _this.velocity = velocity;
             return _this;
         }
-        VelocityParticleAbstract.prototype.updateKinomatics = function (delta) {
+        VelocityParticle.prototype.updateKinomatics = function (delta) {
             this.position.add(this.velocity.copy().multScalar(delta));
         };
-        VelocityParticleAbstract.prototype.collide = function (tilemap) {
+        VelocityParticle.prototype.collide = function (tilemap) {
             var _a = this.position.copy().divScalar(tilemap.tileSize), x = _a.x, y = _a.y;
             var radius = this.radius / tilemap.tileSize;
             var deltaX = 0, deltaY = 0;
@@ -3359,8 +3359,8 @@ var Brass = (function (exports, p5) {
                 this.velocity.y = 0;
             }
         };
-        return VelocityParticleAbstract;
-    }(ParticleAbstract));
+        return VelocityParticle;
+    }(Particle));
 
     var PathSituationType;
     (function (PathSituationType) {
@@ -5691,13 +5691,13 @@ var Brass = (function (exports, p5) {
     exports.P5DrawTarget = P5DrawTarget;
     exports.P5Lighter = P5Lighter;
     exports.P5Tilemap = P5Tilemap;
-    exports.ParticleAbstract = ParticleAbstract;
+    exports.Particle = Particle;
     exports.PolyBody = PolyBody;
     exports.RayBody = RayBody;
     exports.RectBody = RectBody;
     exports.Vector2 = Vector2;
     exports.Vector3 = Vector3;
-    exports.VelocityParticleAbstract = VelocityParticleAbstract;
+    exports.VelocityParticle = VelocityParticle;
     exports.Viewpoint = Viewpoint;
     exports.disableContextMenu = disableContextMenu;
     exports.displayRegl = displayRegl;

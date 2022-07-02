@@ -7,16 +7,16 @@
 import { getP5DrawTarget, P5DrawSurfaceMap } from "./drawSurface";
 import { TilemapAbstract } from "./tilemap";
 import { getTime } from "./time";
-import { Vector2, Vertex2 } from "./vector3";
+import { Vector2, Vertex2 } from "./vector";
 import { getDefaultViewpoint } from "./viewpoint";
 
 
 
-type ParticleClass = new (position: Vector2, ...rest: any[]) => ParticleAbstract;
+type ParticleClass = new (...rest: any[]) => Particle;
 
 
 
-const particles = new Map<symbol, ParticleAbstract>();
+const particles = new Map<symbol, Particle>();
 let particleLimit = 300;
 
 
@@ -54,13 +54,13 @@ export function draw(v = getDefaultViewpoint(), d = getP5DrawTarget("defaultP5")
 	}
 }
 
-export function forEachParticle(func: (particle: ParticleAbstract) => void) {
+export function forEachParticle(func: (particle: Particle) => void) {
 	for (const [_, particle] of particles.entries()) {
 		func(particle);
 	}
 }
 
-export function forEachVisableParticle(func: (particle: ParticleAbstract) => void,
+export function forEachVisableParticle(func: (particle: Particle) => void,
 	v = getDefaultViewpoint(), d = getP5DrawTarget("defaultP5")) {
 	const viewArea = v.getWorldViewArea(d);
 
@@ -111,24 +111,22 @@ export function emitParticle(classVar: ParticleClass, position: Vertex2, ...data
 }
 
 function spawnParticle(classVar: ParticleClass, position: Vertex2, data: any[]) {
-	const particle = new classVar(Vector2.fromObjFast(position), ...data);
+	const particle = new classVar(...data);
+	particle.position = Vector2.fromObj(position);
 
 	particles.set(Symbol(), particle);
 }
 
 
 
-// named abstract because update() *should* be replaced
-// class may be extended in JS where abstract class may not be honored
-export class ParticleAbstract {
+export class Particle {
 
-	position: Vector2;
+	position!: Vector2;
 	radius = 1;
 	lifetime = 5000;
 	private spawnTime: number;
 
-	constructor(position: Vertex2) {
-		this.position = Vector2.fromObj(position);
+	constructor() {
 		this.spawnTime = getTime();
 	}
 
@@ -164,12 +162,11 @@ export class ParticleAbstract {
 
 
 
-// named abstract because update() *should* be replaced
-export class VelocityParticleAbstract extends ParticleAbstract {
+export class VelocityParticle extends Particle {
 	protected velocity: Vector2;
 
-	constructor(position: Vector2, velocity = new Vector2()) {
-		super(position);
+	constructor(velocity = new Vector2()) {
+		super();
 		this.velocity = velocity;
 	}
 

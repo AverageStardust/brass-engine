@@ -705,14 +705,14 @@ declare function enableUnsafeWorldLoading(): void;
 declare function loadWorldEarly(fields: FieldDeclaration, ...args: AssetDefinitionArgs): Promise<unknown>;
 declare function loadWorldLate(fields: FieldDeclaration, ...args: AssetDefinitionArgs): Promise<Asset>;
 declare function getWorld(name: string): TilemapWorld | null;
-type ParticleClass = new (position: Vector2, ...rest: any[]) => ParticleAbstract;
+type ParticleClass = new (position: Vector2, ...rest: any[]) => Particle;
 declare function draw(v?: ViewpointAbstract, d?: P5DrawTarget): void;
-declare function forEachParticle(func: (particle: ParticleAbstract) => void): void;
-declare function forEachVisableParticle(func: (particle: ParticleAbstract) => void, v?: ViewpointAbstract, d?: P5DrawTarget): void;
+declare function forEachParticle(func: (particle: Particle) => void): void;
+declare function forEachVisableParticle(func: (particle: Particle) => void, v?: ViewpointAbstract, d?: P5DrawTarget): void;
 declare function setParticleLimit(limit: number): void;
 declare function emitParticles(classVar: ParticleClass, amount: number, position: Vertex2, ...data: any[]): void;
 declare function emitParticle(classVar: ParticleClass, position: Vertex2, ...data: any[]): void;
-declare class ParticleAbstract {
+declare class Particle {
     position: Vector2;
     radius: number;
     lifetime: number;
@@ -730,7 +730,7 @@ declare class ParticleAbstract {
     kill(): void;
     get age(): number;
 }
-declare class VelocityParticleAbstract extends ParticleAbstract {
+declare class VelocityParticle extends Particle {
     protected velocity: Vector2;
     constructor(position: Vector2, velocity?: Vector2);
     protected updateKinomatics(delta: number): void;
@@ -867,4 +867,4 @@ declare function getSimTime(): number;
 declare function setLoadingTips(tips: string[]): void;
 declare function drawFPS(d?: P5DrawTarget): void;
 declare function drawLoading(d?: P5DrawTarget): void;
-export { Heap, MaxHeap, MinHeap, MappedHeap, MappedMaxHeap, MappedMinHeap, init$2 as init, update$0 as update, setTestStatus, getTestStatus, timewarp, getTimewarp, getTimewarps, InputMapper, disableContextMenu, P5Lighter, loadImageEarly, loadImageLate, loadImageDynamic, getImage, loadSoundEarly, loadSoundLate, getSound, enableUnsafeWorldLoading, loadWorldEarly, loadWorldLate, getWorld, loaded, loadProgress, setParticleLimit, emitParticles, emitParticle, forEachParticle, forEachVisableParticle, draw as drawParticles, ParticleAbstract, VelocityParticleAbstract, AStarPathfinder, RectBody, CircleBody, PolyBody, GridBody, RayBody, drawColliders, P5Tilemap, getTime, getExactTime, getSimTime, drawFPS, drawLoading, setLoadingTips, Vertex2, Vertex3, Vector2, Vector3, watchVector, DrawTarget, P5DrawTarget, CanvasDrawTarget, setDrawTarget, hasDrawTarget, getDrawTarget, getP5DrawTarget, getCanvasDrawTarget, resize, getRegl, refreshRegl, refreshReglFast, displayRegl, ClassicViewpoint, Viewpoint, setDefaultViewpoint, getDefaultViewpoint };
+export { Heap, MaxHeap, MinHeap, MappedHeap, MappedMaxHeap, MappedMinHeap, init$2 as init, update$0 as update, setTestStatus, getTestStatus, timewarp, getTimewarp, getTimewarps, InputMapper, disableContextMenu, P5Lighter, loadImageEarly, loadImageLate, loadImageDynamic, getImage, loadSoundEarly, loadSoundLate, getSound, enableUnsafeWorldLoading, loadWorldEarly, loadWorldLate, getWorld, loaded, loadProgress, setParticleLimit, emitParticles, emitParticle, forEachParticle, forEachVisableParticle, draw as drawParticles, Particle, VelocityParticle, AStarPathfinder, RectBody, CircleBody, PolyBody, GridBody, RayBody, drawColliders, P5Tilemap, getTime, getExactTime, getSimTime, drawFPS, drawLoading, setLoadingTips, Vertex2, Vertex3, Vector2, Vector3, watchVector, DrawTarget, P5DrawTarget, CanvasDrawTarget, setDrawTarget, hasDrawTarget, getDrawTarget, getP5DrawTarget, getCanvasDrawTarget, resize, getRegl, refreshRegl, refreshReglFast, displayRegl, ClassicViewpoint, Viewpoint, setDefaultViewpoint, getDefaultViewpoint };

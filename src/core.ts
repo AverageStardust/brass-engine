@@ -9,7 +9,7 @@ import { DrawTarget, getDrawTarget, hasDrawTarget, init as initDrawSurface, rese
 import { init as initLoader, loaded } from "./loader";
 import { init as initViewpoint, updateViewpoints, ViewpointAbstract } from "./viewpoint";
 import { deltaSimTime, update as updateTime } from "./time";
-import { drawLoading } from "./ui";
+import { drawLoading } from "./legacyui";
 import { update as updateParticles } from "./particle";
 import { update as updatePathfinders } from "./pathfinder";
 import { init as initPhysics, MatterWorldDefinition, update as updatePhysics } from "./physics";

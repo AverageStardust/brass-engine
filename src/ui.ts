@@ -1,170 +1,164 @@
-/**
- * Draws the loading screen and frame-rate counter.
- * @module
- */
+import { Vector2 } from "./vector";
+import { getDrawTarget, P5DrawBuffer, P5DrawSurfaceMap } from "./drawSurface";
+import p5 from "p5";
 
-import { getP5DrawTarget } from "./drawSurface";
-import { loadFraction, loadProgress } from "./loader";
-import { getTime } from "./time";
+export abstract class ComponentAbstract {
+	private cache: Map<string, unknown> = new Map();
+	position = new Vector2();
+	abstract size;
+	abstract targetSize: Vector2;
+	abstract changed: boolean;
+	weight = 1;
 
+	abstract draw(g: P5DrawSurfaceMap);
 
-
-const frameRateList: number[] = [];
-
-let loadingScreenHue: number;
-let loadingTips: string[];
-let loadingTipIndex: number;
-let loadingTipEndTime: number;
-
-
-loadingScreenHue = Math.random() * 360;
-setLoadingTips(["...loading"]);
-
-
-
-export function setLoadingTips(tips: string[]) {
-	if (tips.length === 0) {
-		loadingTips = [""];
-	} else {
-		loadingTips = tips;
+	protected cacheProperty<T>(name: string, getValue: () => T): T {
+		if (this.cache.has(name)) {
+			return this.cache.get(name) as T;
+		}
+		const value = getValue();
+		this.cache.set(name, value);
+		return value;
 	}
 
-	pickLoadingTip();
+	protected displayChange() {
+		this.changed = true;
+		this.cache.clear();
+	}
 }
 
-function pickLoadingTip() {
-	let newTipIndex = Math.floor(Math.random() * loadingTips.length);
+export abstract class LeafComponentAbstract extends ComponentAbstract {
+	size: Vector2 = new Vector2();
+	changed: boolean;
+}
 
-	if (loadingTips.length > 1) {
-		while (loadingTipIndex === newTipIndex) {
-			newTipIndex = Math.floor(Math.random() * loadingTips.length);
+export abstract class BranchComponentAbstract extends ComponentAbstract {
+	protected children: ComponentAbstract[] = [];
+	private _size: Vector2 = new Vector2();
+	private _changed = true;
+	bufferDisplay = false;
+	drawBuffer = new P5DrawBuffer();
+
+	set size(size: Vector2) {
+		size = size.copy().floor();
+		this.distributeSize(size, this._size);
+		this._size = size.copy().floor();
+		this.changed = true;
+	}
+
+	get targetSize() {
+		return this.cacheProperty("targetSize", this.collectTargetSize);
+	}
+
+	set changed(value) {
+		this._changed = value;
+	}
+
+	get changed() {
+		if (this._changed) return true;
+		return this.children
+			.map((child) => child.changed)
+			.reduce((a, b) => a || b);
+	}
+
+	abstract distributeSize(size: Vector2, oldSize: Vector2);
+	abstract collectTargetSize(): Vector2;
+
+	draw(g: P5DrawSurfaceMap) {
+		if (this.bufferDisplay) {
+			const buffer = this.drawBuffer.getMaps(this.size).canvas;
+			this._draw(buffer);
+			g.image(buffer as unknown as p5.Image, 0, 0);
+			return;
+		}
+		this._draw(g);
+	}
+
+	_draw(g: P5DrawSurfaceMap) {
+		this.children.map((child) => {
+			g.push();
+			const { x, y } = child.position;
+			g.translate(x, y);
+			child.draw(g);
+			g.pop();
+		});
+	}
+}
+
+export class EmptyComponent extends LeafComponentAbstract {
+	targetSize = new Vector2(0, 0);
+
+	draw() { }
+}
+
+export class ButtonComponent extends LeafComponentAbstract {
+	targetSize = new Vector2(32, 32);
+
+	draw(g: P5DrawSurfaceMap) {
+		g.stroke(0);
+		g.fill(240);
+		g.rect(1, 1, this.size.x - 2, this.size.y - 2);
+	}
+}
+
+
+export class ScreenComponent extends BranchComponentAbstract {
+	distributeSize(size: Vector2, oldSize: Vector2) {
+		const scaleRatio = size.copy().div(oldSize);
+		for (const child of this.children) {
+			child.position.mult(scaleRatio);
+			child.position.mult(scaleRatio);
 		}
 	}
 
-	loadingTipIndex = newTipIndex;
-
-	loadingTipEndTime = getTime() +
-		loadingTips[loadingTipIndex].length * 50 + 1500;
+	collectTargetSize() {
+		return Vector2.fromObjFast(getDrawTarget("default").getSize());
+	}
 }
 
+export class ListComponent extends BranchComponentAbstract {
+	vertical = true;
+	strechChildren = true;
 
+	distributeSize(size: Vector2) {
+		const weightSum = this.children
+			.map((child) => child.weight)
+			.reduce((a, b) => a + b);
 
-export function drawFPS(d = getP5DrawTarget("defaultP5")) {
-	const g = d.getMaps().canvas;
-	g.push();
-	g.resetMatrix();
-
-	g.stroke(0);
-	g.fill(0, 127);
-	g.rect(5.5, 5.5, 140, 70);
-
-	g.noStroke();
-	g.fill(0, 127);
-	g.rect(10.5, 10.5, 59, 60);
-
-	const rateList = frameRateList;
-
-	const currentFPS = frameRate();
-
-	if (currentFPS > 0) rateList.push(currentFPS);
-	if (rateList.length > 30) rateList.shift();
-
-	let minFPS = Infinity,
-		averageFPS = 0,
-		maxFPS = -Infinity;
-
-	g.noStroke();
-	for (let i = 0; i < rateList.length; i++) {
-		const fps = rateList[i];
-
-		minFPS = Math.min(fps, minFPS);
-		averageFPS += fps;
-		maxFPS = Math.max(fps, maxFPS);
-
-		if (fps > 45) {
-			g.fill(0, 220, 0);
-		} else if (fps >= 22.5) {
-			g.fill(255, 255, 0);
+		if (this.vertical) {
+			let y = 0, unusedHeight = size.y;
+			this.children.map((child) => {
+				const height = Math.ceil(unusedHeight * child.weight / weightSum);
+				unusedHeight -= height;
+				child.position = new Vector2(
+					this.strechChildren ? 0 : Math.floor((size.x - child.size.x) / 2), y);
+				child.size = new Vector2(
+					this.strechChildren ? size.x : Math.min(size.x, child.targetSize.x), height);
+				y += height;
+			});
 		} else {
-			g.fill(255, 0, 0);
+			let x = 0, unusedWidth = size.x;
+			this.children.map((child) => {
+				const width = Math.ceil(unusedWidth * child.weight / weightSum);
+				unusedWidth -= width;
+				child.position = new Vector2(
+					x, this.strechChildren ? 0 : Math.floor((size.y - child.size.y) / 2));
+				child.size = new Vector2(
+					width, this.strechChildren ? size.y : Math.min(size.y, child.targetSize.y));
+				x += width;
+			});
 		}
-		g.rect(10 + i * 2, 70 - fps, 2, fps);
 	}
 
-	averageFPS /= rateList.length;
-
-	if (rateList.length > 0) {
-		g.textSize(12);
-		g.textAlign(LEFT, TOP);
-		g.fill(255);
-		g.noStroke();
-
-		g.text(`Min: ${minFPS.toPrecision(3)}`, 82, 13);
-		g.text(`Avg: ${averageFPS.toPrecision(3)}`, 81, 28);
-		g.text(`Max: ${maxFPS.toPrecision(3)}`, 79, 43);
-		g.text(`Now: ${currentFPS.toPrecision(3)}`, 78, 58);
+	collectTargetSize() {
+		const sizes = this.children
+			.map((child) => child.size);
+		if (this.vertical) {
+			return sizes.reduce(
+				(a, b) => new Vector2(Math.max(a.x, b.x), a.y + b.y));
+		} else {
+			return sizes.reduce(
+				(a, b) => new Vector2(a.x + b.x, Math.max(a.y, b.y)));
+		}
 	}
-
-	g.pop();
-}
-
-export function drawLoading(d = getP5DrawTarget("defaultP5")) {
-	const g = d.getMaps().canvas;
-	g.push();
-	g.resetMatrix();
-
-	g.colorMode(HSL);
-
-	g.background(loadingScreenHue, 60, 20);
-
-	// percentage
-	const str = `${loadFraction()} (${(Math.floor(loadProgress() * 100))}%)`;
-
-	const strSize = Math.min(g.width, g.height) * 0.1;
-	g.textSize(strSize);
-	g.textAlign(CENTER, CENTER);
-	g.textStyle(BOLD);
-	g.noStroke();
-
-	const offHue = (loadingScreenHue + 180) % 360;
-
-	g.fill(offHue, 100, 10);
-	g.text(str, g.width * 0.5 + strSize * 0.05, g.height * 0.3 + strSize * 0.05);
-
-	g.fill(offHue, 70, 60);
-	g.text(str, g.width * 0.5 - strSize * 0.05, g.height * 0.3 - strSize * 0.05);
-
-	// loading tips
-	g.textAlign(CENTER, TOP);
-	g.textStyle(NORMAL);
-	g.textSize(strSize * 0.6);
-
-	if (loadingTipEndTime < getTime()) {
-		pickLoadingTip();
-	}
-	const tip = loadingTips[loadingTipIndex];
-
-	g.fill(offHue, 100, 10);
-	g.text(tip,
-		g.width * 0.05 + strSize * 0.03, g.height * 0.65 + strSize * 0.03,
-		width * 0.9, Infinity);
-
-	g.fill(offHue, 70, 60);
-	g.text(tip,
-		g.width * 0.05 - strSize * 0.03, g.height * 0.65 - strSize * 0.03,
-		width * 0.9, Infinity);
-
-	// loading bar
-	g.strokeWeight(Math.min(g.width, g.height) * 0.1);
-
-	g.stroke(offHue, 100, 10);
-	g.line(g.width * 0.1, g.height * 0.5, g.width * 0.9, g.height * 0.5);
-
-	g.strokeWeight(Math.min(g.width, g.height) * 0.08);
-
-	g.stroke(offHue, 70, 60);
-	g.line(g.width * 0.1, g.height * 0.5,
-		g.width * 0.1 + g.width * 0.8 * loadProgress(), g.height * 0.5);
-
-	g.pop();
 }

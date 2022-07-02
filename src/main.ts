@@ -59,8 +59,8 @@ export {
 	forEachVisableParticle,
 	draw as drawParticles,
 
-	ParticleAbstract,
-	VelocityParticleAbstract
+	Particle,
+	VelocityParticle
 } from "./particle";
 
 export {
@@ -91,9 +91,9 @@ export {
 	drawFPS,
 	drawLoading,
 	setLoadingTips
-} from "./ui";
+} from "./legacyui";
 
-export * from "./vector3";
+export * from "./vector";
 
 export {
 	DrawTarget,

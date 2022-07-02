@@ -5,7 +5,7 @@
  */
 
 import { assert } from "./common";
-import { Vector2, Vertex2 } from "./vector3";
+import { Vector2, Vertex2 } from "./vector";
 
 
 
