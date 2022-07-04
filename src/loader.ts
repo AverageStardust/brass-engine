@@ -6,7 +6,7 @@
 
 import p5 from "p5";
 import { expect, createFastGraphics } from "./common";
-import { FieldDeclaration, TilemapWorld } from "./tilemap";
+import { FieldDeclaration, TilemapWorld } from "./tilemap/tilemapAbstract";
 
 
 

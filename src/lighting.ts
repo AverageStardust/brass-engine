@@ -8,8 +8,8 @@ import p5 from "p5";
 import { getP5DrawTarget, P5DrawBuffer, P5DrawSurface } from "./drawSurface";
 import { ColorArgs, createColor } from "./common";
 import { getDefaultViewpoint, Viewpoint, ViewpointAbstract } from "./viewpoint";
-import { Vector2 } from "./vector";
-import { RayBody } from "./physics";
+import { Vector2 } from "./vector/vector2";
+import { RayBody } from "./physics/rayBody";
 import { getSimTime } from "./time";
 
 

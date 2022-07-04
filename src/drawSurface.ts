@@ -7,7 +7,7 @@
 import p5 from "p5";
 import REGL from "../types/regl";
 import { assert, createFastGraphics } from "./common";
-import { Vertex2 } from "./vector";
+import { Vertex2 } from "./vector/vector2";
 
 
 

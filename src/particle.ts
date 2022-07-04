@@ -5,9 +5,9 @@
  */
 
 import { getP5DrawTarget, P5DrawSurfaceMap } from "./drawSurface";
-import { TilemapAbstract } from "./tilemap";
+import { TilemapAbstract } from "./tilemap/tilemapAbstract";
 import { getTime } from "./time";
-import { Vector2, Vertex2 } from "./vector";
+import { Vector2, Vertex2 } from "./vector/vector2";
 import { getDefaultViewpoint } from "./viewpoint";
 
 

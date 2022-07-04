@@ -65,21 +65,20 @@ export {
 
 export {
 	AStarPathfinder
-} from "./pathfinder";
+} from "./pathfinder/aStarPathfinder";
 
 export {
-	RectBody,
-	CircleBody,
-	PolyBody,
-	GridBody,
-	RayBody,
-
 	drawColliders
-} from "./physics";
+} from "./physics/physics";
+export { RectBody } from "./physics/rectBody";
+export { CircleBody } from "./physics/circleBody";
+export { PolyBody } from "./physics/polyBody";
+export { GridBody } from "./physics/gridBody";
+export { RayBody } from "./physics/rayBody";
 
 export {
 	P5Tilemap
-} from "./tilemap";
+} from "./tilemap/p5Tilemap";
 
 export {
 	getTime,
@@ -91,9 +90,12 @@ export {
 	drawFPS,
 	drawLoading,
 	setLoadingTips
-} from "./legacyui";
+} from "./ui/legacyUI";
 
-export * from "./vector";
+export {
+	Vertex2,
+	Vector2
+} from "./vector/vector2";
 
 export {
 	DrawTarget,

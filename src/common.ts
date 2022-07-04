@@ -8,6 +8,7 @@ import p5 from "p5";
 
 
 export type Opaque<T, S> = T & { __opaque__: S };
+export type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
 
 export type ColorArgs = [string] | [number] | [number, number] | [number, number, number] | [number, number, number, number] | [p5.Color];
 

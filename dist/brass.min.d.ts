@@ -66,23 +66,20 @@ declare class MappedMaxHeap<HeapType> extends MappedHeap<HeapType> {
 declare class MappedMinHeap<HeapType> extends MappedHeap<HeapType> {
     constructor(data: HeapType[]);
 }
+declare class VectorAbstract {
+    watcher?: Function;
+}
 type Vertex2 = {
     x: number;
     y: number;
 };
-type Vertex3 = {
-    x: number;
-    y: number;
-    z: number;
-};
-declare class Vector2 {
-    x: number;
-    y: number;
-    watcher?: Function;
+declare class Vector2 extends VectorAbstract {
     static fromObj(obj: Vertex2): Vector2;
     static fromObjFast(obj: Vertex2): Vector2;
     static fromDir(dir: number): Vector2;
     static fromDirMag(dir: number, mag: number): Vector2;
+    x: number;
+    y: number;
     constructor(x?: number, y?: number);
     copy(): Vector2;
     equal(vec: Vertex2): boolean;
@@ -131,68 +128,6 @@ declare class Vector2 {
         number
     ]);
 }
-declare class Vector3 {
-    x: number;
-    y: number;
-    z: number;
-    watcher?: Function;
-    static fromObj(obj: Vertex3): Vector3;
-    static fromObjFast(obj: Vertex3): Vector3;
-    constructor(x?: number, y?: number, z?: number);
-    copy(): Vector3;
-    equal(vec: Vertex3): boolean;
-    set(vec: Vertex3): this;
-    setScalar(x?: number, y?: number, z?: number): this;
-    add(vec: Vertex3): this;
-    addScalar(x?: number, y?: number, z?: number): this;
-    sub(vec: Vertex3): this;
-    subScalar(x?: number, y?: number, z?: number): this;
-    mult(vec: Vertex3): this;
-    multScalar(x?: number, y?: number, z?: number): this;
-    div(vec: Vertex3): this;
-    divScalar(x?: number, y?: number, z?: number): this;
-    rem(vec: Vertex3): this;
-    remScalar(x?: number, y?: number, z?: number): this;
-    mod(vec: Vertex3): this;
-    modScalar(x?: number, y?: number, z?: number): this;
-    abs(): this;
-    floor(): this;
-    round(): this;
-    ceil(): this;
-    mix(vec: Vertex3, amount: number): this;
-    norm(magnitude?: number): this;
-    limit(limit?: number): this;
-    dot(vec: Vertex3): number;
-    cross(vec: Vertex3): this;
-    dist(vec: Vertex3): number;
-    distSq(vec: Vertex3): number;
-    get xy(): Vector2;
-    get yx(): Vector2;
-    get yz(): Vector2;
-    get zy(): Vector2;
-    get xz(): Vector2;
-    get zx(): Vector2;
-    get xyz(): Vector3;
-    get yxz(): Vector3;
-    get yzx(): Vector3;
-    get zyx(): Vector3;
-    get xzy(): Vector3;
-    get zxy(): Vector3;
-    get mag(): number;
-    get magSq(): number;
-    set mag(magnitude: number);
-    get array(): [
-        number,
-        number,
-        number
-    ];
-    set array(arr: [
-        number,
-        number,
-        number
-    ]);
-}
-declare function watchVector<T extends Vector2 | Vector3>(vector: T, watcher: Function): T;
 type P5DrawSurfaceMap = p5.Graphics | p5;
 type P5DrawSurface = DrawSurfaceAbstract<{
     canvas: P5DrawSurfaceMap;
@@ -312,25 +247,6 @@ declare class Viewpoint extends ViewpointAbstract {
     set target(value: Vector2);
     get target(): Vector2;
 }
-interface Collision {
-    body: BodyAbstract;
-    self: BodyAbstract;
-    points: Vector2[];
-}
-type CollisionCallback = (collision: Collision) => void;
-type InternalMatterBody = Matter.Body & {
-    collisionFilter: {
-        category: CollisionFilterCategory;
-    };
-    __brassBody__: MaterialBodyAbstract;
-};
-type CollisionFilterIndex = Opaque<number, "CollisionFilterIndex">;
-type CollisionFilterMask = Opaque<number, "CollisionFilterMask">;
-type CollisionFilterCategory = Opaque<number, "CollisionFilterCategory">;
-type MatterWorldDefinition = Partial<Matter.IEngineDefinition & {
-    spaceScale: number;
-}>;
-declare function drawColliders(weight?: number, d?: P5DrawTarget): void;
 declare abstract class BodyAbstract {
     private sensors;
     alive: boolean;
@@ -388,27 +304,6 @@ declare abstract class MaterialBodyAbstract extends BodyAbstract {
     kill(): void;
     protected remove(): void;
 }
-declare class RectBody extends MaterialBodyAbstract {
-    constructor(x: number, y: number, width: number, height: number, options?: Matter.IBodyDefinition);
-}
-declare class CircleBody extends MaterialBodyAbstract {
-    constructor(x: number, y: number, radius: number, options?: Matter.IBodyDefinition);
-}
-declare class PolyBody extends MaterialBodyAbstract {
-    constructor(x: number, y: number, verts: Vertex2[][], options?: Matter.IBodyDefinition);
-}
-declare class GridBody extends MaterialBodyAbstract {
-    private readonly x;
-    private readonly y;
-    private readonly width;
-    private readonly height;
-    private readonly gridScale;
-    private readonly options;
-    constructor(width: number, height: number, grid: ArrayLike<any>, options?: Matter.IBodyDefinition, gridScale?: number);
-    buildBody(grid: ArrayLike<any>, minX?: number, minY?: number, maxX?: number, maxY?: number): void;
-    get static(): boolean;
-    private buildParts;
-}
 declare class RayBody extends BodyAbstract {
     private id;
     position: Vector2;
@@ -430,8 +325,8 @@ declare class RayBody extends BodyAbstract {
     set collisionCategory(_: number);
     set collidesWith(category: "everything" | "nothing" | number | number[]);
     private setCollidesWith;
-    rotate(_: number): this;
-    applyForce(): this;
+    rotate(_: number): never;
+    applyForce(): never;
     kill(): void;
     protected remove(): void;
     castOverTime(delta: number, steps?: number): {
@@ -445,6 +340,25 @@ declare class RayBody extends BodyAbstract {
         body: MaterialBodyAbstract | null;
     };
 }
+interface Collision {
+    body: BodyAbstract;
+    self: BodyAbstract;
+    points: Vector2[];
+}
+type CollisionCallback = (collision: Collision) => void;
+type InternalMatterBody = Matter.Body & {
+    collisionFilter: {
+        category: CollisionFilterCategory;
+    };
+    __brassBody__: MaterialBodyAbstract;
+};
+type CollisionFilterIndex = Opaque<number, "CollisionFilterIndex">;
+type CollisionFilterMask = Opaque<number, "CollisionFilterMask">;
+type CollisionFilterCategory = Opaque<number, "CollisionFilterCategory">;
+type MatterWorldDefinition = Partial<Matter.IEngineDefinition & {
+    spaceScale: number;
+}>;
+declare function drawColliders(weight?: number, d?: P5DrawTarget): void;
 declare global {
     let _targetFrameRate: number;
 }
@@ -562,6 +476,18 @@ declare class P5Lighter {
     get lightCanvas(): p5 | null;
     private throwBeginError;
 }
+declare class GridBody extends MaterialBodyAbstract {
+    private readonly x;
+    private readonly y;
+    private readonly width;
+    private readonly height;
+    private readonly gridScale;
+    private readonly options;
+    constructor(width: number, height: number, grid: ArrayLike<any>, options?: Matter.IBodyDefinition, gridScale?: number);
+    buildBody(grid: ArrayLike<any>, minX?: number, minY?: number, maxX?: number, maxY?: number): void;
+    get static(): boolean;
+    private buildParts;
+}
 type SparseableDynamicArrayType = "sparse" | DynamicArrayType;
 type FieldDeclaration = {
     [name: string]: SparseableDynamicArrayType;
@@ -612,20 +538,8 @@ interface TilemapAbstractOptions {
     solidField?: string;
     body?: boolean | Matter.IBodyDefinition;
     autoMaintainBody?: boolean;
-    getTileData?: (x: number, y: number) => any;
+    getTileData?: (x: number, y: number) => unknown;
     isTileSolid?: (data: any) => boolean;
-}
-interface P5TilemapOptions extends TilemapAbstractOptions {
-    drawCacheMode?: "never" | "check" | "always";
-    drawCacheChunkSize?: number;
-    drawCacheTileResolution?: number;
-    drawCacheDecayTime?: number;
-    drawCachePadding?: number;
-    drawCachePaddingTime?: number;
-    drawCachePoolInitalSize?: number;
-    drawTile?: (data: any, x: number, y: number, g: P5DrawSurfaceMap) => void;
-    drawOrder?: (data: any) => number;
-    canCacheTile?: (data: any) => boolean;
 }
 declare abstract class TilemapAbstract {
     readonly width: number;
@@ -641,7 +555,7 @@ declare abstract class TilemapAbstract {
     private readonly autoMaintainBody;
     readonly body: GridBody | null;
     private bodyValid;
-    protected readonly getTileData: (x: number, y: number) => any;
+    protected readonly getTileData: (x: number, y: number) => unknown;
     private readonly isTileSolid;
     constructor(width: number, height: number, options?: TilemapAbstractOptions);
     bindOptionsFunction(func?: Function): any;
@@ -659,6 +573,203 @@ declare abstract class TilemapAbstract {
     abstract clearCacheAtTile(tileX: number, tileY: number): void;
     validateCoord(x: number, y: number): boolean;
     get area(): number;
+}
+type Asset = p5.Image | p5.Graphics | p5.SoundFile | TilemapWorld;
+type AssetDefinitionArgs = [
+    string
+] | [
+    string,
+    string
+];
+declare function loaded(): boolean;
+declare function loadProgress(): number;
+declare function loadImageEarly(...args: AssetDefinitionArgs): Promise<unknown>;
+declare function loadImageLate(...args: AssetDefinitionArgs): Promise<Asset>;
+declare function loadImageDynamic(qualitySteps: number | string[], ...args: AssetDefinitionArgs): Promise<Asset>[];
+declare function getImage(name: string): p5.Image | p5.Graphics;
+declare function loadSoundEarly(...args: AssetDefinitionArgs): Promise<unknown>;
+declare function loadSoundLate(...args: AssetDefinitionArgs): Promise<Asset>;
+declare function getSound(name: string): p5.SoundFile;
+declare function enableUnsafeWorldLoading(): void;
+declare function loadWorldEarly(fields: FieldDeclaration, ...args: AssetDefinitionArgs): Promise<unknown>;
+declare function loadWorldLate(fields: FieldDeclaration, ...args: AssetDefinitionArgs): Promise<Asset>;
+declare function getWorld(name: string): TilemapWorld | null;
+type ParticleClass = new (...rest: any[]) => Particle;
+declare function draw(v?: ViewpointAbstract, d?: P5DrawTarget): void;
+declare function forEachParticle(func: (particle: Particle) => void): void;
+declare function forEachVisableParticle(func: (particle: Particle) => void, v?: ViewpointAbstract, d?: P5DrawTarget): void;
+declare function setParticleLimit(limit: number): void;
+declare function emitParticles(classVar: ParticleClass, amount: number, position: Vertex2, ...data: any[]): void;
+declare function emitParticle(classVar: ParticleClass, position: Vertex2, ...data: any[]): void;
+declare class Particle {
+    position: Vector2;
+    radius: number;
+    lifetime: number;
+    private spawnTime;
+    constructor();
+    update(delta: number): void;
+    draw(g: P5DrawSurfaceMap): void;
+    alive(): boolean;
+    visable(viewArea: {
+        minX: number;
+        minY: number;
+        maxX: number;
+        maxY: number;
+    }): boolean;
+    kill(): void;
+    get age(): number;
+}
+declare class VelocityParticle extends Particle {
+    protected velocity: Vector2;
+    constructor(velocity?: Vector2);
+    protected updateKinomatics(delta: number): void;
+    protected collide(tilemap: TilemapAbstract): void;
+}
+declare enum PathSituationType {
+    Inital = 0,
+    Processing = 1,
+    Failed = 2,
+    Succeed = 3
+}
+type PathSituation<T> = {
+    start: Vector2;
+    end: Vector2;
+    maxRuntime: number;
+    runtime: number;
+    type: PathSituationType;
+    state?: T;
+    path?: Vertex2[];
+    cost?: number;
+};
+declare class PathAgent {
+    private readonly pathfinder;
+    readonly id: symbol;
+    readonly radius: number;
+    position: Vector2 | null;
+    direction: Vector2 | false;
+    newGoal: boolean;
+    leadership: number;
+    processingSituation: PathSituation<unknown> | null;
+    tryedPartCompute: boolean;
+    pathCost: number;
+    pathGarbage: number;
+    path: Vector2[];
+    waitingNodeComfirmation: number;
+    computeStart: boolean;
+    computeEnd: boolean;
+    pathFailTime: number;
+    constructor(pathfinder: PathfinderAbstract, radius: number, leadership?: number);
+    drawPath(thickness?: number, fillColor?: string, d?: P5DrawTarget): void;
+    getDirection(position?: Vector2): boolean | Vector2;
+    reset(): void;
+    setPath(path: Vector2[], cost?: number): void;
+    set computeWhole(value: boolean);
+    get computeWhole(): boolean;
+}
+type ComputePathArgs = [
+    PathSituation<unknown>
+] | [
+    Vector2,
+    Vector2,
+    number
+];
+interface PathfinderAbstractOptions {
+    width: number;
+    height: number;
+    scale?: number;
+    faliureDelay?: number;
+    pathingRuntimeLimit?: number;
+    pathingContinuousRuntimeLimit?: number;
+    pathGarbageLimit?: number;
+    targetDriftLimit?: number;
+    targetDriftInfluence?: number;
+    nodeComfirmationRate?: number;
+    pheromones?: boolean;
+    pheromoneDecayTime?: number;
+    pheromoneStrength?: number;
+    pathMinDist?: number;
+    pathMaxDist?: number;
+}
+declare abstract class PathfinderAbstract {
+    protected readonly width: number;
+    protected readonly height: number;
+    readonly scale: number;
+    protected readonly faliureDelay: number;
+    protected readonly pathingRuntimeLimit: number;
+    protected readonly pathingContinuousRuntimeLimit: number;
+    protected readonly pathGarbageLimit: number;
+    protected readonly targetDriftLimit: number;
+    protected readonly targetDriftInfluence: number;
+    protected readonly nodeComfirmationRate: number;
+    protected readonly pheromoneDecayTime: number;
+    protected readonly pheromoneStrength: number;
+    readonly pathMinDist: number;
+    readonly pathMaxDist: number;
+    protected pheromoneTime: number;
+    protected readonly pheromones: Int32Array | null;
+    goal: null | Vector2;
+    protected confidence: number;
+    protected agents: PathAgent[];
+    protected waitingAgent: number;
+    constructor(options: PathfinderAbstractOptions);
+    createAgent(radius: number, leadership?: number): PathAgent;
+    removeAgent(agent: PathAgent): void;
+    setGoal(goal: Vector2): boolean;
+    confidenceDelta(delta: number): void;
+    update(endTime: number): void;
+    protected confirmAgentNodes(agent: PathAgent): void;
+    protected attemptAgentPartCompute(agent: PathAgent): PathSituation<unknown> | undefined;
+    protected afterAgentComputePart(agent: PathAgent, pathSituation: PathSituation<unknown>): void;
+    protected attemptAgentWholeCompute(agent: PathAgent): PathSituation<unknown> | undefined;
+    protected afterAgentComputeWhole(agent: PathAgent, pathSituation: PathSituation<unknown>): void;
+    protected spaceOutPath(_path: Vertex2[]): Vector2[];
+    protected abstract computePath(...args: ComputePathArgs): PathSituation<unknown>;
+    protected parseComputePathArgs(args: ComputePathArgs): PathSituation<unknown>;
+    protected abstract confirmNode(node: Vector2, radius: number): boolean;
+    protected getPheromones({ x, y }: Vertex2): number;
+    setPheromones({ x, y }: Vertex2): void;
+    validatePosition(position: Vertex2): boolean;
+}
+type NodePrimative = Opaque<number, "NodePrimitive">;
+interface AStarState {
+    gCosts: Map<NodePrimative, number>;
+    fCosts: Map<NodePrimative, number>;
+    sources: Map<NodePrimative, NodePrimative | null>;
+    open: MappedHeap<NodePrimative>;
+}
+declare class AStarPathfinder extends PathfinderAbstract {
+    tilemap: TilemapAbstract;
+    constructor(tilemap: TilemapAbstract, _options?: Omit<PathfinderAbstractOptions, "width" | "height">);
+    createAgent(radius: number, leadership?: number): PathAgent;
+    protected computePath(...args: ComputePathArgs): PathSituation<AStarState>;
+    private computeAStar;
+    private computeNeighbors;
+    private reconstructPath;
+    private primitivizePosition;
+    private deprimitivizePosition;
+    private heuristic;
+    protected confirmNode(node: Vector2, radius: number): boolean;
+}
+declare class RectBody extends MaterialBodyAbstract {
+    constructor(x: number, y: number, width: number, height: number, options?: Matter.IBodyDefinition);
+}
+declare class CircleBody extends MaterialBodyAbstract {
+    constructor(x: number, y: number, radius: number, options?: Matter.IBodyDefinition);
+}
+declare class PolyBody extends MaterialBodyAbstract {
+    constructor(x: number, y: number, verts: Vertex2[][], options?: Matter.IBodyDefinition);
+}
+interface P5TilemapOptions extends TilemapAbstractOptions {
+    drawCacheMode?: "never" | "check" | "always";
+    drawCacheChunkSize?: number;
+    drawCacheTileResolution?: number;
+    drawCacheDecayTime?: number;
+    drawCachePadding?: number;
+    drawCachePaddingTime?: number;
+    drawCachePoolInitalSize?: number;
+    drawTile?: (data: any, x: number, y: number, g: P5DrawSurfaceMap) => void;
+    drawOrder?: (data: any) => number;
+    canCacheTile?: (data: any) => boolean;
 }
 declare class P5Tilemap extends TilemapAbstract {
     readonly drawCacheMode: "never" | "check" | "always";
@@ -685,186 +796,10 @@ declare class P5Tilemap extends TilemapAbstract {
     clearCaches(): void;
     clearCacheAtTile(tileX: number, tileY: number): void;
 }
-type Asset = p5.Image | p5.Graphics | p5.SoundFile | TilemapWorld;
-type AssetDefinitionArgs = [
-    string
-] | [
-    string,
-    string
-];
-declare function loaded(): boolean;
-declare function loadProgress(): number;
-declare function loadImageEarly(...args: AssetDefinitionArgs): Promise<unknown>;
-declare function loadImageLate(...args: AssetDefinitionArgs): Promise<Asset>;
-declare function loadImageDynamic(qualitySteps: number | string[], ...args: AssetDefinitionArgs): Promise<Asset>[];
-declare function getImage(name: string): p5.Image | p5.Graphics;
-declare function loadSoundEarly(...args: AssetDefinitionArgs): Promise<unknown>;
-declare function loadSoundLate(...args: AssetDefinitionArgs): Promise<Asset>;
-declare function getSound(name: string): p5.SoundFile;
-declare function enableUnsafeWorldLoading(): void;
-declare function loadWorldEarly(fields: FieldDeclaration, ...args: AssetDefinitionArgs): Promise<unknown>;
-declare function loadWorldLate(fields: FieldDeclaration, ...args: AssetDefinitionArgs): Promise<Asset>;
-declare function getWorld(name: string): TilemapWorld | null;
-type ParticleClass = new (position: Vector2, ...rest: any[]) => ParticleAbstract;
-declare function draw(v?: ViewpointAbstract, d?: P5DrawTarget): void;
-declare function forEachParticle(func: (particle: ParticleAbstract) => void): void;
-declare function forEachVisableParticle(func: (particle: ParticleAbstract) => void, v?: ViewpointAbstract, d?: P5DrawTarget): void;
-declare function setParticleLimit(limit: number): void;
-declare function emitParticles(classVar: ParticleClass, amount: number, position: Vertex2, ...data: any[]): void;
-declare function emitParticle(classVar: ParticleClass, position: Vertex2, ...data: any[]): void;
-declare class ParticleAbstract {
-    position: Vector2;
-    radius: number;
-    lifetime: number;
-    private spawnTime;
-    constructor(position: Vertex2);
-    update(delta: number): void;
-    draw(g: P5DrawSurfaceMap): void;
-    alive(): boolean;
-    visable(viewArea: {
-        minX: number;
-        minY: number;
-        maxX: number;
-        maxY: number;
-    }): boolean;
-    kill(): void;
-    get age(): number;
-}
-declare class VelocityParticleAbstract extends ParticleAbstract {
-    protected velocity: Vector2;
-    constructor(position: Vector2, velocity?: Vector2);
-    protected updateKinomatics(delta: number): void;
-    protected collide(tilemap: TilemapAbstract): void;
-}
-interface PathfinderOptions {
-    width?: number;
-    height?: number;
-    scale?: number;
-    faliureDelay?: number;
-    pathingRuntimeLimit?: number;
-    pathingContinuousRuntimeLimit?: number;
-    pathGarbageLimit?: number;
-    targetDriftLimit?: number;
-    targetDriftInfluence?: number;
-    nodeComfirmationRate?: number;
-    pheromones?: boolean;
-    pheromoneStrength?: number;
-    pheromoneDecayTime?: number;
-}
-declare enum PathSituationType {
-    Inital = 0,
-    Processing = 1,
-    Failed = 2,
-    Succeed = 3
-}
-type PathSituation<T> = {
-    start: Vector2;
-    end: Vector2;
-    maxRuntime: number;
-    runtime: number;
-    type: PathSituationType;
-    state?: T;
-    path?: Vertex2[];
-    cost?: number;
-};
-type ComputePathArgs = [
-    PathSituation<unknown>
-] | [
-    Vector2,
-    Vector2,
-    number
-];
-interface SizedPathfinderOptions extends PathfinderOptions {
-    width: number;
-    height: number;
-}
-type NodePrimative = Opaque<number, "NodePrimitive">;
-declare abstract class PathfinderAbstract {
-    protected readonly width: number;
-    protected readonly height: number;
-    readonly scale: number;
-    protected readonly faliureDelay: number;
-    protected readonly pathingRuntimeLimit: number;
-    protected readonly pathingContinuousRuntimeLimit: number;
-    protected readonly pathGarbageLimit: number;
-    protected readonly targetDriftLimit: number;
-    protected readonly targetDriftInfluence: number;
-    protected readonly nodeComfirmationRate: number;
-    protected readonly pheromoneDecayTime: number;
-    protected readonly pheromoneStrength: number;
-    protected pheromoneTime: number;
-    protected readonly pheromones: Int32Array | null;
-    goal: null | Vector2;
-    protected confidence: number;
-    protected agents: PathAgent[];
-    protected waitingAgent: number;
-    constructor(options: SizedPathfinderOptions);
-    createAgent(radius: number, leadership?: number): PathAgent;
-    removeAgent(agent: PathAgent): void;
-    setGoal(goal: Vector2): boolean;
-    confidenceDelta(delta: number): void;
-    update(endTime: number): void;
-    protected confirmAgentNodes(agent: PathAgent): void;
-    protected attemptAgentPartCompute(agent: PathAgent): PathSituation<unknown> | undefined;
-    protected afterAgentComputePart(agent: PathAgent, pathSituation: PathSituation<unknown>): void;
-    protected attemptAgentWholeCompute(agent: PathAgent): PathSituation<unknown> | undefined;
-    protected afterAgentComputeWhole(agent: PathAgent, pathSituation: PathSituation<unknown>): void;
-    protected spaceOutPath(_path: Vertex2[]): Vector2[];
-    protected abstract computePath(...args: ComputePathArgs): PathSituation<unknown>;
-    protected parseComputePathArgs(args: ComputePathArgs): PathSituation<unknown>;
-    protected abstract confirmNode(node: Vector2, radius: number): boolean;
-    protected getPheromones({ x, y }: Vertex2): number;
-    setPheromones({ x, y }: Vertex2): void;
-    validatePosition(position: Vertex2): boolean;
-}
-interface AStarState {
-    gCosts: Map<NodePrimative, number>;
-    fCosts: Map<NodePrimative, number>;
-    sources: Map<NodePrimative, NodePrimative | null>;
-    open: MappedHeap<NodePrimative>;
-}
-declare class AStarPathfinder extends PathfinderAbstract {
-    tilemap: TilemapAbstract;
-    constructor(tilemap: TilemapAbstract, options?: PathfinderOptions);
-    createAgent(radius: number, leadership?: number): PathAgent;
-    protected computePath(...args: ComputePathArgs): PathSituation<AStarState>;
-    private computeAStar;
-    private computeNeighbors;
-    private reconstructPath;
-    private primitivizePosition;
-    private deprimitivizePosition;
-    private heuristic;
-    protected confirmNode(node: Vector2, radius: number): boolean;
-}
-declare class PathAgent {
-    private readonly pathfinder;
-    readonly id: symbol;
-    readonly radius: number;
-    position: Vector2 | null;
-    direction: Vector2 | false;
-    newGoal: boolean;
-    leadership: number;
-    processingSituation: PathSituation<unknown> | null;
-    tryedPartCompute: boolean;
-    pathCost: number;
-    pathGarbage: number;
-    path: Vector2[];
-    waitingNodeComfirmation: number;
-    computeStart: boolean;
-    computeEnd: boolean;
-    pathFailTime: number;
-    constructor(pathfinder: PathfinderAbstract, radius: number, leadership?: number);
-    drawPath(thickness?: number, fillColor?: string, d?: P5DrawTarget): void;
-    getDirection(position?: Vector2): boolean | Vector2;
-    reset(): void;
-    setPath(path: Vector2[], cost?: number): void;
-    set computeWhole(value: boolean);
-    get computeWhole(): boolean;
-}
 declare function getTime(): number;
 declare function getExactTime(): number;
 declare function getSimTime(): number;
 declare function setLoadingTips(tips: string[]): void;
 declare function drawFPS(d?: P5DrawTarget): void;
 declare function drawLoading(d?: P5DrawTarget): void;
-export { Heap, MaxHeap, MinHeap, MappedHeap, MappedMaxHeap, MappedMinHeap, init$2 as init, update$0 as update, setTestStatus, getTestStatus, timewarp, getTimewarp, getTimewarps, InputMapper, disableContextMenu, P5Lighter, loadImageEarly, loadImageLate, loadImageDynamic, getImage, loadSoundEarly, loadSoundLate, getSound, enableUnsafeWorldLoading, loadWorldEarly, loadWorldLate, getWorld, loaded, loadProgress, setParticleLimit, emitParticles, emitParticle, forEachParticle, forEachVisableParticle, draw as drawParticles, ParticleAbstract, VelocityParticleAbstract, AStarPathfinder, RectBody, CircleBody, PolyBody, GridBody, RayBody, drawColliders, P5Tilemap, getTime, getExactTime, getSimTime, drawFPS, drawLoading, setLoadingTips, Vertex2, Vertex3, Vector2, Vector3, watchVector, DrawTarget, P5DrawTarget, CanvasDrawTarget, setDrawTarget, hasDrawTarget, getDrawTarget, getP5DrawTarget, getCanvasDrawTarget, resize, getRegl, refreshRegl, refreshReglFast, displayRegl, ClassicViewpoint, Viewpoint, setDefaultViewpoint, getDefaultViewpoint };
+export { Heap, MaxHeap, MinHeap, MappedHeap, MappedMaxHeap, MappedMinHeap, init$2 as init, update$0 as update, setTestStatus, getTestStatus, timewarp, getTimewarp, getTimewarps, InputMapper, disableContextMenu, P5Lighter, loadImageEarly, loadImageLate, loadImageDynamic, getImage, loadSoundEarly, loadSoundLate, getSound, enableUnsafeWorldLoading, loadWorldEarly, loadWorldLate, getWorld, loaded, loadProgress, setParticleLimit, emitParticles, emitParticle, forEachParticle, forEachVisableParticle, draw as drawParticles, Particle, VelocityParticle, AStarPathfinder, drawColliders, RectBody, CircleBody, PolyBody, GridBody, RayBody, P5Tilemap, getTime, getExactTime, getSimTime, drawFPS, drawLoading, setLoadingTips, Vertex2, Vector2, DrawTarget, P5DrawTarget, CanvasDrawTarget, setDrawTarget, hasDrawTarget, getDrawTarget, getP5DrawTarget, getCanvasDrawTarget, resize, getRegl, refreshRegl, refreshReglFast, displayRegl, ClassicViewpoint, Viewpoint, setDefaultViewpoint, getDefaultViewpoint };

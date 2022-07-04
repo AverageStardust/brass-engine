@@ -5,15 +5,15 @@
 
 import p5 from "p5";
 import { init as initInput, update as updateInput } from "./inputMapper";
-import { DrawTarget, getDrawTarget, hasDrawTarget, init as initDrawSurface, resetAndSyncDefaultP5DrawTarget, resize } from "./drawSurface";
+import { DrawTarget, init as initDrawSurface, resetAndSyncDefaultP5DrawTarget, resize } from "./drawSurface";
 import { init as initLoader, loaded } from "./loader";
 import { init as initViewpoint, updateViewpoints, ViewpointAbstract } from "./viewpoint";
 import { deltaSimTime, update as updateTime } from "./time";
-import { drawLoading } from "./legacyui";
+import { drawLoading } from "./ui/legacyUI";
 import { update as updateParticles } from "./particle";
-import { update as updatePathfinders } from "./pathfinder";
-import { init as initPhysics, MatterWorldDefinition, update as updatePhysics } from "./physics";
-import { update as updateTilemaps } from "./tilemap";
+import { update as updatePathfinders } from "./pathfinder/pathfinder";
+import { init as initPhysics, MatterWorldDefinition, update as updatePhysics } from "./physics/physics";
+import { update as updateTilemaps } from "./tilemap/tilemap";
 
 
 

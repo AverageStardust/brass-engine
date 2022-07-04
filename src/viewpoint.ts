@@ -7,7 +7,7 @@
 
 import { getP5DrawTarget, P5DrawSurface, P5DrawTarget } from "./drawSurface";
 import { getTime } from "./time";
-import { Vector2 } from "./vector";
+import { Vector2 } from "./vector/vector2";
 
 
 

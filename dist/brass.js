@@ -493,12 +493,53 @@ var Brass = (function (exports, p5) {
         return constructor;
     }
 
-    var Vector2 = (function () {
+    var watchedVectorHandler = {
+        get: function (target, prop) {
+            var value = Reflect.get(target, prop);
+            if (typeof value === "function") {
+                return watchedVectorMethod.bind(target, value);
+            }
+            return value;
+        },
+        set: function (target, prop, value) {
+            var success = Reflect.set(target, prop, value);
+            if (!success)
+                return false;
+            target.watcher(target);
+            return true;
+        },
+    };
+    var VectorAbstract = (function () {
+        function VectorAbstract() {
+        }
+        return VectorAbstract;
+    }());
+    function watchVector(vector, watcher) {
+        vector.watcher = watcher;
+        return new Proxy(vector, watchedVectorHandler);
+    }
+    function watchedVectorMethod(method) {
+        var args = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            args[_i - 1] = arguments[_i];
+        }
+        var oldX = this.x, oldY = this.y, oldZ = this.z;
+        var result = method.call.apply(method, __spreadArray([this], __read(args), false));
+        if (this.x !== oldX || this.y !== oldY || this.z !== oldZ) {
+            this.watcher(this);
+        }
+        return result;
+    }
+
+    var Vector2 = (function (_super) {
+        __extends(Vector2, _super);
         function Vector2(x, y) {
             if (x === void 0) { x = 0; }
             if (y === void 0) { y = 0; }
-            this.x = x;
-            this.y = y;
+            var _this = _super.call(this) || this;
+            _this.x = x;
+            _this.y = y;
+            return _this;
         }
         Vector2.fromObj = function (obj) {
             if (typeof obj.x !== "number" || typeof obj.y !== "number") {
@@ -740,347 +781,7 @@ var Brass = (function (exports, p5) {
             configurable: true
         });
         return Vector2;
-    }());
-    var Vector3 = (function () {
-        function Vector3(x, y, z) {
-            if (x === void 0) { x = 0; }
-            if (y === void 0) { y = x; }
-            if (z === void 0) { z = y; }
-            this.x = x;
-            this.y = y;
-            this.z = z;
-        }
-        Vector3.fromObj = function (obj) {
-            if (typeof obj.x !== "number" || typeof obj.y !== "number" || typeof obj.z !== "number") {
-                throw Error("Object can't be transformed into Vector3 without numeric x, y and z properties");
-            }
-            return new Vector3(obj.x, obj.y, obj.z);
-        };
-        Vector3.fromObjFast = function (obj) {
-            return new Vector3(obj.x, obj.y, obj.z);
-        };
-        Vector3.prototype.copy = function () {
-            return new Vector3(this.x, this.y, this.z);
-        };
-        Vector3.prototype.equal = function (vec) {
-            return this.x === vec.x && this.y === vec.y && this.z === vec.z;
-        };
-        Vector3.prototype.set = function (vec) {
-            this.x = vec.x;
-            this.y = vec.y;
-            this.z = vec.z;
-            return this;
-        };
-        Vector3.prototype.setScalar = function (x, y, z) {
-            if (x === void 0) { x = 0; }
-            if (y === void 0) { y = x; }
-            if (z === void 0) { z = y; }
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            return this;
-        };
-        Vector3.prototype.add = function (vec) {
-            this.x += vec.x;
-            this.y += vec.y;
-            this.z += vec.z;
-            return this;
-        };
-        Vector3.prototype.addScalar = function (x, y, z) {
-            if (x === void 0) { x = 0; }
-            if (y === void 0) { y = x; }
-            if (z === void 0) { z = y; }
-            this.x += x;
-            this.y += y;
-            this.z += z;
-            return this;
-        };
-        Vector3.prototype.sub = function (vec) {
-            this.x -= vec.x;
-            this.y -= vec.y;
-            this.z -= vec.z;
-            return this;
-        };
-        Vector3.prototype.subScalar = function (x, y, z) {
-            if (x === void 0) { x = 0; }
-            if (y === void 0) { y = x; }
-            if (z === void 0) { z = y; }
-            this.x -= x;
-            this.y -= y;
-            this.z -= z;
-            return this;
-        };
-        Vector3.prototype.mult = function (vec) {
-            this.x *= vec.x;
-            this.y *= vec.y;
-            this.z *= vec.z;
-            return this;
-        };
-        Vector3.prototype.multScalar = function (x, y, z) {
-            if (x === void 0) { x = 1; }
-            if (y === void 0) { y = x; }
-            if (z === void 0) { z = y; }
-            this.x *= x;
-            this.y *= y;
-            this.z *= z;
-            return this;
-        };
-        Vector3.prototype.div = function (vec) {
-            this.x /= vec.x;
-            this.y /= vec.y;
-            this.z /= vec.z;
-            return this;
-        };
-        Vector3.prototype.divScalar = function (x, y, z) {
-            if (x === void 0) { x = 1; }
-            if (y === void 0) { y = x; }
-            if (z === void 0) { z = y; }
-            this.x /= x;
-            this.y /= y;
-            this.z /= z;
-            return this;
-        };
-        Vector3.prototype.rem = function (vec) {
-            this.x %= vec.x;
-            this.y %= vec.y;
-            this.z %= vec.z;
-            return this;
-        };
-        Vector3.prototype.remScalar = function (x, y, z) {
-            if (x === void 0) { x = 1; }
-            if (y === void 0) { y = x; }
-            if (z === void 0) { z = y; }
-            this.x %= x;
-            this.y %= y;
-            this.z %= z;
-            return this;
-        };
-        Vector3.prototype.mod = function (vec) {
-            this.x = ((this.x % vec.x) + vec.x) % vec.x;
-            this.y = ((this.y % vec.y) + vec.y) % vec.y;
-            this.z = ((this.z % vec.z) + vec.z) % vec.z;
-            return this;
-        };
-        Vector3.prototype.modScalar = function (x, y, z) {
-            if (x === void 0) { x = 1; }
-            if (y === void 0) { y = x; }
-            if (z === void 0) { z = y; }
-            this.x = ((this.x % x) + x) % x;
-            this.y = ((this.y % y) + y) % y;
-            this.z = ((this.z % z) + z) % z;
-            return this;
-        };
-        Vector3.prototype.abs = function () {
-            this.x = Math.abs(this.x);
-            this.y = Math.abs(this.y);
-            this.z = Math.abs(this.z);
-            return this;
-        };
-        Vector3.prototype.floor = function () {
-            this.x = Math.floor(this.x);
-            this.y = Math.floor(this.y);
-            this.z = Math.floor(this.z);
-            return this;
-        };
-        Vector3.prototype.round = function () {
-            this.x = Math.round(this.x);
-            this.y = Math.round(this.y);
-            this.z = Math.round(this.z);
-            return this;
-        };
-        Vector3.prototype.ceil = function () {
-            this.x = Math.ceil(this.x);
-            this.y = Math.ceil(this.y);
-            this.z = Math.ceil(this.z);
-            return this;
-        };
-        Vector3.prototype.mix = function (vec, amount) {
-            this.x = this.x + (vec.x - this.x) * amount;
-            this.y = this.y + (vec.y - this.y) * amount;
-            this.z = this.z + (vec.y - this.z) * amount;
-            return this;
-        };
-        Vector3.prototype.norm = function (magnitude) {
-            if (magnitude === void 0) { magnitude = 1; }
-            var mag = this.mag;
-            if (mag === 0)
-                return this;
-            var multiplier = magnitude / mag;
-            this.x *= multiplier;
-            this.y *= multiplier;
-            this.z *= multiplier;
-            return this;
-        };
-        Vector3.prototype.limit = function (limit) {
-            if (limit === void 0) { limit = 1; }
-            if (this.mag > limit)
-                this.norm(limit);
-            return this;
-        };
-        Vector3.prototype.dot = function (vec) {
-            return this.x * vec.x + this.y * vec.y + this.z * vec.z;
-        };
-        Vector3.prototype.cross = function (vec) {
-            this.x = this.y * vec.z - this.z * vec.y;
-            this.y = this.z * vec.x - this.x * vec.z;
-            this.z = this.x * vec.y - this.y * vec.x;
-            return this;
-        };
-        Vector3.prototype.dist = function (vec) {
-            var resultX = this.x - vec.x, resultY = this.y - vec.y, resultZ = this.z - vec.z;
-            return Math.sqrt(resultX * resultX + resultY * resultY + resultZ * resultZ);
-        };
-        Vector3.prototype.distSq = function (vec) {
-            var resultX = this.x - vec.x, resultY = this.y - vec.y, resultZ = this.z - vec.z;
-            return resultX * resultX + resultY * resultY + resultZ * resultZ;
-        };
-        Object.defineProperty(Vector3.prototype, "xy", {
-            get: function () {
-                return new Vector2(this.x, this.y);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(Vector3.prototype, "yx", {
-            get: function () {
-                return new Vector2(this.y, this.x);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(Vector3.prototype, "yz", {
-            get: function () {
-                return new Vector2(this.y, this.z);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(Vector3.prototype, "zy", {
-            get: function () {
-                return new Vector2(this.z, this.y);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(Vector3.prototype, "xz", {
-            get: function () {
-                return new Vector2(this.x, this.z);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(Vector3.prototype, "zx", {
-            get: function () {
-                return new Vector2(this.z, this.x);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(Vector3.prototype, "xyz", {
-            get: function () {
-                return new Vector3(this.x, this.y, this.z);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(Vector3.prototype, "yxz", {
-            get: function () {
-                return new Vector3(this.y, this.x, this.z);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(Vector3.prototype, "yzx", {
-            get: function () {
-                return new Vector3(this.y, this.z, this.x);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(Vector3.prototype, "zyx", {
-            get: function () {
-                return new Vector3(this.z, this.y, this.x);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(Vector3.prototype, "xzy", {
-            get: function () {
-                return new Vector3(this.x, this.z, this.y);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(Vector3.prototype, "zxy", {
-            get: function () {
-                return new Vector3(this.z, this.x, this.y);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(Vector3.prototype, "mag", {
-            get: function () {
-                return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
-            },
-            set: function (magnitude) {
-                this.norm(magnitude);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(Vector3.prototype, "magSq", {
-            get: function () {
-                return this.x * this.x + this.y * this.y + this.z * this.z;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(Vector3.prototype, "array", {
-            get: function () {
-                return [this.x, this.y, this.z];
-            },
-            set: function (arr) {
-                this.x = arr[0];
-                this.y = arr[1];
-                this.z = arr[2];
-            },
-            enumerable: false,
-            configurable: true
-        });
-        return Vector3;
-    }());
-    function watchedVectorMethod(method) {
-        var args = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            args[_i - 1] = arguments[_i];
-        }
-        var oldX = this.x, oldY = this.y, oldZ = this.z;
-        var result = method.call.apply(method, __spreadArray([this], __read(args), false));
-        if (this.x !== oldX || this.y !== oldY || this.z !== oldZ) {
-            this.watcher(this);
-        }
-        return result;
-    }
-    var watchedVectorHandler = {
-        get: function (target, prop) {
-            var value = Reflect.get(target, prop);
-            if (typeof value === "function") {
-                return watchedVectorMethod.bind(target, value);
-            }
-            return value;
-        },
-        set: function (target, prop, value) {
-            var success = Reflect.set(target, prop, value);
-            if (!success)
-                return false;
-            target.watcher(target);
-            return true;
-        },
-    };
-    function watchVector(vector, watcher) {
-        vector.watcher = watcher;
-        return new Proxy(vector, watchedVectorHandler);
-    }
+    }(VectorAbstract));
 
     var inputDeviceMap = new Map();
     var inputMappers = [];
@@ -3270,14 +2971,14 @@ var Brass = (function (exports, p5) {
         spawnParticle(classVar, position, data);
     }
     function spawnParticle(classVar, position, data) {
-        var particle = new (classVar.bind.apply(classVar, __spreadArray([void 0, Vector2.fromObjFast(position)], __read(data), false)))();
+        var particle = new (classVar.bind.apply(classVar, __spreadArray([void 0], __read(data), false)))();
+        particle.position = Vector2.fromObj(position);
         particles.set(Symbol(), particle);
     }
     var Particle = (function () {
-        function Particle(position) {
+        function Particle() {
             this.radius = 1;
             this.lifetime = 5000;
-            this.position = Vector2.fromObj(position);
             this.spawnTime = getTime();
         }
         Particle.prototype.update = function (delta) { };
@@ -3307,9 +3008,9 @@ var Brass = (function (exports, p5) {
     }());
     var VelocityParticle = (function (_super) {
         __extends(VelocityParticle, _super);
-        function VelocityParticle(position, velocity) {
+        function VelocityParticle(velocity) {
             if (velocity === void 0) { velocity = new Vector2(); }
-            var _this = _super.call(this, position) || this;
+            var _this = _super.call(this) || this;
             _this.velocity = velocity;
             return _this;
         }
@@ -3362,18 +3063,9 @@ var Brass = (function (exports, p5) {
         return VelocityParticle;
     }(Particle));
 
-    var PathSituationType;
-    (function (PathSituationType) {
-        PathSituationType[PathSituationType["Inital"] = 0] = "Inital";
-        PathSituationType[PathSituationType["Processing"] = 1] = "Processing";
-        PathSituationType[PathSituationType["Failed"] = 2] = "Failed";
-        PathSituationType[PathSituationType["Succeed"] = 3] = "Succeed";
-    })(PathSituationType || (PathSituationType = {}));
     var pathfinders = [];
     var waitingPathfinder = 0;
     var pathfinderUpdateTime = 3;
-    var pathfinderMinDist = 0.1;
-    var pathfinderMaxDist = 2;
     function update$3() {
         var endTime = getExactTime() + pathfinderUpdateTime;
         var lastPathfinderIndex = waitingPathfinder + pathfinders.length;
@@ -3385,9 +3077,972 @@ var Brass = (function (exports, p5) {
                 return;
         }
     }
+    function registerPathfinder(pathfinder) {
+        pathfinders.push(pathfinder);
+    }
+
+    var inited$1 = false;
+    var lastDelta = null;
+    var engine;
+    var world;
+    var spaceScale;
+    var rays = new Map();
+    var bodies = Array(32).fill(null).map(function () { return new Map(); });
+    var forceUnit = 1e-6;
+    function init$1(_options) {
+        var _a, _b;
+        if (_options === void 0) { _options = {}; }
+        if (typeof Matter !== "object") {
+            throw Error("Matter was not found; Can't initialize Brass physics without Matter.js initialized first");
+        }
+        (_a = _options.gravity) !== null && _a !== void 0 ? _a : (_options.gravity = { scale: 0 });
+        spaceScale = (_b = _options.spaceScale) !== null && _b !== void 0 ? _b : 1;
+        var options = _options;
+        engine = Matter.Engine.create(options);
+        world = engine.world;
+        Matter.Events.on(engine, "collisionActive", handleActiveCollisions);
+        inited$1 = true;
+    }
+    function handleActiveCollisions(_a) {
+        var pairs = _a.pairs;
+        pairs.map(function (pair) {
+            var e_1, _a;
+            var bodyA = pair.bodyA.__brassBody__;
+            var bodyB = pair.bodyB.__brassBody__;
+            var points = [];
+            try {
+                for (var _b = __values(pair.activeContacts), _c = _b.next(); !_c.done; _c = _b.next()) {
+                    var vertex_1 = _c.value.vertex;
+                    points.push(new Vector2(vertex_1.x / spaceScale, vertex_1.y / spaceScale));
+                }
+            }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
+                try {
+                    if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+                }
+                finally { if (e_1) throw e_1.error; }
+            }
+            bodyA.triggerSensors({ self: bodyA, body: bodyB, points: points.map(function (v) { return v.copy(); }) });
+            bodyB.triggerSensors({ self: bodyB, body: bodyA, points: points });
+        });
+    }
+    function isPhysicsActive() {
+        return inited$1;
+    }
+    function enforceInit$1(action) {
+        if (inited$1)
+            return;
+        throw Error("Matter must be enabled in Brass.init() before ".concat(action));
+    }
+    function update$2(delta) {
+        var e_2, _a;
+        enforceInit$1("updating physics");
+        if (lastDelta === null)
+            lastDelta = delta;
+        if (lastDelta !== 0) {
+            Matter.Engine.update(engine, delta, delta / lastDelta);
+        }
+        lastDelta = delta;
+        try {
+            for (var _b = __values(rays.entries()), _c = _b.next(); !_c.done; _c = _b.next()) {
+                var _d = __read(_c.value, 2), _ = _d[0], ray = _d[1];
+                var _e = ray.castOverTime(delta), body = _e.body, point_1 = _e.point;
+                ray.position = point_1.copy();
+                if (!body)
+                    continue;
+                ray.triggerSensors({ body: body, self: ray, points: [point_1] });
+                ray.kill();
+            }
+        }
+        catch (e_2_1) { e_2 = { error: e_2_1 }; }
+        finally {
+            try {
+                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+            }
+            finally { if (e_2) throw e_2.error; }
+        }
+    }
+    function drawColliders(weight, d) {
+        var e_3, _a, e_4, _b;
+        if (weight === void 0) { weight = 0.5; }
+        if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+        var g = d.getMaps().canvas;
+        g.push();
+        g.noFill();
+        g.stroke(0, 255, 0);
+        g.strokeWeight(weight);
+        var bodyQueue = __spreadArray([], __read(world.bodies), false);
+        var queuedBodies = new Set(bodyQueue.map(function (b) { return b.id; }));
+        while (bodyQueue.length > 0) {
+            var body = bodyQueue.pop();
+            try {
+                for (var _c = (e_3 = void 0, __values(body.parts)), _d = _c.next(); !_d.done; _d = _c.next()) {
+                    var part = _d.value;
+                    if (!queuedBodies.has(part.id)) {
+                        bodyQueue.push(part);
+                        queuedBodies.add(part.id);
+                    }
+                }
+            }
+            catch (e_3_1) { e_3 = { error: e_3_1 }; }
+            finally {
+                try {
+                    if (_d && !_d.done && (_a = _c.return)) _a.call(_c);
+                }
+                finally { if (e_3) throw e_3.error; }
+            }
+            g.beginShape();
+            try {
+                for (var _e = (e_4 = void 0, __values(body.vertices)), _f = _e.next(); !_f.done; _f = _e.next()) {
+                    var vert = _f.value;
+                    g.vertex(vert.x / spaceScale, vert.y / spaceScale);
+                }
+            }
+            catch (e_4_1) { e_4 = { error: e_4_1 }; }
+            finally {
+                try {
+                    if (_f && !_f.done && (_b = _e.return)) _b.call(_e);
+                }
+                finally { if (e_4) throw e_4.error; }
+            }
+            g.endShape(CLOSE);
+        }
+        g.pop();
+    }
+    function getMatterWorld() {
+        return world;
+    }
+    function getSpaceScale() {
+        return spaceScale;
+    }
+    function createRectBodyFast(x, y, width, height) {
+        var body = {
+            id: Matter.Common.nextId(),
+            type: "body",
+            label: "rectBody",
+            plugin: {},
+            parts: [],
+            angle: 0,
+            vertices: [
+                { x: -width * 0.5, y: -height * 0.5, index: 0, isInternal: false },
+                { x: width * 0.5, y: -height * 0.5, index: 1, isInternal: false },
+                { x: width * 0.5, y: height * 0.5, index: 2, isInternal: false },
+                { x: -width * 0.5, y: height * 0.5, index: 3, isInternal: false }
+            ],
+            position: { x: x + width * 0.5, y: y + height * 0.5 },
+            force: { x: 0, y: 0 },
+            torque: 0,
+            positionImpulse: { x: 0, y: 0 },
+            constraintImpulse: { x: 0, y: 0, angle: 0 },
+            totalContacts: 0,
+            speed: 0,
+            angularSpeed: 0,
+            velocity: { x: 0, y: 0 },
+            angularVelocity: 0,
+            isSensor: false,
+            isStatic: false,
+            isSleeping: false,
+            motion: 0,
+            sleepThreshold: 60,
+            density: 0.001,
+            restitution: 0,
+            friction: 0.1,
+            frictionStatic: 0.5,
+            frictionAir: 0.01,
+            collisionFilter: {
+                category: 0x0001,
+                mask: 0xFFFFFFFF,
+                group: 0
+            },
+            slop: 0.05,
+            timeScale: 1,
+            circleRadius: 0,
+            positionPrev: { x: x + width * 0.5, y: y + height * 0.5 },
+            anglePrev: 0,
+            area: 0,
+            mass: 0,
+            inertia: 0,
+            _original: null
+        };
+        body.parts = [body];
+        body.parent = body;
+        Matter.Body.set(body, {
+            bounds: Matter.Bounds.create(body.vertices),
+            vertices: body.vertices,
+        });
+        Matter.Bounds.update(body.bounds, body.vertices, body.velocity);
+        return body;
+    }
+
+    var tilemaps = [];
+    function update$1() {
+        var e_1, _a;
+        try {
+            for (var tilemaps_1 = __values(tilemaps), tilemaps_1_1 = tilemaps_1.next(); !tilemaps_1_1.done; tilemaps_1_1 = tilemaps_1.next()) {
+                var tilemap = tilemaps_1_1.value;
+                tilemap.maintain();
+            }
+        }
+        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+        finally {
+            try {
+                if (tilemaps_1_1 && !tilemaps_1_1.done && (_a = tilemaps_1.return)) _a.call(tilemaps_1);
+            }
+            finally { if (e_1) throw e_1.error; }
+        }
+    }
+    function registerTilemap(tilemap) {
+        tilemaps.push(tilemap);
+    }
+
+    var inited = false;
+    var testStatus = null;
+    var sketch;
+    var maxTimeDelta, targetTimeDelta, minTimeDelta;
+    var timewarpList = [];
+    var runningPhysics = false;
+    window.addEventListener("load", function () {
+        window.addEventListener("error", function (error) { return setTestStatus(error.message); });
+    });
+    function setTestStatus(newStatus) {
+        if (newStatus === false)
+            return;
+        if (typeof testStatus === "string")
+            return;
+        testStatus = newStatus;
+    }
+    function getTestStatus() {
+        return testStatus;
+    }
+    function init(options) {
+        var _a, _b, _c, _d, _e;
+        if (options === void 0) { options = {}; }
+        if (options.sound === undefined && p5__default["default"].SoundFile !== undefined) {
+            console.warn("p5.sound.js has been found; Enable or disable sound in Brass.init()");
+        }
+        if (options.matter === undefined && globalThis.Matter !== undefined) {
+            console.warn("matter.js has been found; Enable or disable matter in Brass.init()");
+        }
+        if (options.regl === undefined && globalThis.createREGL !== undefined) {
+            console.warn("regl.js has been found; Enable or disable regl in Brass.init()");
+        }
+        if (options.sketch) {
+            sketch = options.sketch;
+        }
+        else {
+            if (!("p5" in globalThis)) {
+                throw Error("Can't find p5.js, it is required for Brass");
+            }
+            if (!("setup" in globalThis)) {
+                throw Error("Can't seem to find p5; If you are running in instance mode pass the sketch into Brass.init()");
+            }
+            sketch = globalThis;
+        }
+        sketch.disableFriendlyErrors = true;
+        init$5();
+        init$4(sketch, (_a = options.regl) !== null && _a !== void 0 ? _a : false, options.drawTarget);
+        init$2(options.viewpoint);
+        var targetFrameRate = Math.min(_targetFrameRate, (_b = options.maxFrameRate) !== null && _b !== void 0 ? _b : 60);
+        sketch.frameRate(targetFrameRate);
+        targetTimeDelta = 1000 / targetFrameRate;
+        maxTimeDelta = (_c = options.maxTimeDelta) !== null && _c !== void 0 ? _c : targetTimeDelta * 2.0;
+        minTimeDelta = (_d = options.minTimeDelta) !== null && _d !== void 0 ? _d : targetTimeDelta * 0.5;
+        update$5();
+        init$3((_e = options.sound) !== null && _e !== void 0 ? _e : false);
+        runningPhysics = options.matter !== undefined;
+        if (runningPhysics) {
+            if (typeof options.matter === "object") {
+                init$1(options.matter);
+            }
+            else {
+                init$1();
+            }
+        }
+        if (sketch.draw === undefined) {
+            sketch.draw = defaultSketchDraw;
+        }
+        if (sketch.windowResized === undefined) {
+            sketch.windowResized = function () { return resize(window.innerWidth, window.innerHeight); };
+        }
+        inited = true;
+    }
+    function enforceInit(action) {
+        if (inited)
+            return;
+        throw Error("Brass must be initialized before ".concat(action, "; Run Brass.init()"));
+    }
+    function defaultSketchDraw() {
+        if (!loaded()) {
+            drawLoading();
+            return;
+        }
+        var realDelta = deltaTime;
+        realDelta = Math.min(maxTimeDelta, realDelta);
+        realDelta = Math.max(minTimeDelta, realDelta);
+        var simDelta = updateSimTiming(realDelta);
+        updateEarly();
+        if (sketch.brassUpdate !== undefined)
+            sketch.brassUpdate(simDelta);
+        updateLate(simDelta);
+        if (sketch.brassDraw !== undefined) {
+            resetAndSyncDefaultP5DrawTarget();
+            sketch.brassDraw(simDelta);
+        }
+    }
+    function updateSimTiming(realDelta) {
+        var simDelta = 0;
+        while (timewarpList.length > 0) {
+            var warpedTime = Math.min(realDelta, timewarpList[0].duration);
+            realDelta -= warpedTime;
+            simDelta += warpedTime * timewarpList[0].rate;
+            timewarpList[0].duration -= warpedTime;
+            if (timewarpList[0].duration <= 0)
+                timewarpList.shift();
+            else
+                break;
+        }
+        simDelta += realDelta;
+        deltaSimTime(simDelta);
+        return simDelta;
+    }
+    function update(delta) {
+        if (delta === void 0) { delta = deltaTime; }
+        enforceInit("updating Brass");
+        updateEarly();
+        updateLate(delta);
+    }
+    function updateEarly() {
+        update$5();
+        update$6();
+    }
+    function updateLate(delta) {
+        enforceInit("updating Brass");
+        if (runningPhysics)
+            update$2(delta);
+        updateViewpoints(delta);
+        update$1();
+        update$3();
+        update$4(delta);
+    }
+    function timewarp(duration, rate) {
+        if (rate === void 0) { rate = 0; }
+        timewarpList.push({ duration: duration, rate: rate });
+    }
+    function getTimewarp() {
+        if (timewarpList.length === 0)
+            return { duration: Infinity, rate: 1 };
+        return timewarpList[0];
+    }
+    function getTimewarps() {
+        return timewarpList;
+    }
+
+    var BodyAbstract = (function () {
+        function BodyAbstract() {
+            this.sensors = [];
+            this.alive = true;
+            this.data = null;
+            enforceInit$1("creating a body");
+        }
+        BodyAbstract.prototype.addSensor = function (callback) {
+            this.sensors.push(callback);
+            return this;
+        };
+        BodyAbstract.prototype.removeSensor = function (callback) {
+            var index = [].findIndex(function (sensor) { return sensor === callback; });
+            this.sensors.splice(index, 1);
+            return this;
+        };
+        BodyAbstract.prototype.triggerSensors = function (collision) {
+            this.sensors.forEach(function (callback) { return callback(collision); });
+            return this;
+        };
+        BodyAbstract.prototype.kill = function () {
+            this.alive = false;
+        };
+        BodyAbstract.prototype.validateCollisionIndex = function (index) {
+            if (typeof index !== "number" ||
+                index !== Math.floor(index))
+                throw Error("Collision category must be an integer");
+            if (index < 0 || index > 31)
+                throw Error("Collision category must be in 0 through 31 inclusive");
+            return index;
+        };
+        BodyAbstract.prototype.validateCollisionMask = function (mask) {
+            if (typeof mask !== "number" ||
+                mask !== Math.floor(mask))
+                throw Error("Collision mask must be an integer");
+            if (mask < 0x00000000 || mask > 0xFFFFFFFF)
+                throw Error("Collision mask must be 32-bit");
+            return mask;
+        };
+        BodyAbstract.prototype.collisionIndexToCategory = function (index) {
+            this.validateCollisionIndex(index);
+            return 1 << index;
+        };
+        BodyAbstract.prototype.collisionCategoryToIndex = function (category) {
+            if (category === 0x8000) {
+                return 31;
+            }
+            else {
+                var index = Math.log2(category);
+                if (index !== Math.floor(index))
+                    throw Error("Internal Matter.js body could not be fit in one collision category");
+                return index;
+            }
+        };
+        return BodyAbstract;
+    }());
+
+    var RayBody = (function (_super) {
+        __extends(RayBody, _super);
+        function RayBody(x, y, width, options) {
+            if (width === void 0) { width = 0.1; }
+            if (options === void 0) { options = {}; }
+            var _this = this;
+            var _a, _b;
+            _this = _super.call(this) || this;
+            _this.id = Symbol();
+            _this.position = new Vector2(x, y);
+            _this.velocity = Vector2.fromObj((_a = options.velocity) !== null && _a !== void 0 ? _a : { x: 0, y: 0 });
+            _this.width = width;
+            _this.mask = _this.validateCollisionMask((_b = options.mask) !== null && _b !== void 0 ? _b : 0xFFFFFFFF);
+            rays.set(_this.id, _this);
+            return _this;
+        }
+        Object.defineProperty(RayBody.prototype, "angle", {
+            get: function () {
+                throw Error("RayBody can't have rotation");
+            },
+            set: function (_) {
+                throw Error("RayBody can't have rotation");
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(RayBody.prototype, "angularVelocity", {
+            get: function () {
+                throw Error("RayBody can't have rotation");
+            },
+            set: function (_) {
+                throw Error("RayBody can't have rotation");
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(RayBody.prototype, "static", {
+            get: function () {
+                return false;
+            },
+            set: function (isStatic) {
+                if (isStatic === true) {
+                    throw Error("RayBody can't have static behaviour enabled");
+                }
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(RayBody.prototype, "ghost", {
+            get: function () {
+                return true;
+            },
+            set: function (isGhost) {
+                if (isGhost === false) {
+                    throw Error("RayBody can't have ghost behaviour disabled");
+                }
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(RayBody.prototype, "collisionCategory", {
+            set: function (_) { },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(RayBody.prototype, "collidesWith", {
+            set: function (category) {
+                var _this = this;
+                this.mask = 0;
+                if (category === "everything") {
+                    this.mask = 0xFFFFFFFF;
+                }
+                else if (category === "nothing") {
+                    this.mask = 0;
+                }
+                else if (Array.isArray(category)) {
+                    category.map(function (subCategory) { return _this.setCollidesWith(subCategory); });
+                }
+                else {
+                    this.setCollidesWith(category);
+                }
+            },
+            enumerable: false,
+            configurable: true
+        });
+        RayBody.prototype.setCollidesWith = function (category) {
+            this.validateCollisionIndex(category);
+            if (category >= 0) {
+                this.mask |= 1 << category;
+            }
+            else {
+                this.mask &= ~(1 << -category);
+            }
+            return this;
+        };
+        RayBody.prototype.rotate = function (_) {
+            throw Error("RayBody can't have rotation");
+        };
+        RayBody.prototype.applyForce = function () {
+            throw Error("RayBody can't have forces applied");
+        };
+        RayBody.prototype.kill = function () {
+            _super.prototype.kill.call(this);
+            this.remove();
+        };
+        RayBody.prototype.remove = function () {
+            rays.delete(this.id);
+        };
+        RayBody.prototype.castOverTime = function (delta, steps) {
+            var timeSteps = (delta / 1000 * 60);
+            var displacement = this.velocity.copy().multScalar(timeSteps);
+            return this.cast(displacement, steps);
+        };
+        RayBody.prototype.cast = function (_displacement, steps) {
+            if (steps === void 0) { steps = 20; }
+            var spaceScale = getSpaceScale();
+            var displacement = _displacement.multScalar(spaceScale);
+            var testBrassBodies = [];
+            for (var i = 0; i < 32; i++) {
+                if (!(this.mask & (1 << i)))
+                    continue;
+                testBrassBodies.push.apply(testBrassBodies, __spreadArray([], __read(Array.from(bodies[i].values())), false));
+            }
+            var testBodies = testBrassBodies.map(function (brassBody) { return brassBody.body; });
+            var start = this.position.copy().multScalar(spaceScale);
+            var testPoint = 1, testJump = 0.5, hits = [], hitEnd = displacement.copy().multScalar(testPoint).add(start), hitPoint = 1;
+            for (var i = 0; i < steps; i++) {
+                var end = displacement.copy().multScalar(testPoint).add(start);
+                var currentHits = Matter.Query.ray(testBodies, start, end, this.width * spaceScale);
+                if (currentHits.length < 1) {
+                    if (i === 0)
+                        break;
+                    testPoint += testJump;
+                    testJump /= 2;
+                }
+                else if (currentHits.length === 1) {
+                    hits = currentHits;
+                    hitPoint = testPoint;
+                    hitEnd = end;
+                    testPoint -= testJump;
+                    testJump /= 2;
+                }
+                else {
+                    if (currentHits.length !== 1) {
+                        hits = currentHits;
+                        hitPoint = testPoint;
+                        hitEnd = end;
+                    }
+                    testPoint -= testJump;
+                    testJump /= 2;
+                }
+            }
+            if (hits.length > 1) {
+                hits = hits.sort(function (a, b) { return start.distSq(a.bodyA.position) - start.distSq(b.bodyA.position); });
+            }
+            var hitBody;
+            if (hits.length === 0) {
+                hitBody = null;
+            }
+            else {
+                hitBody = hits[0].parentA.__brassBody__;
+            }
+            return {
+                point: hitEnd.divScalar(spaceScale),
+                dist: displacement.mag * hitPoint / spaceScale,
+                body: hitBody
+            };
+        };
+        return RayBody;
+    }(BodyAbstract));
+
+    var P5Lighter = (function () {
+        function P5Lighter(options) {
+            if (options === void 0) { options = {}; }
+            var _a, _b, _c;
+            this.lightSurface = new P5DrawBuffer();
+            this.directionalCache = new Map();
+            this.viewpoint = null;
+            this.resolution = (_a = options.resolution) !== null && _a !== void 0 ? _a : 0.25;
+            this._blur = (_b = options.blur) !== null && _b !== void 0 ? _b : 1;
+            this.color = (_c = options.color) !== null && _c !== void 0 ? _c : createColor(255);
+        }
+        P5Lighter.prototype.begin = function (v, d) {
+            if (v === void 0) { v = getDefaultViewpoint(); }
+            if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+            var newContext = !this.lightSurface.hasSize();
+            this.lightSurface.sizeMaps(d.getSize(this.resolution));
+            if (newContext)
+                this.fill(this.color);
+            this.resetLightCanvas();
+            var originalScale = v.scale;
+            v.scale *= this.resolution;
+            v.view(this.lightSurface);
+            v.scale = originalScale;
+            this.viewpoint = v;
+            return this;
+        };
+        P5Lighter.prototype.end = function (d) {
+            if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+            var g = d.getMaps().canvas;
+            g.push();
+            g.resetMatrix();
+            g.blendMode(MULTIPLY);
+            g.image(this.getLightCanvas(), 0, 0, width, height);
+            g.pop();
+        };
+        Object.defineProperty(P5Lighter.prototype, "blur", {
+            get: function () {
+                return this._blur;
+            },
+            set: function (value) {
+                this._blur = value;
+                this.fill(this.color);
+            },
+            enumerable: false,
+            configurable: true
+        });
+        P5Lighter.prototype.fill = function () {
+            var colArgs = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                colArgs[_i] = arguments[_i];
+            }
+            var lightCanvas = this.getLightCanvas();
+            var col = createColor.apply(void 0, __spreadArray([], __read(colArgs), false));
+            lightCanvas.fill(col);
+            if (this._blur > 0) {
+                var r = red(col), g = green(col), b = blue(col), a = alpha(col);
+                lightCanvas.stroke(r, g, b, a / 2);
+                lightCanvas.strokeWeight(this._blur);
+            }
+            else {
+                lightCanvas.noStroke();
+            }
+            this.color = col;
+            return this;
+        };
+        P5Lighter.prototype.point = function (x, y, r) {
+            var lightCanvas = this.getLightCanvas();
+            lightCanvas.circle(x, y, r * 2);
+            return this;
+        };
+        P5Lighter.prototype.cone = function (x, y, angle, width, distance) {
+            if (width === void 0) { width = HALF_PI; }
+            if (distance === void 0) { distance = 100; }
+            var lightCanvas = this.getLightCanvas();
+            lightCanvas.triangle(x, y, x + Math.cos(angle - width / 2) * distance, y + Math.sin(angle - width / 2) * distance, x + Math.cos(angle + width / 2) * distance, y + Math.sin(angle + width / 2) * distance);
+            return this;
+        };
+        P5Lighter.prototype.world = function (vignette) {
+            if (vignette === void 0) { vignette = 0; }
+            var lightCanvas = this.getLightCanvas();
+            if (this.viewpoint === null)
+                this.throwBeginError();
+            var area = this.viewpoint.getWorldViewArea();
+            var areaWidth = area.maxX - area.minX;
+            var areaHeight = area.maxY - area.minY;
+            var lightSurfaceSize = this.lightSurface.getSize();
+            var paddingX = areaWidth * ((4 / lightSurfaceSize.x) - vignette) + this._blur * 2;
+            var paddingY = areaHeight * ((4 / lightSurfaceSize.y) - vignette) + this._blur * 2;
+            lightCanvas.rect(area.minX - paddingX * 0.5, area.minY - paddingY * 0.5, areaWidth + paddingX * 1, areaHeight + paddingY * 1);
+            return this;
+        };
+        P5Lighter.prototype.directional = function (x, y, radius, options) {
+            var e_1, _a;
+            var _b;
+            if (options === void 0) { options = {}; }
+            var points;
+            var cache = this.directionalCache.get(options.cacheName);
+            if (options.cacheName !== undefined) {
+                if (cache === undefined ||
+                    getSimTime() > cache.time + ((_b = options.cacheTime) !== null && _b !== void 0 ? _b : Infinity)) {
+                    cache = {
+                        time: getSimTime(),
+                        points: this.simulateDirectional(x, y, radius, options)
+                    };
+                    this.directionalCache.set(options.cacheName, cache);
+                }
+                points = cache.points;
+            }
+            else {
+                points = this.simulateDirectional(x, y, radius, options);
+            }
+            var lightCanvas = this.getLightCanvas();
+            lightCanvas.beginShape();
+            try {
+                for (var points_1 = __values(points), points_1_1 = points_1.next(); !points_1_1.done; points_1_1 = points_1.next()) {
+                    var vert = points_1_1.value;
+                    lightCanvas.vertex(vert.x, vert.y);
+                }
+            }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
+                try {
+                    if (points_1_1 && !points_1_1.done && (_a = points_1.return)) _a.call(points_1);
+                }
+                finally { if (e_1) throw e_1.error; }
+            }
+            lightCanvas.endShape(CLOSE);
+        };
+        P5Lighter.prototype.simulateDirectional = function (x, y, radius, options) {
+            var _a, _b;
+            if (this.viewpoint === null)
+                this.throwBeginError();
+            var viewArea = this.viewpoint.getWorldViewArea();
+            var center, centerRadius;
+            if ((_a = options.drawOffscreen) !== null && _a !== void 0 ? _a : false) {
+                center = new Vector2(x, y);
+                centerRadius = radius;
+            }
+            else {
+                center = new Vector2((viewArea.minX + viewArea.maxX) / 2, (viewArea.minY + viewArea.maxY) / 2);
+                centerRadius = Math.hypot(viewArea.minX - viewArea.maxX, viewArea.minY - viewArea.maxY) * 0.6;
+            }
+            var vec = new Vector2(x, y);
+            var U0 = center.copy().sub(vec);
+            var negativeU0 = vec.copy().sub(center);
+            var centerDist = U0.mag;
+            var lightInArea = centerDist < centerRadius;
+            var lightCircleTagentAngle;
+            if (lightInArea) {
+                lightCircleTagentAngle = HALF_PI;
+            }
+            else {
+                lightCircleTagentAngle = Math.asin(centerRadius / centerDist);
+            }
+            var points = [];
+            var paths = [];
+            var centerAngle = negativeU0.angle;
+            var startAngle = centerAngle + HALF_PI - lightCircleTagentAngle;
+            var endAngle = centerAngle + HALF_PI * 3 + lightCircleTagentAngle;
+            var stepAngle = TWO_PI / ((_b = options.rays) !== null && _b !== void 0 ? _b : 50);
+            for (var angle = startAngle; angle <= endAngle; angle += stepAngle) {
+                var rayDirection = Vector2.fromDirMag(angle, centerRadius)
+                    .add(center).sub(vec).norm();
+                this.findDirectionalLineSegment(U0, centerRadius, vec, rayDirection, radius, lightInArea, points, paths);
+            }
+            this.castDirectionalRays(points, paths, options);
+            return points;
+        };
+        P5Lighter.prototype.findDirectionalLineSegment = function (U0, centerRadius, vec, rayDirection, radius, lightInArea, points, paths) {
+            var U1 = rayDirection.copy().multScalar(U0.dot(rayDirection));
+            var U2 = U0.copy().sub(U1);
+            var nearDist = U2.mag;
+            if (nearDist > centerRadius)
+                return;
+            var intersectDist = Math.sqrt(centerRadius * centerRadius - nearDist * nearDist);
+            var intersect = rayDirection.copy().multScalar(intersectDist);
+            var startOffset = U1.copy().sub(intersect);
+            if (!lightInArea && startOffset.mag > radius)
+                return;
+            var lineStart = startOffset.limit(radius).add(vec);
+            var lineEnd = U1.copy().add(intersect).limit(radius).add(vec);
+            if (lightInArea) {
+                lineStart.set(vec);
+            }
+            else {
+                points.push(lineStart);
+            }
+            paths.push({
+                start: lineStart,
+                end: lineEnd,
+            });
+        };
+        P5Lighter.prototype.castDirectionalRays = function (points, paths, options) {
+            var _a, _b, _c;
+            for (var i = paths.length - 1; i >= 0; i--) {
+                var path = paths[i];
+                var ray = new RayBody(path.start.x, path.start.y, (_a = options.rayWidth) !== null && _a !== void 0 ? _a : 0.01);
+                ray.collidesWith = (_b = options.raysCollideWith) !== null && _b !== void 0 ? _b : "everything";
+                var endPoint = ray.cast(path.end.sub(path.start), (_c = options.raySteps) !== null && _c !== void 0 ? _c : 10).point;
+                ray.kill();
+                points.push(endPoint);
+            }
+        };
+        P5Lighter.prototype.resetLightCanvas = function () {
+            var lightCanvas = this.getLightCanvas();
+            lightCanvas.push();
+            lightCanvas.blendMode(BLEND);
+            lightCanvas.background(0);
+            lightCanvas.pop();
+            lightCanvas.resetMatrix();
+        };
+        P5Lighter.prototype.getLightCanvas = function () {
+            if (!this.lightSurface.hasSize())
+                this.throwBeginError();
+            return this.lightSurface.getMaps().canvas;
+        };
+        Object.defineProperty(P5Lighter.prototype, "lightCanvas", {
+            get: function () {
+                if (!this.lightSurface.hasSize())
+                    return null;
+                return this.lightSurface.getMaps().canvas;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        P5Lighter.prototype.throwBeginError = function () {
+            throw Error("Lighter.begin() must be ran before using lighting");
+        };
+        return P5Lighter;
+    }());
+
+    var PathAgent = (function () {
+        function PathAgent(pathfinder, radius, leadership) {
+            if (leadership === void 0) { leadership = Math.random(); }
+            this.id = Symbol();
+            this.position = null;
+            this.direction = false;
+            this.newGoal = true;
+            this.processingSituation = null;
+            this.tryedPartCompute = false;
+            this.pathCost = 0;
+            this.pathGarbage = 0;
+            this.path = [];
+            this.waitingNodeComfirmation = 0;
+            this.computeStart = true;
+            this.computeEnd = true;
+            this.pathFailTime = 0;
+            this.pathfinder = pathfinder;
+            this.radius = radius;
+            this.leadership = leadership;
+        }
+        PathAgent.prototype.drawPath = function (thickness, fillColor, d) {
+            if (thickness === void 0) { thickness = 0.2; }
+            if (fillColor === void 0) { fillColor = "red"; }
+            if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+            var g = d.getMaps().canvas;
+            if (this.position === null)
+                return;
+            g.push();
+            g.noStroke();
+            g.fill(fillColor);
+            this.path.unshift(this.position);
+            for (var i = 0; i < this.path.length; i++) {
+                var node = this.path[i].copy().multScalar(this.pathfinder.scale);
+                g.circle(node.x, node.y, thickness);
+                if (i >= this.path.length - 1)
+                    continue;
+                var nextNode = this.path[i + 1].copy().multScalar(this.pathfinder.scale);
+                var offsetForward = nextNode.copy().sub(node).norm(thickness / 2);
+                var offsetA = offsetForward.copy().rotate(-HALF_PI);
+                var offsetB = offsetForward.copy().rotate(HALF_PI);
+                g.triangle(node.x + offsetA.x, node.y + offsetA.y, nextNode.x, nextNode.y, node.x + offsetB.x, node.y + offsetB.y);
+            }
+            this.path.shift();
+            g.pop();
+        };
+        PathAgent.prototype.getDirection = function (position) {
+            if (position &&
+                (this.position === null || !this.position.equal(position))) {
+                var newPosition = position.copy().divScalar(this.pathfinder.scale);
+                if (!this.pathfinder.validatePosition(newPosition)) {
+                    this.position = null;
+                    return false;
+                }
+                this.position = newPosition;
+            }
+            else {
+                if (this.direction)
+                    return this.direction;
+            }
+            if (this.position === null)
+                return false;
+            while (this.path.length > 0) {
+                if (this.position.dist(this.path[0]) < this.pathfinder.pathMinDist) {
+                    var pathNode = this.path.shift().floor();
+                    this.pathfinder.setPheromones(pathNode);
+                }
+                else {
+                    if (this.position.dist(this.path[0]) > this.pathfinder.pathMaxDist) {
+                        if (this.processingSituation) {
+                            this.tryedPartCompute = false;
+                            this.processingSituation = null;
+                        }
+                        this.computeStart = true;
+                    }
+                    break;
+                }
+            }
+            if (this.path.length === 0 || this.computeStart) {
+                if (this.pathfinder.goal === null)
+                    return false;
+                var goalDistance = this.position.dist(this.pathfinder.goal);
+                var atGoal = goalDistance < this.pathfinder.pathMinDist * 2;
+                if (atGoal) {
+                    this.setPath([]);
+                }
+                else {
+                    if (this.path.length === 0) {
+                        this.computeWhole = true;
+                    }
+                }
+                return atGoal;
+            }
+            this.direction = this.path[0].copy()
+                .multScalar(this.pathfinder.scale)
+                .sub(this.position.copy().multScalar(this.pathfinder.scale));
+            if (this.newGoal) {
+                if (this.direction.mag < this.pathfinder.pathMinDist * 3 && random() < 0.2) {
+                    if (this.processingSituation) {
+                        this.tryedPartCompute = false;
+                        this.processingSituation = null;
+                    }
+                    this.computeEnd = true;
+                    this.newGoal = false;
+                }
+            }
+            return this.direction;
+        };
+        PathAgent.prototype.reset = function () {
+            this.setPath([]);
+            this.tryedPartCompute = false;
+            this.processingSituation = null;
+            this.computeStart = true;
+            this.computeEnd = true;
+            this.pathFailTime = getTime();
+        };
+        PathAgent.prototype.setPath = function (path, cost) {
+            if (cost === void 0) { cost = 0; }
+            this.pathCost = cost;
+            this.pathGarbage = 0;
+            this.path = path;
+        };
+        Object.defineProperty(PathAgent.prototype, "computeWhole", {
+            get: function () {
+                return this.computeStart && this.computeEnd;
+            },
+            set: function (value) {
+                this.computeStart = value;
+                this.computeEnd = value;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        return PathAgent;
+    }());
+
+    var PathSituationType;
+    (function (PathSituationType) {
+        PathSituationType[PathSituationType["Inital"] = 0] = "Inital";
+        PathSituationType[PathSituationType["Processing"] = 1] = "Processing";
+        PathSituationType[PathSituationType["Failed"] = 2] = "Failed";
+        PathSituationType[PathSituationType["Succeed"] = 3] = "Succeed";
+    })(PathSituationType || (PathSituationType = {}));
+
     var PathfinderAbstract = (function () {
         function PathfinderAbstract(options) {
-            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
             this.confidence = 0.5;
             this.width = options.width;
             this.height = options.height;
@@ -3401,6 +4056,8 @@ var Brass = (function (exports, p5) {
             this.nodeComfirmationRate = (_h = options.nodeComfirmationRate) !== null && _h !== void 0 ? _h : 10;
             this.pheromoneDecayTime = (_j = options.pheromoneDecayTime) !== null && _j !== void 0 ? _j : 150000;
             this.pheromoneStrength = (_k = options.pheromoneStrength) !== null && _k !== void 0 ? _k : 0.5;
+            this.pathMinDist = (_l = options.pathMinDist) !== null && _l !== void 0 ? _l : 0.1;
+            this.pathMaxDist = (_m = options.pathMaxDist) !== null && _m !== void 0 ? _m : 0.1;
             this.pheromoneTime = getTime();
             if (options.pheromones !== false) {
                 var zeroPheromone = this.pheromoneTime - this.pheromoneDecayTime;
@@ -3412,7 +4069,7 @@ var Brass = (function (exports, p5) {
             this.goal = null;
             this.agents = [];
             this.waitingAgent = 0;
-            pathfinders.push(this);
+            registerPathfinder(this);
         }
         PathfinderAbstract.prototype.createAgent = function (radius, leadership) {
             radius /= this.scale;
@@ -3447,7 +4104,7 @@ var Brass = (function (exports, p5) {
                     if (agent.path.length <= 0)
                         continue;
                     var lastNode = agent.path[agent.path.length - 1];
-                    if (lastNode.dist(this.goal) < pathfinderMinDist)
+                    if (lastNode.dist(this.goal) < this.pathMaxDist)
                         continue;
                     agent.newGoal = true;
                 }
@@ -3683,11 +4340,13 @@ var Brass = (function (exports, p5) {
         };
         return PathfinderAbstract;
     }());
+
     var AStarPathfinder = (function (_super) {
         __extends(AStarPathfinder, _super);
-        function AStarPathfinder(tilemap, options) {
-            if (options === void 0) { options = {}; }
+        function AStarPathfinder(tilemap, _options) {
+            if (_options === void 0) { _options = {}; }
             var _this = this;
+            var options = _options;
             options.width = tilemap.width;
             options.height = tilemap.height;
             options.scale = tilemap.tileSize;
@@ -3703,8 +4362,8 @@ var Brass = (function (exports, p5) {
         };
         AStarPathfinder.prototype.computePath = function () {
             var args = [];
-            for (var _a = 0; _a < arguments.length; _a++) {
-                args[_a] = arguments[_a];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
             }
             var situation = this.parseComputePathArgs(args);
             situation = this.computeAStar(situation);
@@ -3716,7 +4375,7 @@ var Brass = (function (exports, p5) {
             return situation;
         };
         AStarPathfinder.prototype.computeAStar = function (situation) {
-            var e_2, _a;
+            var e_1, _a;
             if (situation.type === PathSituationType.Inital) {
                 if (this.tilemap.getSolid(situation.start.x, situation.start.y) ||
                     this.tilemap.getSolid(situation.end.x, situation.end.y)) {
@@ -3728,10 +4387,8 @@ var Brass = (function (exports, p5) {
                     gCosts: new Map(),
                     fCosts: new Map(),
                     sources: new Map(),
-                    open: new MappedHeap([], function (a, b) {
-                        return situation.state.fCosts.get(a) <
-                            situation.state.fCosts.get(b);
-                    })
+                    open: new MappedHeap([], function (a, b) { return situation.state.fCosts.get(a) <
+                        situation.state.fCosts.get(b); })
                 };
             }
             var start = situation.start.copy().floor(), end = situation.end.copy().floor();
@@ -3761,7 +4418,7 @@ var Brass = (function (exports, p5) {
                 var currectGCost = gCosts.get(currentPrimative);
                 var neighbors = this.computeNeighbors(current);
                 try {
-                    for (var neighbors_1 = (e_2 = void 0, __values(neighbors)), neighbors_1_1 = neighbors_1.next(); !neighbors_1_1.done; neighbors_1_1 = neighbors_1.next()) {
+                    for (var neighbors_1 = (e_1 = void 0, __values(neighbors)), neighbors_1_1 = neighbors_1.next(); !neighbors_1_1.done; neighbors_1_1 = neighbors_1.next()) {
                         var _c = neighbors_1_1.value, position = _c.position, dCost = _c.dCost;
                         var positionPrimative = this.primitivizePosition(position);
                         var newGCost = currectGCost + Math.round(dCost * this.getPheromones(position));
@@ -3775,12 +4432,12 @@ var Brass = (function (exports, p5) {
                         }
                     }
                 }
-                catch (e_2_1) { e_2 = { error: e_2_1 }; }
+                catch (e_1_1) { e_1 = { error: e_1_1 }; }
                 finally {
                     try {
                         if (neighbors_1_1 && !neighbors_1_1.done && (_a = neighbors_1.return)) _a.call(neighbors_1);
                     }
-                    finally { if (e_2) throw e_2.error; }
+                    finally { if (e_1) throw e_1.error; }
                 }
             }
             situation.type = PathSituationType.Failed;
@@ -3883,326 +4540,7 @@ var Brass = (function (exports, p5) {
         };
         return AStarPathfinder;
     }(PathfinderAbstract));
-    var PathAgent = (function () {
-        function PathAgent(pathfinder, radius, leadership) {
-            if (leadership === void 0) { leadership = Math.random(); }
-            this.id = Symbol();
-            this.position = null;
-            this.direction = false;
-            this.newGoal = true;
-            this.processingSituation = null;
-            this.tryedPartCompute = false;
-            this.pathCost = 0;
-            this.pathGarbage = 0;
-            this.path = [];
-            this.waitingNodeComfirmation = 0;
-            this.computeStart = true;
-            this.computeEnd = true;
-            this.pathFailTime = 0;
-            this.pathfinder = pathfinder;
-            this.radius = radius;
-            this.leadership = leadership;
-        }
-        PathAgent.prototype.drawPath = function (thickness, fillColor, d) {
-            if (thickness === void 0) { thickness = 0.2; }
-            if (fillColor === void 0) { fillColor = "red"; }
-            if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
-            var g = d.getMaps().canvas;
-            if (this.position === null)
-                return;
-            g.push();
-            g.noStroke();
-            g.fill(fillColor);
-            this.path.unshift(this.position);
-            for (var i = 0; i < this.path.length; i++) {
-                var node = this.path[i].copy().multScalar(this.pathfinder.scale);
-                g.circle(node.x, node.y, thickness);
-                if (i >= this.path.length - 1)
-                    continue;
-                var nextNode = this.path[i + 1].copy().multScalar(this.pathfinder.scale);
-                var offsetForward = nextNode.copy().sub(node).norm(thickness / 2);
-                var offsetA = offsetForward.copy().rotate(-HALF_PI);
-                var offsetB = offsetForward.copy().rotate(HALF_PI);
-                g.triangle(node.x + offsetA.x, node.y + offsetA.y, nextNode.x, nextNode.y, node.x + offsetB.x, node.y + offsetB.y);
-            }
-            this.path.shift();
-            g.pop();
-        };
-        PathAgent.prototype.getDirection = function (position) {
-            if (position &&
-                (this.position === null || !this.position.equal(position))) {
-                var newPosition = position.copy().divScalar(this.pathfinder.scale);
-                if (!this.pathfinder.validatePosition(newPosition)) {
-                    this.position = null;
-                    return false;
-                }
-                this.position = newPosition;
-            }
-            else {
-                if (this.direction)
-                    return this.direction;
-            }
-            if (this.position === null)
-                return false;
-            while (this.path.length > 0) {
-                if (this.position.dist(this.path[0]) < pathfinderMinDist) {
-                    var pathNode = this.path.shift().floor();
-                    this.pathfinder.setPheromones(pathNode);
-                }
-                else {
-                    if (this.position.dist(this.path[0]) > pathfinderMaxDist) {
-                        if (this.processingSituation) {
-                            this.tryedPartCompute = false;
-                            this.processingSituation = null;
-                        }
-                        this.computeStart = true;
-                    }
-                    break;
-                }
-            }
-            if (this.path.length === 0 || this.computeStart) {
-                if (this.pathfinder.goal === null)
-                    return false;
-                var goalDistance = this.position.dist(this.pathfinder.goal);
-                var atGoal = goalDistance < pathfinderMinDist * 2;
-                if (atGoal) {
-                    this.setPath([]);
-                }
-                else {
-                    if (this.path.length === 0) {
-                        this.computeWhole = true;
-                    }
-                }
-                return atGoal;
-            }
-            this.direction = this.path[0].copy()
-                .multScalar(this.pathfinder.scale)
-                .sub(this.position.copy().multScalar(this.pathfinder.scale));
-            if (this.newGoal) {
-                if (this.direction.mag < pathfinderMinDist * 3 && random() < 0.2) {
-                    if (this.processingSituation) {
-                        this.tryedPartCompute = false;
-                        this.processingSituation = null;
-                    }
-                    this.computeEnd = true;
-                    this.newGoal = false;
-                }
-            }
-            return this.direction;
-        };
-        PathAgent.prototype.reset = function () {
-            this.setPath([]);
-            this.tryedPartCompute = false;
-            this.processingSituation = null;
-            this.computeStart = true;
-            this.computeEnd = true;
-            this.pathFailTime = getTime();
-        };
-        PathAgent.prototype.setPath = function (path, cost) {
-            if (cost === void 0) { cost = 0; }
-            this.pathCost = cost;
-            this.pathGarbage = 0;
-            this.path = path;
-        };
-        Object.defineProperty(PathAgent.prototype, "computeWhole", {
-            get: function () {
-                return this.computeStart && this.computeEnd;
-            },
-            set: function (value) {
-                this.computeStart = value;
-                this.computeEnd = value;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        return PathAgent;
-    }());
 
-    var inited$1 = false;
-    var lastDelta = null;
-    var engine;
-    var world;
-    var spaceScale;
-    var rays = new Map();
-    var bodies = Array(32).fill(null).map(function () { return new Map(); });
-    var forceUnit = 1e-6;
-    function init$1(_options) {
-        var _a, _b;
-        if (_options === void 0) { _options = {}; }
-        if (typeof Matter !== "object") {
-            throw Error("Matter was not found; Can't initialize Brass physics without Matter.js initialized first");
-        }
-        (_a = _options.gravity) !== null && _a !== void 0 ? _a : (_options.gravity = { scale: 0 });
-        spaceScale = (_b = _options.spaceScale) !== null && _b !== void 0 ? _b : 1;
-        var options = _options;
-        engine = Matter.Engine.create(options);
-        world = engine.world;
-        Matter.Events.on(engine, "collisionActive", handleActiveCollisions);
-        inited$1 = true;
-    }
-    function handleActiveCollisions(_a) {
-        var pairs = _a.pairs;
-        pairs.map(function (pair) {
-            var e_1, _a;
-            var bodyA = pair.bodyA.__brassBody__;
-            var bodyB = pair.bodyB.__brassBody__;
-            var points = [];
-            try {
-                for (var _b = __values(pair.activeContacts), _c = _b.next(); !_c.done; _c = _b.next()) {
-                    var vertex_1 = _c.value.vertex;
-                    points.push(new Vector2(vertex_1.x / spaceScale, vertex_1.y / spaceScale));
-                }
-            }
-            catch (e_1_1) { e_1 = { error: e_1_1 }; }
-            finally {
-                try {
-                    if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
-                }
-                finally { if (e_1) throw e_1.error; }
-            }
-            bodyA.triggerSensors({ self: bodyA, body: bodyB, points: points.map(function (v) { return v.copy(); }) });
-            bodyB.triggerSensors({ self: bodyB, body: bodyA, points: points });
-        });
-    }
-    function isPhysicsRunning() {
-        return inited$1;
-    }
-    function enforceInit$1(action) {
-        if (inited$1)
-            return;
-        throw Error("Matter must be enabled in Brass.init() before ".concat(action));
-    }
-    function update$2(delta) {
-        var e_2, _a;
-        enforceInit$1("updating physics");
-        if (lastDelta === null)
-            lastDelta = delta;
-        if (lastDelta !== 0) {
-            Matter.Engine.update(engine, delta, delta / lastDelta);
-        }
-        lastDelta = delta;
-        try {
-            for (var _b = __values(rays.entries()), _c = _b.next(); !_c.done; _c = _b.next()) {
-                var _d = __read(_c.value, 2), _ = _d[0], ray = _d[1];
-                var _e = ray.castOverTime(delta), body = _e.body, point_1 = _e.point;
-                ray.position = point_1.copy();
-                if (!body)
-                    continue;
-                ray.triggerSensors({ body: body, self: ray, points: [point_1] });
-                ray.kill();
-            }
-        }
-        catch (e_2_1) { e_2 = { error: e_2_1 }; }
-        finally {
-            try {
-                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
-            }
-            finally { if (e_2) throw e_2.error; }
-        }
-    }
-    function drawColliders(weight, d) {
-        var e_3, _a, e_4, _b;
-        if (weight === void 0) { weight = 0.5; }
-        if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
-        var g = d.getMaps().canvas;
-        g.push();
-        g.noFill();
-        g.stroke(0, 255, 0);
-        g.strokeWeight(weight);
-        var bodyQueue = __spreadArray([], __read(world.bodies), false);
-        var queuedBodies = new Set(bodyQueue.map(function (b) { return b.id; }));
-        while (bodyQueue.length > 0) {
-            var body = bodyQueue.pop();
-            try {
-                for (var _c = (e_3 = void 0, __values(body.parts)), _d = _c.next(); !_d.done; _d = _c.next()) {
-                    var part = _d.value;
-                    if (!queuedBodies.has(part.id)) {
-                        bodyQueue.push(part);
-                        queuedBodies.add(part.id);
-                    }
-                }
-            }
-            catch (e_3_1) { e_3 = { error: e_3_1 }; }
-            finally {
-                try {
-                    if (_d && !_d.done && (_a = _c.return)) _a.call(_c);
-                }
-                finally { if (e_3) throw e_3.error; }
-            }
-            g.beginShape();
-            try {
-                for (var _e = (e_4 = void 0, __values(body.vertices)), _f = _e.next(); !_f.done; _f = _e.next()) {
-                    var vert = _f.value;
-                    g.vertex(vert.x / spaceScale, vert.y / spaceScale);
-                }
-            }
-            catch (e_4_1) { e_4 = { error: e_4_1 }; }
-            finally {
-                try {
-                    if (_f && !_f.done && (_b = _e.return)) _b.call(_e);
-                }
-                finally { if (e_4) throw e_4.error; }
-            }
-            g.endShape(CLOSE);
-        }
-        g.pop();
-    }
-    var BodyAbstract = (function () {
-        function BodyAbstract() {
-            this.sensors = [];
-            this.alive = true;
-            this.data = null;
-            enforceInit$1("creating a body");
-        }
-        BodyAbstract.prototype.addSensor = function (callback) {
-            this.sensors.push(callback);
-            return this;
-        };
-        BodyAbstract.prototype.removeSensor = function (callback) {
-            var index = [].findIndex(function (sensor) { return sensor === callback; });
-            this.sensors.splice(index, 1);
-            return this;
-        };
-        BodyAbstract.prototype.triggerSensors = function (collision) {
-            this.sensors.forEach(function (callback) { return callback(collision); });
-            return this;
-        };
-        BodyAbstract.prototype.kill = function () {
-            this.alive = false;
-        };
-        BodyAbstract.prototype.validateCollisionIndex = function (index) {
-            if (typeof index !== "number" ||
-                index !== Math.floor(index))
-                throw Error("Collision category must be an integer");
-            if (index < 0 || index > 31)
-                throw Error("Collision category must be in 0 through 31 inclusive");
-            return index;
-        };
-        BodyAbstract.prototype.validateCollisionMask = function (mask) {
-            if (typeof mask !== "number" ||
-                mask !== Math.floor(mask))
-                throw Error("Collision mask must be an integer");
-            if (mask < 0x00000000 || mask > 0xFFFFFFFF)
-                throw Error("Collision mask must be 32-bit");
-            return mask;
-        };
-        BodyAbstract.prototype.collisionIndexToCategory = function (index) {
-            this.validateCollisionIndex(index);
-            return 1 << index;
-        };
-        BodyAbstract.prototype.collisionCategoryToIndex = function (category) {
-            if (category === 0x8000) {
-                return 31;
-            }
-            else {
-                var index = Math.log2(category);
-                if (index !== Math.floor(index))
-                    throw Error("Internal Matter.js body could not be fit in one collision category");
-                return index;
-            }
-        };
-        return BodyAbstract;
-    }());
     var MaterialBodyAbstract = (function (_super) {
         __extends(MaterialBodyAbstract, _super);
         function MaterialBodyAbstract(body) {
@@ -4218,16 +4556,17 @@ var Brass = (function (exports, p5) {
             this.body.__brassBody__ = this;
             this.body.collisionFilter.category = this.collisionIndexToCategory(0);
             bodies[0].set(this.body.id, this);
-            Matter.World.add(world, body);
+            Matter.World.add(getMatterWorld(), body);
         };
         MaterialBodyAbstract.prototype.removeBody = function () {
         };
         Object.defineProperty(MaterialBodyAbstract.prototype, "position", {
             get: function () {
-                var position = Vector2.fromObj(this.body.position).divScalar(spaceScale);
+                var position = Vector2.fromObj(this.body.position).divScalar(getSpaceScale());
                 return watchVector(position, this.setPosition.bind(this));
             },
             set: function (position) {
+                var spaceScale = getSpaceScale();
                 position = Matter.Vector.create(position.x * spaceScale, position.y * spaceScale);
                 Matter.Body.setPosition(this.body, position);
             },
@@ -4239,10 +4578,11 @@ var Brass = (function (exports, p5) {
         };
         Object.defineProperty(MaterialBodyAbstract.prototype, "velocity", {
             get: function () {
-                var velocity = Vector2.fromObj(this.body.velocity).divScalar(spaceScale);
+                var velocity = Vector2.fromObj(this.body.velocity).divScalar(getSpaceScale());
                 return watchVector(velocity, this.setVelocity.bind(this));
             },
             set: function (velocity) {
+                var spaceScale = getSpaceScale();
                 velocity = Matter.Vector.create(velocity.x * spaceScale, velocity.y * spaceScale);
                 Matter.Body.setVelocity(this.body, velocity);
             },
@@ -4338,6 +4678,7 @@ var Brass = (function (exports, p5) {
         };
         MaterialBodyAbstract.prototype.applyForce = function (force, position) {
             if (position === void 0) { position = this.position; }
+            var spaceScale = getSpaceScale();
             var forceScale = spaceScale * spaceScale * spaceScale * forceUnit;
             var matterForce = Matter.Vector.create(force.x * forceScale, force.y * forceScale);
             var matterPosition = Matter.Vector.create(position.x * spaceScale, position.y * spaceScale);
@@ -4351,35 +4692,42 @@ var Brass = (function (exports, p5) {
         MaterialBodyAbstract.prototype.remove = function () {
             var categoryIndex = this.collisionCategoryToIndex(this.body.collisionFilter.category);
             bodies[categoryIndex].delete(this.body.id);
-            Matter.World.remove(world, this.body);
+            Matter.World.remove(getMatterWorld(), this.body);
         };
         return MaterialBodyAbstract;
     }(BodyAbstract));
+
     var RectBody = (function (_super) {
         __extends(RectBody, _super);
         function RectBody(x, y, width, height, options) {
+            var spaceScale = getSpaceScale();
             var body = Matter.Bodies.rectangle(x * spaceScale, y * spaceScale, width * spaceScale, height * spaceScale, options);
             return _super.call(this, body) || this;
         }
         return RectBody;
     }(MaterialBodyAbstract));
+
     var CircleBody = (function (_super) {
         __extends(CircleBody, _super);
         function CircleBody(x, y, radius, options) {
+            var spaceScale = getSpaceScale();
             var body = Matter.Bodies.circle(x * spaceScale, y * spaceScale, radius * spaceScale, options);
             return _super.call(this, body) || this;
         }
         return CircleBody;
     }(MaterialBodyAbstract));
+
     var PolyBody = (function (_super) {
         __extends(PolyBody, _super);
         function PolyBody(x, y, verts, options) {
+            var spaceScale = getSpaceScale();
             var matterVerts = verts.map(function (subVerts) { return subVerts.map(function (vert) { return Matter.Vector.create(vert.x * spaceScale, vert.y * spaceScale); }); });
             var body = Matter.Bodies.fromVertices(x * spaceScale, y * spaceScale, matterVerts, options);
             return _super.call(this, body) || this;
         }
         return PolyBody;
     }(MaterialBodyAbstract));
+
     var GridBody = (function (_super) {
         __extends(GridBody, _super);
         function GridBody(width, height, grid, options, gridScale) {
@@ -4409,6 +4757,7 @@ var Brass = (function (exports, p5) {
             if (minY === void 0) { minY = 0; }
             if (maxX === void 0) { maxX = Infinity; }
             if (maxY === void 0) { maxY = Infinity; }
+            var spaceScale = getSpaceScale();
             if (this.static) {
                 this.buildParts(grid, minX, minY, maxX, maxY);
                 Matter.Body.translate(this.body, {
@@ -4438,7 +4787,7 @@ var Brass = (function (exports, p5) {
             configurable: true
         });
         GridBody.prototype.buildParts = function (grid, minX, minY, maxX, maxY) {
-            var e_5, _a, e_6, _b;
+            var e_1, _a, e_2, _b;
             var startX = Math.max(0, minX), startY = Math.max(0, minY), endX = Math.min(this.width, maxX), endY = Math.min(this.height, maxY);
             var stripMap = new Map();
             for (var y = startY; y < endY; y++) {
@@ -4474,15 +4823,15 @@ var Brass = (function (exports, p5) {
                     }
                 }
             }
-            catch (e_5_1) { e_5 = { error: e_5_1 }; }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
             finally {
                 try {
                     if (_d && !_d.done && (_a = _c.return)) _a.call(_c);
                 }
-                finally { if (e_5) throw e_5.error; }
+                finally { if (e_1) throw e_1.error; }
             }
             var parts = [];
-            var scaleProduct = this.gridScale * spaceScale;
+            var scaleProduct = this.gridScale * getSpaceScale();
             try {
                 for (var _f = __values(stripMap.entries()), _g = _f.next(); !_g.done; _g = _f.next()) {
                     var _h = __read(_g.value, 2), key_2 = _h[0], strip = _h[1];
@@ -4492,12 +4841,12 @@ var Brass = (function (exports, p5) {
                     parts.push(part);
                 }
             }
-            catch (e_6_1) { e_6 = { error: e_6_1 }; }
+            catch (e_2_1) { e_2 = { error: e_2_1 }; }
             finally {
                 try {
                     if (_g && !_g.done && (_b = _f.return)) _b.call(_f);
                 }
-                finally { if (e_6) throw e_6.error; }
+                finally { if (e_2) throw e_2.error; }
             }
             var cornerPart = createRectBodyFast(minX * scaleProduct, minY * scaleProduct, 0.01, 0.01);
             cornerPart.__brassBody__ = this;
@@ -4508,251 +4857,7 @@ var Brass = (function (exports, p5) {
         };
         return GridBody;
     }(MaterialBodyAbstract));
-    function createRectBodyFast(x, y, width, height) {
-        var body = {
-            id: Matter.Common.nextId(),
-            type: "body",
-            label: "rectBody",
-            plugin: {},
-            parts: [],
-            angle: 0,
-            vertices: [
-                { x: -width * 0.5, y: -height * 0.5, index: 0, isInternal: false },
-                { x: width * 0.5, y: -height * 0.5, index: 1, isInternal: false },
-                { x: width * 0.5, y: height * 0.5, index: 2, isInternal: false },
-                { x: -width * 0.5, y: height * 0.5, index: 3, isInternal: false }
-            ],
-            position: { x: x + width * 0.5, y: y + height * 0.5 },
-            force: { x: 0, y: 0 },
-            torque: 0,
-            positionImpulse: { x: 0, y: 0 },
-            constraintImpulse: { x: 0, y: 0, angle: 0 },
-            totalContacts: 0,
-            speed: 0,
-            angularSpeed: 0,
-            velocity: { x: 0, y: 0 },
-            angularVelocity: 0,
-            isSensor: false,
-            isStatic: false,
-            isSleeping: false,
-            motion: 0,
-            sleepThreshold: 60,
-            density: 0.001,
-            restitution: 0,
-            friction: 0.1,
-            frictionStatic: 0.5,
-            frictionAir: 0.01,
-            collisionFilter: {
-                category: 0x0001,
-                mask: 0xFFFFFFFF,
-                group: 0
-            },
-            slop: 0.05,
-            timeScale: 1,
-            circleRadius: 0,
-            positionPrev: { x: x + width * 0.5, y: y + height * 0.5 },
-            anglePrev: 0,
-            area: 0,
-            mass: 0,
-            inertia: 0,
-            _original: null
-        };
-        body.parts = [body];
-        body.parent = body;
-        Matter.Body.set(body, {
-            bounds: Matter.Bounds.create(body.vertices),
-            vertices: body.vertices,
-        });
-        Matter.Bounds.update(body.bounds, body.vertices, body.velocity);
-        return body;
-    }
-    var RayBody = (function (_super) {
-        __extends(RayBody, _super);
-        function RayBody(x, y, width, options) {
-            if (width === void 0) { width = 0.1; }
-            if (options === void 0) { options = {}; }
-            var _this = this;
-            var _a, _b;
-            _this = _super.call(this) || this;
-            _this.id = Symbol();
-            _this.position = new Vector2(x, y);
-            _this.velocity = Vector2.fromObj((_a = options.velocity) !== null && _a !== void 0 ? _a : { x: 0, y: 0 });
-            _this.width = width;
-            _this.mask = _this.validateCollisionMask((_b = options.mask) !== null && _b !== void 0 ? _b : 0xFFFFFFFF);
-            rays.set(_this.id, _this);
-            return _this;
-        }
-        Object.defineProperty(RayBody.prototype, "angle", {
-            get: function () {
-                throw Error("RayBody can't have rotation");
-            },
-            set: function (_) {
-                throw Error("RayBody can't have rotation");
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(RayBody.prototype, "angularVelocity", {
-            get: function () {
-                throw Error("RayBody can't have rotation");
-            },
-            set: function (_) {
-                throw Error("RayBody can't have rotation");
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(RayBody.prototype, "static", {
-            get: function () {
-                return false;
-            },
-            set: function (isStatic) {
-                if (isStatic === true) {
-                    throw Error("RayBody can't have static behaviour enabled");
-                }
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(RayBody.prototype, "ghost", {
-            get: function () {
-                return true;
-            },
-            set: function (isGhost) {
-                if (isGhost === false) {
-                    throw Error("RayBody can't have ghost behaviour disabled");
-                }
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(RayBody.prototype, "collisionCategory", {
-            set: function (_) { },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(RayBody.prototype, "collidesWith", {
-            set: function (category) {
-                var _this = this;
-                this.mask = 0;
-                if (category === "everything") {
-                    this.mask = 0xFFFFFFFF;
-                }
-                else if (category === "nothing") {
-                    this.mask = 0;
-                }
-                else if (Array.isArray(category)) {
-                    category.map(function (subCategory) { return _this.setCollidesWith(subCategory); });
-                }
-                else {
-                    this.setCollidesWith(category);
-                }
-            },
-            enumerable: false,
-            configurable: true
-        });
-        RayBody.prototype.setCollidesWith = function (category) {
-            this.validateCollisionIndex(category);
-            if (category >= 0) {
-                this.mask |= 1 << category;
-            }
-            else {
-                this.mask &= ~(1 << -category);
-            }
-            return this;
-        };
-        RayBody.prototype.rotate = function (_) {
-            throw Error("RayBody can't have rotation");
-        };
-        RayBody.prototype.applyForce = function () {
-            throw Error("RayBody can't have forces applied");
-        };
-        RayBody.prototype.kill = function () {
-            _super.prototype.kill.call(this);
-            this.remove();
-        };
-        RayBody.prototype.remove = function () {
-            rays.delete(this.id);
-        };
-        RayBody.prototype.castOverTime = function (delta, steps) {
-            var timeSteps = (delta / 1000 * 60);
-            var displacement = this.velocity.copy().multScalar(timeSteps);
-            return this.cast(displacement, steps);
-        };
-        RayBody.prototype.cast = function (_displacement, steps) {
-            if (steps === void 0) { steps = 20; }
-            var displacement = _displacement.multScalar(spaceScale);
-            var testBrassBodies = [];
-            for (var i = 0; i < 32; i++) {
-                if (!(this.mask & (1 << i)))
-                    continue;
-                testBrassBodies.push.apply(testBrassBodies, __spreadArray([], __read(Array.from(bodies[i].values())), false));
-            }
-            var testBodies = testBrassBodies.map(function (brassBody) { return brassBody.body; });
-            var start = this.position.copy().multScalar(spaceScale);
-            var testPoint = 1, testJump = 0.5, hits = [], hitEnd = displacement.copy().multScalar(testPoint).add(start), hitPoint = 1;
-            for (var i = 0; i < steps; i++) {
-                var end = displacement.copy().multScalar(testPoint).add(start);
-                var currentHits = Matter.Query.ray(testBodies, start, end, this.width * spaceScale);
-                if (currentHits.length < 1) {
-                    if (i === 0)
-                        break;
-                    testPoint += testJump;
-                    testJump /= 2;
-                }
-                else if (currentHits.length === 1) {
-                    hits = currentHits;
-                    hitPoint = testPoint;
-                    hitEnd = end;
-                    testPoint -= testJump;
-                    testJump /= 2;
-                }
-                else {
-                    if (currentHits.length !== 1) {
-                        hits = currentHits;
-                        hitPoint = testPoint;
-                        hitEnd = end;
-                    }
-                    testPoint -= testJump;
-                    testJump /= 2;
-                }
-            }
-            if (hits.length > 1) {
-                hits = hits.sort(function (a, b) { return start.distSq(a.bodyA.position) - start.distSq(b.bodyA.position); });
-            }
-            var hitBody;
-            if (hits.length === 0) {
-                hitBody = null;
-            }
-            else {
-                hitBody = hits[0].parentA.__brassBody__;
-            }
-            return {
-                point: hitEnd.divScalar(spaceScale),
-                dist: displacement.mag * hitPoint / spaceScale,
-                body: hitBody
-            };
-        };
-        return RayBody;
-    }(BodyAbstract));
 
-    var tilemapList = [];
-    function update$1() {
-        var e_1, _a;
-        try {
-            for (var tilemapList_1 = __values(tilemapList), tilemapList_1_1 = tilemapList_1.next(); !tilemapList_1_1.done; tilemapList_1_1 = tilemapList_1.next()) {
-                var tilemap = tilemapList_1_1.value;
-                tilemap.maintain();
-            }
-        }
-        catch (e_1_1) { e_1 = { error: e_1_1 }; }
-        finally {
-            try {
-                if (tilemapList_1_1 && !tilemapList_1_1.done && (_a = tilemapList_1.return)) _a.call(tilemapList_1);
-            }
-            finally { if (e_1) throw e_1.error; }
-        }
-    }
     var TilemapAbstract = (function () {
         function TilemapAbstract(width, height, options) {
             if (options === void 0) { options = {}; }
@@ -4784,9 +4889,9 @@ var Brass = (function (exports, p5) {
                 this.fields.push(this.createField(fieldType));
             }
             this.solidFieldId = this.fieldIds[solidFieldName];
-            if (isPhysicsRunning()) {
+            if (isPhysicsActive()) {
                 if (options.body === undefined) {
-                    console.warn("Matter physics is running but Tilemap does not have body; If this is intentional pass false for the body option");
+                    console.warn("Matter physics is active but Tilemap does not have body; If this is intentional pass false for the body option");
                 }
             }
             this.hasBody = !!options.body;
@@ -4807,7 +4912,7 @@ var Brass = (function (exports, p5) {
                 this.body = new GridBody(this.width, this.height, solidField.data, bodyOptions, this.tileSize);
             }
             this.bodyValid = this.hasBody;
-            tilemapList.push(this);
+            registerTilemap(this);
         }
         TilemapAbstract.prototype.bindOptionsFunction = function (func) {
             if (!func)
@@ -5006,6 +5111,7 @@ var Brass = (function (exports, p5) {
         });
         return TilemapAbstract;
     }());
+
     var P5Tilemap = (function (_super) {
         __extends(P5Tilemap, _super);
         function P5Tilemap(width, height, options) {
@@ -5159,7 +5265,7 @@ var Brass = (function (exports, p5) {
             return true;
         };
         P5Tilemap.prototype.renderChunk = function (chunkX, chunkY, tileCache) {
-            var e_2, _a;
+            var e_1, _a;
             var cache = tileCache.g;
             cache.push();
             cache.clear(0, 0, 0, 0);
@@ -5190,12 +5296,12 @@ var Brass = (function (exports, p5) {
                         this.drawTile(drawItem.data, drawItem.x, drawItem.y, cache);
                     }
                 }
-                catch (e_2_1) { e_2 = { error: e_2_1 }; }
+                catch (e_1_1) { e_1 = { error: e_1_1 }; }
                 finally {
                     try {
                         if (drawList_1_1 && !drawList_1_1.done && (_a = drawList_1.return)) _a.call(drawList_1);
                     }
-                    finally { if (e_2) throw e_2.error; }
+                    finally { if (e_1) throw e_1.error; }
                 }
             }
             cache.pop();
@@ -5219,7 +5325,7 @@ var Brass = (function (exports, p5) {
             return tileCache.g;
         };
         P5Tilemap.prototype.drawTiles = function (minX, minY, maxX, maxY, g) {
-            var e_3, _a;
+            var e_2, _a;
             g.push();
             var drawList = [];
             for (var x = minX; x < maxX; x++) {
@@ -5246,12 +5352,12 @@ var Brass = (function (exports, p5) {
                         this.drawTile(drawItem.data, drawItem.x, drawItem.y, g);
                     }
                 }
-                catch (e_3_1) { e_3 = { error: e_3_1 }; }
+                catch (e_2_1) { e_2 = { error: e_2_1 }; }
                 finally {
                     try {
                         if (drawList_2_1 && !drawList_2_1.done && (_a = drawList_2.return)) _a.call(drawList_2);
                     }
-                    finally { if (e_3) throw e_3.error; }
+                    finally { if (e_2) throw e_2.error; }
                 }
             }
             g.pop();
@@ -5267,7 +5373,7 @@ var Brass = (function (exports, p5) {
             g.text(String(data), x + 0.5001, y + 0.5001);
         };
         P5Tilemap.prototype.clearCaches = function () {
-            var e_4, _a;
+            var e_3, _a;
             if (this.drawCacheMode === "never")
                 return;
             assert(this.chunkPool !== null);
@@ -5279,12 +5385,12 @@ var Brass = (function (exports, p5) {
                     this.chunkPool.release(cache);
                 }
             }
-            catch (e_4_1) { e_4 = { error: e_4_1 }; }
+            catch (e_3_1) { e_3 = { error: e_3_1 }; }
             finally {
                 try {
                     if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
                 }
-                finally { if (e_4) throw e_4.error; }
+                finally { if (e_3) throw e_3.error; }
             }
             this.chunks.fill(null);
             this.cacheableChunks.fill(null);
@@ -5301,379 +5407,6 @@ var Brass = (function (exports, p5) {
         };
         return P5Tilemap;
     }(TilemapAbstract));
-
-    var inited = false;
-    var testStatus = null;
-    var sketch;
-    var maxTimeDelta, targetTimeDelta, minTimeDelta;
-    var timewarpList = [];
-    var runningPhysics = false;
-    window.addEventListener("load", function () {
-        window.addEventListener("error", function (error) { return setTestStatus(error.message); });
-    });
-    function setTestStatus(newStatus) {
-        if (newStatus === false)
-            return;
-        if (typeof testStatus === "string")
-            return;
-        testStatus = newStatus;
-    }
-    function getTestStatus() {
-        return testStatus;
-    }
-    function init(options) {
-        var _a, _b, _c, _d, _e;
-        if (options === void 0) { options = {}; }
-        if (options.sound === undefined && p5__default["default"].SoundFile !== undefined) {
-            console.warn("p5.sound.js has been found; Enable or disable sound in Brass.init()");
-        }
-        if (options.matter === undefined && globalThis.Matter !== undefined) {
-            console.warn("matter.js has been found; Enable or disable matter in Brass.init()");
-        }
-        if (options.regl === undefined && globalThis.createREGL !== undefined) {
-            console.warn("regl.js has been found; Enable or disable regl in Brass.init()");
-        }
-        if (options.sketch) {
-            sketch = options.sketch;
-        }
-        else {
-            if (!("p5" in globalThis)) {
-                throw Error("Can't find p5.js, it is required for Brass");
-            }
-            if (!("setup" in globalThis)) {
-                throw Error("Can't seem to find p5; If you are running in instance mode pass the sketch into Brass.init()");
-            }
-            sketch = globalThis;
-        }
-        sketch.disableFriendlyErrors = true;
-        init$5();
-        init$4(sketch, (_a = options.regl) !== null && _a !== void 0 ? _a : false, options.drawTarget);
-        init$2(options.viewpoint);
-        var targetFrameRate = Math.min(_targetFrameRate, (_b = options.maxFrameRate) !== null && _b !== void 0 ? _b : 60);
-        sketch.frameRate(targetFrameRate);
-        targetTimeDelta = 1000 / targetFrameRate;
-        maxTimeDelta = (_c = options.maxTimeDelta) !== null && _c !== void 0 ? _c : targetTimeDelta * 2.0;
-        minTimeDelta = (_d = options.minTimeDelta) !== null && _d !== void 0 ? _d : targetTimeDelta * 0.5;
-        update$5();
-        init$3((_e = options.sound) !== null && _e !== void 0 ? _e : false);
-        runningPhysics = options.matter !== undefined;
-        if (runningPhysics) {
-            if (typeof options.matter === "object") {
-                init$1(options.matter);
-            }
-            else {
-                init$1();
-            }
-        }
-        if (sketch.draw === undefined) {
-            sketch.draw = defaultSketchDraw;
-        }
-        if (sketch.windowResized === undefined) {
-            sketch.windowResized = function () { return resize(window.innerWidth, window.innerHeight); };
-        }
-        inited = true;
-    }
-    function enforceInit(action) {
-        if (inited)
-            return;
-        throw Error("Brass must be initialized before ".concat(action, "; Run Brass.init()"));
-    }
-    function defaultSketchDraw() {
-        if (!loaded()) {
-            drawLoading();
-            return;
-        }
-        var realDelta = deltaTime;
-        realDelta = Math.min(maxTimeDelta, realDelta);
-        realDelta = Math.max(minTimeDelta, realDelta);
-        var simDelta = updateSimTiming(realDelta);
-        updateEarly();
-        if (sketch.brassUpdate !== undefined)
-            sketch.brassUpdate(simDelta);
-        updateLate(simDelta);
-        if (sketch.brassDraw !== undefined) {
-            resetAndSyncDefaultP5DrawTarget();
-            sketch.brassDraw(simDelta);
-        }
-    }
-    function updateSimTiming(realDelta) {
-        var simDelta = 0;
-        while (timewarpList.length > 0) {
-            var warpedTime = Math.min(realDelta, timewarpList[0].duration);
-            realDelta -= warpedTime;
-            simDelta += warpedTime * timewarpList[0].rate;
-            timewarpList[0].duration -= warpedTime;
-            if (timewarpList[0].duration <= 0)
-                timewarpList.shift();
-            else
-                break;
-        }
-        simDelta += realDelta;
-        deltaSimTime(simDelta);
-        return simDelta;
-    }
-    function update(delta) {
-        if (delta === void 0) { delta = deltaTime; }
-        enforceInit("updating Brass");
-        updateEarly();
-        updateLate(delta);
-    }
-    function updateEarly() {
-        update$5();
-        update$6();
-    }
-    function updateLate(delta) {
-        enforceInit("updating Brass");
-        if (runningPhysics)
-            update$2(delta);
-        updateViewpoints(delta);
-        update$1();
-        update$3();
-        update$4(delta);
-    }
-    function timewarp(duration, rate) {
-        if (rate === void 0) { rate = 0; }
-        timewarpList.push({ duration: duration, rate: rate });
-    }
-    function getTimewarp() {
-        if (timewarpList.length === 0)
-            return { duration: Infinity, rate: 1 };
-        return timewarpList[0];
-    }
-    function getTimewarps() {
-        return timewarpList;
-    }
-
-    var P5Lighter = (function () {
-        function P5Lighter(options) {
-            if (options === void 0) { options = {}; }
-            var _a, _b, _c;
-            this.lightSurface = new P5DrawBuffer();
-            this.directionalCache = new Map();
-            this.viewpoint = null;
-            this.resolution = (_a = options.resolution) !== null && _a !== void 0 ? _a : 0.25;
-            this._blur = (_b = options.blur) !== null && _b !== void 0 ? _b : 1;
-            this.color = (_c = options.color) !== null && _c !== void 0 ? _c : createColor(255);
-        }
-        P5Lighter.prototype.begin = function (v, d) {
-            if (v === void 0) { v = getDefaultViewpoint(); }
-            if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
-            var newContext = !this.lightSurface.hasSize();
-            this.lightSurface.sizeMaps(d.getSize(this.resolution));
-            if (newContext)
-                this.fill(this.color);
-            this.resetLightCanvas();
-            var originalScale = v.scale;
-            v.scale *= this.resolution;
-            v.view(this.lightSurface);
-            v.scale = originalScale;
-            this.viewpoint = v;
-            return this;
-        };
-        P5Lighter.prototype.end = function (d) {
-            if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
-            var g = d.getMaps().canvas;
-            g.push();
-            g.resetMatrix();
-            g.blendMode(MULTIPLY);
-            g.image(this.getLightCanvas(), 0, 0, width, height);
-            g.pop();
-        };
-        Object.defineProperty(P5Lighter.prototype, "blur", {
-            get: function () {
-                return this._blur;
-            },
-            set: function (value) {
-                this._blur = value;
-                this.fill(this.color);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        P5Lighter.prototype.fill = function () {
-            var colArgs = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                colArgs[_i] = arguments[_i];
-            }
-            var lightCanvas = this.getLightCanvas();
-            var col = createColor.apply(void 0, __spreadArray([], __read(colArgs), false));
-            lightCanvas.fill(col);
-            if (this._blur > 0) {
-                var r = red(col), g = green(col), b = blue(col), a = alpha(col);
-                lightCanvas.stroke(r, g, b, a / 2);
-                lightCanvas.strokeWeight(this._blur);
-            }
-            else {
-                lightCanvas.noStroke();
-            }
-            this.color = col;
-            return this;
-        };
-        P5Lighter.prototype.point = function (x, y, r) {
-            var lightCanvas = this.getLightCanvas();
-            lightCanvas.circle(x, y, r * 2);
-            return this;
-        };
-        P5Lighter.prototype.cone = function (x, y, angle, width, distance) {
-            if (width === void 0) { width = HALF_PI; }
-            if (distance === void 0) { distance = 100; }
-            var lightCanvas = this.getLightCanvas();
-            lightCanvas.triangle(x, y, x + Math.cos(angle - width / 2) * distance, y + Math.sin(angle - width / 2) * distance, x + Math.cos(angle + width / 2) * distance, y + Math.sin(angle + width / 2) * distance);
-            return this;
-        };
-        P5Lighter.prototype.world = function (vignette) {
-            if (vignette === void 0) { vignette = 0; }
-            var lightCanvas = this.getLightCanvas();
-            if (this.viewpoint === null)
-                this.throwBeginError();
-            var area = this.viewpoint.getWorldViewArea();
-            var areaWidth = area.maxX - area.minX;
-            var areaHeight = area.maxY - area.minY;
-            var lightSurfaceSize = this.lightSurface.getSize();
-            var paddingX = areaWidth * ((4 / lightSurfaceSize.x) - vignette) + this._blur * 2;
-            var paddingY = areaHeight * ((4 / lightSurfaceSize.y) - vignette) + this._blur * 2;
-            lightCanvas.rect(area.minX - paddingX * 0.5, area.minY - paddingY * 0.5, areaWidth + paddingX * 1, areaHeight + paddingY * 1);
-            return this;
-        };
-        P5Lighter.prototype.directional = function (x, y, radius, options) {
-            var e_1, _a;
-            var _b;
-            if (options === void 0) { options = {}; }
-            var points;
-            var cache = this.directionalCache.get(options.cacheName);
-            if (options.cacheName !== undefined) {
-                if (cache === undefined ||
-                    getSimTime() > cache.time + ((_b = options.cacheTime) !== null && _b !== void 0 ? _b : Infinity)) {
-                    cache = {
-                        time: getSimTime(),
-                        points: this.simulateDirectional(x, y, radius, options)
-                    };
-                    this.directionalCache.set(options.cacheName, cache);
-                }
-                points = cache.points;
-            }
-            else {
-                points = this.simulateDirectional(x, y, radius, options);
-            }
-            var lightCanvas = this.getLightCanvas();
-            lightCanvas.beginShape();
-            try {
-                for (var points_1 = __values(points), points_1_1 = points_1.next(); !points_1_1.done; points_1_1 = points_1.next()) {
-                    var vert = points_1_1.value;
-                    lightCanvas.vertex(vert.x, vert.y);
-                }
-            }
-            catch (e_1_1) { e_1 = { error: e_1_1 }; }
-            finally {
-                try {
-                    if (points_1_1 && !points_1_1.done && (_a = points_1.return)) _a.call(points_1);
-                }
-                finally { if (e_1) throw e_1.error; }
-            }
-            lightCanvas.endShape(CLOSE);
-        };
-        P5Lighter.prototype.simulateDirectional = function (x, y, radius, options) {
-            var _a, _b;
-            if (this.viewpoint === null)
-                this.throwBeginError();
-            var viewArea = this.viewpoint.getWorldViewArea();
-            var center, centerRadius;
-            if ((_a = options.drawOffscreen) !== null && _a !== void 0 ? _a : false) {
-                center = new Vector2(x, y);
-                centerRadius = radius;
-            }
-            else {
-                center = new Vector2((viewArea.minX + viewArea.maxX) / 2, (viewArea.minY + viewArea.maxY) / 2);
-                centerRadius = Math.hypot(viewArea.minX - viewArea.maxX, viewArea.minY - viewArea.maxY) * 0.6;
-            }
-            var vec = new Vector2(x, y);
-            var U0 = center.copy().sub(vec);
-            var negativeU0 = vec.copy().sub(center);
-            var centerDist = U0.mag;
-            var lightInArea = centerDist < centerRadius;
-            var lightCircleTagentAngle;
-            if (lightInArea) {
-                lightCircleTagentAngle = HALF_PI;
-            }
-            else {
-                lightCircleTagentAngle = Math.asin(centerRadius / centerDist);
-            }
-            var points = [];
-            var paths = [];
-            var centerAngle = negativeU0.angle;
-            var startAngle = centerAngle + HALF_PI - lightCircleTagentAngle;
-            var endAngle = centerAngle + HALF_PI * 3 + lightCircleTagentAngle;
-            var stepAngle = TWO_PI / ((_b = options.rays) !== null && _b !== void 0 ? _b : 50);
-            for (var angle = startAngle; angle <= endAngle; angle += stepAngle) {
-                var rayDirection = Vector2.fromDirMag(angle, centerRadius)
-                    .add(center).sub(vec).norm();
-                this.findDirectionalLineSegment(U0, centerRadius, vec, rayDirection, radius, lightInArea, points, paths);
-            }
-            this.castDirectionalRays(points, paths, options);
-            return points;
-        };
-        P5Lighter.prototype.findDirectionalLineSegment = function (U0, centerRadius, vec, rayDirection, radius, lightInArea, points, paths) {
-            var U1 = rayDirection.copy().multScalar(U0.dot(rayDirection));
-            var U2 = U0.copy().sub(U1);
-            var nearDist = U2.mag;
-            if (nearDist > centerRadius)
-                return;
-            var intersectDist = Math.sqrt(centerRadius * centerRadius - nearDist * nearDist);
-            var intersect = rayDirection.copy().multScalar(intersectDist);
-            var startOffset = U1.copy().sub(intersect);
-            if (!lightInArea && startOffset.mag > radius)
-                return;
-            var lineStart = startOffset.limit(radius).add(vec);
-            var lineEnd = U1.copy().add(intersect).limit(radius).add(vec);
-            if (lightInArea) {
-                lineStart.set(vec);
-            }
-            else {
-                points.push(lineStart);
-            }
-            paths.push({
-                start: lineStart,
-                end: lineEnd,
-            });
-        };
-        P5Lighter.prototype.castDirectionalRays = function (points, paths, options) {
-            var _a, _b, _c;
-            for (var i = paths.length - 1; i >= 0; i--) {
-                var path = paths[i];
-                var ray = new RayBody(path.start.x, path.start.y, (_a = options.rayWidth) !== null && _a !== void 0 ? _a : 0.01);
-                ray.collidesWith = (_b = options.raysCollideWith) !== null && _b !== void 0 ? _b : "everything";
-                var endPoint = ray.cast(path.end.sub(path.start), (_c = options.raySteps) !== null && _c !== void 0 ? _c : 10).point;
-                ray.kill();
-                points.push(endPoint);
-            }
-        };
-        P5Lighter.prototype.resetLightCanvas = function () {
-            var lightCanvas = this.getLightCanvas();
-            lightCanvas.push();
-            lightCanvas.blendMode(BLEND);
-            lightCanvas.background(0);
-            lightCanvas.pop();
-            lightCanvas.resetMatrix();
-        };
-        P5Lighter.prototype.getLightCanvas = function () {
-            if (!this.lightSurface.hasSize())
-                this.throwBeginError();
-            return this.lightSurface.getMaps().canvas;
-        };
-        Object.defineProperty(P5Lighter.prototype, "lightCanvas", {
-            get: function () {
-                if (!this.lightSurface.hasSize())
-                    return null;
-                return this.lightSurface.getMaps().canvas;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        P5Lighter.prototype.throwBeginError = function () {
-            throw Error("Lighter.begin() must be ran before using lighting");
-        };
-        return P5Lighter;
-    }());
 
     exports.AStarPathfinder = AStarPathfinder;
     exports.CanvasDrawTarget = CanvasDrawTarget;
@@ -5696,7 +5429,6 @@ var Brass = (function (exports, p5) {
     exports.RayBody = RayBody;
     exports.RectBody = RectBody;
     exports.Vector2 = Vector2;
-    exports.Vector3 = Vector3;
     exports.VelocityParticle = VelocityParticle;
     exports.Viewpoint = Viewpoint;
     exports.disableContextMenu = disableContextMenu;
@@ -5745,7 +5477,6 @@ var Brass = (function (exports, p5) {
     exports.setTestStatus = setTestStatus;
     exports.timewarp = timewarp;
     exports.update = update;
-    exports.watchVector = watchVector;
 
     Object.defineProperty(exports, '__esModule', { value: true });
 
