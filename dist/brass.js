@@ -493,43 +493,50 @@ var Brass = (function (exports, p5) {
         return constructor;
     }
 
-    var watchedVectorHandler = {
-        get: function (target, prop) {
-            var value = Reflect.get(target, prop);
-            if (typeof value === "function") {
-                return watchedVectorMethod.bind(target, value);
-            }
-            return value;
-        },
-        set: function (target, prop, value) {
-            var success = Reflect.set(target, prop, value);
-            if (!success)
-                return false;
-            target.watcher(target);
-            return true;
-        },
-    };
     var VectorAbstract = (function () {
         function VectorAbstract() {
         }
+        VectorAbstract.prototype.watch = function (watcher) {
+            return new Proxy(this, {
+                get: this.getWatchedValue.bind(this, watcher),
+                set: this.setWatchedValue.bind(this, watcher)
+            });
+        };
+        VectorAbstract.prototype.getWatchedValue = function (watcher, _, prop) {
+            var value = Reflect.get(this, prop);
+            if (typeof value === "function") {
+                return this.watchedVectorMethod.bind(this, watcher, value);
+            }
+            return value;
+        };
+        VectorAbstract.prototype.setWatchedValue = function (watcher, _, prop, value) {
+            var oldValue = Reflect.get(this, prop);
+            var success = Reflect.set(this, prop, value);
+            if (!success)
+                return false;
+            if (oldValue === value)
+                return true;
+            watcher(this);
+            return true;
+        };
+        VectorAbstract.prototype.watchedVectorMethod = function (watcher, method) {
+            var args = [];
+            for (var _i = 2; _i < arguments.length; _i++) {
+                args[_i - 2] = arguments[_i];
+            }
+            var oldArray = this.array;
+            var result = method.call.apply(method, __spreadArray([this], __read(args), false));
+            var newArray = this.array;
+            for (var i = 0; i < oldArray.length; i++) {
+                if (oldArray[i] !== newArray[i]) {
+                    watcher(this);
+                    break;
+                }
+            }
+            return result;
+        };
         return VectorAbstract;
     }());
-    function watchVector(vector, watcher) {
-        vector.watcher = watcher;
-        return new Proxy(vector, watchedVectorHandler);
-    }
-    function watchedVectorMethod(method) {
-        var args = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            args[_i - 1] = arguments[_i];
-        }
-        var oldX = this.x, oldY = this.y, oldZ = this.z;
-        var result = method.call.apply(method, __spreadArray([this], __read(args), false));
-        if (this.x !== oldX || this.y !== oldY || this.z !== oldZ) {
-            this.watcher(this);
-        }
-        return result;
-    }
 
     var Vector2 = (function (_super) {
         __extends(Vector2, _super);
@@ -773,9 +780,10 @@ var Brass = (function (exports, p5) {
             get: function () {
                 return [this.x, this.y];
             },
-            set: function (arr) {
-                this.x = arr[0];
-                this.y = arr[1];
+            set: function (_a) {
+                var _b = __read(_a, 2), x = _b[0], y = _b[1];
+                this.x = x;
+                this.y = y;
             },
             enumerable: false,
             configurable: true
@@ -4563,7 +4571,7 @@ var Brass = (function (exports, p5) {
         Object.defineProperty(MaterialBodyAbstract.prototype, "position", {
             get: function () {
                 var position = Vector2.fromObj(this.body.position).divScalar(getSpaceScale());
-                return watchVector(position, this.setPosition.bind(this));
+                return position.watch(this.setPosition.bind(this));
             },
             set: function (position) {
                 var spaceScale = getSpaceScale();
@@ -4579,7 +4587,7 @@ var Brass = (function (exports, p5) {
         Object.defineProperty(MaterialBodyAbstract.prototype, "velocity", {
             get: function () {
                 var velocity = Vector2.fromObj(this.body.velocity).divScalar(getSpaceScale());
-                return watchVector(velocity, this.setVelocity.bind(this));
+                return velocity.watch(this.setVelocity.bind(this));
             },
             set: function (velocity) {
                 var spaceScale = getSpaceScale();

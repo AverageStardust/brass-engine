@@ -3,40 +3,45 @@
  * @module vector
  */
 
- const watchedVectorHandler: ProxyHandler<any> = {
-	get(target, prop) {
-		const value = Reflect.get(target, prop);
+export abstract class VectorAbstract {
+	abstract array: number[];
+
+	watch(watcher: Function) {
+		return new Proxy(this, {
+			get: this.getWatchedValue.bind(this, watcher),
+			set: this.setWatchedValue.bind(this, watcher)
+		});
+	}
+
+	private getWatchedValue(watcher: Function, _: this, prop: string) {
+		const value = Reflect.get(this, prop);
 		if (typeof value === "function") {
-			return watchedVectorMethod.bind(target, value);
+			return this.watchedVectorMethod.bind(this, watcher, value);
 		}
 		return value;
-	},
-
-	set(target, prop, value) {
-		const success = Reflect.set(target, prop, value);
-		if (!success)
-			return false;
-		(target.watcher as Function)(target);
-		return true;
-	},
- };
- 
-
-
-export class VectorAbstract {
-	watcher?: Function;
-}
-
-export function watchVector<T extends VectorAbstract>(vector: T, watcher: Function): T {
-	vector.watcher = watcher;
-	return new Proxy(vector, watchedVectorHandler);
-}
-
-function watchedVectorMethod(method: Function, ...args: any[]) {
-	const oldX = this.x, oldY = this.y, oldZ = this.z;
-	const result = method.call(this, ...args);
-	if (this.x !== oldX || this.y !== oldY || this.z !== oldZ) {
-		this.watcher(this);
 	}
-	return result;
+
+	private setWatchedValue(watcher: Function, _: this, prop: string, value: unknown) {
+		const oldValue = Reflect.get(this, prop);
+		const success = Reflect.set(this, prop, value);
+		if (!success) return false;
+		if (oldValue === value) return true;
+		watcher(this);
+		return true;
+	}
+
+	private watchedVectorMethod(watcher: Function, method: Function, ...args: any[]) {
+		const oldArray = this.array;
+		const result = method.call(this, ...args);
+		const newArray = this.array;
+
+		for (let i = 0; i < oldArray.length; i++) {
+			if (oldArray[i] !== newArray[i]) {
+				watcher(this);
+				break;
+			}
+		}
+
+		return result;
+	}
 }

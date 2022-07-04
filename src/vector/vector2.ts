@@ -267,8 +267,8 @@ export class Vector2 extends VectorAbstract {
 		return [this.x, this.y];
 	}
 
-	set array(arr: [number, number]) {
-		this.x = arr[0];
-		this.y = arr[1];
+	set array([x, y]) {
+		this.x = x;
+		this.y = y;
 	}
 }

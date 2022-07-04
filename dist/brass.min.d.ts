@@ -66,8 +66,12 @@ declare class MappedMaxHeap<HeapType> extends MappedHeap<HeapType> {
 declare class MappedMinHeap<HeapType> extends MappedHeap<HeapType> {
     constructor(data: HeapType[]);
 }
-declare class VectorAbstract {
-    watcher?: Function;
+declare abstract class VectorAbstract {
+    abstract array: number[];
+    watch(watcher: Function): this;
+    private getWatchedValue;
+    private setWatchedValue;
+    private watchedVectorMethod;
 }
 type Vertex2 = {
     x: number;
@@ -119,14 +123,8 @@ declare class Vector2 extends VectorAbstract {
     get area(): number;
     get angle(): number;
     set angle(angle: number);
-    get array(): [
-        number,
-        number
-    ];
-    set array(arr: [
-        number,
-        number
-    ]);
+    get array(): number[];
+    set array([x, y]: number[]);
 }
 type P5DrawSurfaceMap = p5.Graphics | p5;
 type P5DrawSurface = DrawSurfaceAbstract<{

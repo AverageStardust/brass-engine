@@ -1,4 +1,3 @@
-import { watchVector } from "../vector/vectorAbstract";
 import { Vector2, Vertex2 } from "../vector/vector2";
 import { InternalMatterBody, bodies, CollisionFilterIndex, getMatterWorld, getSpaceScale, forceUnit } from "./physics";
 import { BodyAbstract } from "./bodyAbstract";
@@ -32,15 +31,16 @@ export abstract class MaterialBodyAbstract extends BodyAbstract {
 
 	get position(): Vector2 {
 		const position = Vector2.fromObj(this.body.position).divScalar(getSpaceScale());
-		return watchVector(position, this.setPosition.bind(this));
+		return position.watch(this.setPosition.bind(this));
 	}
+
 	private setPosition(position: Vector2) {
 		this.position = position;
 	}
 
 	get velocity(): Vector2 {
 		const velocity = Vector2.fromObj(this.body.velocity).divScalar(getSpaceScale());
-		return watchVector(velocity, this.setVelocity.bind(this));
+		return velocity.watch(this.setVelocity.bind(this));
 	}
 	private setVelocity(velocity: Vector2) {
 		this.velocity = velocity;

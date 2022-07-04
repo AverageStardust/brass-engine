@@ -279,9 +279,9 @@ export class Vector3 extends VectorAbstract {
 		return [this.x, this.y, this.z];
 	}
 
-	set array(arr: [number, number, number]) {
-		this.x = arr[0];
-		this.y = arr[1];
-		this.z = arr[2];
+	set array([x, y, z]) {
+		this.x = x;
+		this.y = y;
+		this.z = z;
 	}
 }
