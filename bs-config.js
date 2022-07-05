@@ -8,5 +8,5 @@ module.exports = {
     "reloadDebounce": 500,
     "startPath": "examples",
     "localOnly": false,
-    "tunnel": false
+    "tunnel": true
 };

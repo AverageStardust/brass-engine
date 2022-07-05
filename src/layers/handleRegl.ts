@@ -1,8 +1,6 @@
 import REGL from "../../globalTypes/regl";
 import { assert } from "../common/runtimeChecking";
-import { getCanvasDrawTarget } from "./canvasLayers";
-import { getDrawTarget } from "./drawTarget";
-import { getP5DrawTarget } from "./p5Layers";
+import { DrawTarget } from "./drawTarget";
 
 
 
@@ -11,9 +9,12 @@ let doReglRefresh = false;
 
 
 
-export function init() {
-	const defaultReglTarget = getDrawTarget("defaultRegl");
-	const canvas = defaultReglTarget.getMaps().canvas;
+export function init(drawTarget: DrawTarget<{canvas: HTMLCanvasElement}>) {
+	if (typeof createREGL !== "function") {
+		throw Error("REGL was not found; Can't initialize Brass REGL without REGL.js loaded first");
+	}
+
+	const canvas = drawTarget.getMaps().canvas;
 	regl = createREGL({ canvas });
 }
 

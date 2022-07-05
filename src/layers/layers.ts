@@ -7,32 +7,29 @@
 import p5 from "p5";
 import { getSketch } from "../core/sketch";
 import { CanvasDrawTarget, getCanvasDrawTarget } from "./canvasLayers";
-import { DrawTarget, getDrawTarget, hasDrawTarget, setDrawTarget } from "./drawTarget";
-import { init as initResize } from "./globalResize";
+import { DrawTarget, getDrawTarget, hasDrawTarget, resize, setDrawTarget, syncDefaultP5DrawTarget } from "./drawTarget";
 import { init as initRegl } from "./handleRegl";
-import { getP5DrawTarget, P5DrawTarget, resetAndSyncDefaultP5DrawTarget } from "./p5Layers";
+import { getP5DrawTarget, P5DrawTarget } from "./p5Layers";
 
 
 
 export function init(doRegl: boolean, drawTarget?: p5.Graphics | DrawTarget<any>) {
-	initResize();
 	initDefaultDrawTarget(doRegl, drawTarget);
-
-	if (!hasDrawTarget("default")) return;
-
-	resetAndSyncDefaultP5DrawTarget();
 
 	const defaultDrawTarget = getDrawTarget("default");
 
 	addDrawTargetElement(defaultDrawTarget);
 
-	if (doRegl) { initRegl() }
+	if (doRegl) {
+		const drawTarget = getCanvasDrawTarget("defaultCanvas");
+		initRegl(drawTarget);
+	}
 }
 
 function initDefaultDrawTarget(doRegl: boolean, drawTarget?: p5.Graphics | DrawTarget<any>) {
 	if (drawTarget === undefined) {
 		const sketch = getSketch();
-		
+
 		sketch.createCanvas(windowWidth, windowHeight);
 
 		const drawTarget = new P5DrawTarget(undefined, sketch);
@@ -62,6 +59,12 @@ function initDefaultDrawTarget(doRegl: boolean, drawTarget?: p5.Graphics | DrawT
 		const drawTarget = new CanvasDrawTarget();
 		setDrawTarget("defaultRegl", drawTarget);
 	}
+
+	resize();
+
+	if (hasDrawTarget("defaultP5")) {
+		syncDefaultP5DrawTarget();
+	}
 }
 
 function addDrawTargetElement(drawTarget: DrawTarget<any>) {
@@ -75,6 +78,8 @@ function addDrawTargetElement(drawTarget: DrawTarget<any>) {
 	}
 
 	if (htmlCanvas) {
+		const sketch = getSketch();
+
 		// @ts-ignore
 		if (sketch._userNode) {
 			// @ts-ignore
@@ -95,7 +100,7 @@ function addDrawTargetElement(drawTarget: DrawTarget<any>) {
 	}
 }
 
-export function drawNativeToP5(p5Target = getP5DrawTarget("defaultP5"), canvasTarget = getCanvasDrawTarget("defaultRegl")) {
+export function drawCanvasToP5(p5Target = getP5DrawTarget("defaultP5"), canvasTarget = getCanvasDrawTarget("defaultRegl")) {
 	const p5Canvas = p5Target.getMaps().canvas;
 	const canvasCanvas = canvasTarget.getMaps().canvas;
 	p5Canvas.drawingContext.drawImage(canvasCanvas, 0, 0, p5Canvas.width, p5Canvas.height);

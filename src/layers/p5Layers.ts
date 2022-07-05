@@ -22,16 +22,6 @@ export function getP5DrawTarget(name: string): P5DrawTarget {
 	return drawTarget;
 }
 
-export function resetAndSyncDefaultP5DrawTarget() {
-	if (hasDrawTarget("defaultP5")) {
-		const canvas = getDrawTarget("defaultP5").getMaps().canvas;
-		canvas.resetMatrix();
-		const sketch = getSketch();
-		sketch.width = canvas.width;
-		sketch.height = canvas.height;
-	}
-}
-
 
 
 export class P5DrawBuffer extends DrawBuffer<{ canvas: P5LayerMap }> {

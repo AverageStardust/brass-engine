@@ -96,12 +96,12 @@ let messageEndTime = null;
 let viewpoint, tilemap, player, pathfinder;
 
 function preload() {
-	// load the world and add to tilemap
-	Brass.loadWorldLate({
+	// load the level and add to tilemap
+	Brass.loadLevelLate({
 		"tile": "uint8"
-	}, "tilemap.json").then((world) => {
-		tilemap.import(world);
-		for (const obj of world.objects) {
+	}, "tilemap.json").then((level) => {
+		tilemap.import(level);
+		for (const obj of level.objects) {
 			const position = new Brass.Vector2(obj.x / 8, obj.y / 8);
 
 			if (obj.type === "spawn") {
@@ -114,7 +114,7 @@ function preload() {
 					angle: random(TWO_PI)
 				});
 			} else {
-				throw Error("Bad world object data");
+				throw Error("Bad level object data");
 			}
 		}
 	});

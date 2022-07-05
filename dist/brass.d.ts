@@ -51,6 +51,9 @@ declare class MappedMaxHeap<HeapType> extends MappedHeap<HeapType> {
 declare class MappedMinHeap<HeapType> extends MappedHeap<HeapType> {
     constructor(data: HeapType[]);
 }
+type MatterWorldDefinition = Partial<Matter.IEngineDefinition & {
+    spaceScale: number;
+}>;
 declare abstract class VectorAbstract {
     abstract array: number[];
     watch(watcher: Function): this;
@@ -131,24 +134,26 @@ declare abstract class LayerAbstract<T extends {
     private getMap;
     protected throwSizeError(): never;
 }
-declare function setDrawTarget(name: string, drawTarget: DrawTarget<any>): void;
-declare function getDrawTarget(name: string): DrawTarget<any>;
-declare const hasDrawTarget: (key: string) => boolean;
-declare class DrawTarget<T> extends LayerAbstract<T> {
-    protected size: Vertex2;
-    private sizer;
-    constructor(creator: (size: Vertex2) => T, resizer?: (size: Vertex2, oldMaps: T) => T, sizer?: (self: DrawTarget<T>) => Vertex2);
-    setSizer(sizer: (self: DrawTarget<T>) => Vertex2): void;
-    getMaps(): T;
-    refresh(causes?: Symbol[]): void;
-    hasName(name: string): boolean;
-    private getSizerResult;
-    private defaultSizer;
-}
 declare class DrawBuffer<T> extends LayerAbstract<T> {
     protected size: Vertex2 | null;
     constructor(creator: (size: Vertex2) => T, resizer?: (size: Vertex2, oldMaps: T) => T);
     getMaps(size?: Vertex2): T;
+}
+declare function resize(_width?: number, _height?: number): void;
+declare function setDrawTarget(name: string, drawTarget: DrawTarget<any>): void;
+declare function getDrawTarget(name: string): DrawTarget<any>;
+declare const hasDrawTarget: (key: string) => boolean;
+declare class DrawTarget<T> extends LayerAbstract<T> {
+    protected size: Vertex2 | null;
+    private sizer;
+    constructor(creator: (size: Vertex2) => T, resizer?: (size: Vertex2, oldMaps: T) => T, sizer?: (self: DrawTarget<T>) => Vertex2);
+    setSizer(sizer: (self: DrawTarget<T>) => Vertex2): void;
+    getMaps(): T;
+    ensureSize(): void;
+    refresh(causes?: Symbol[]): void;
+    hasName(name: string): boolean;
+    private getSizerResult;
+    private defaultSizer;
 }
 type P5LayerMap = p5.Graphics | p5;
 type P5Layer = LayerAbstract<{
@@ -165,6 +170,7 @@ declare class P5DrawTarget extends DrawTarget<{
 }> {
     constructor(sizer?: (self: P5DrawTarget) => Vertex2, arg?: p5.RENDERER | P5LayerMap);
 }
+declare function drawColliders(weight?: number, arrowRatio?: number, d?: P5DrawTarget): void;
 interface ViewpointAbstractOptions {
     integerTranslation?: boolean;
     integerScaling?: boolean;
@@ -203,10 +209,6 @@ declare abstract class ViewpointAbstract {
     shake(strength: number, duration?: number): void;
     protected updateShake(delta: number): void;
 }
-type MatterWorldDefinition = Partial<Matter.IEngineDefinition & {
-    spaceScale: number;
-}>;
-declare function drawColliders(weight?: number, d?: P5DrawTarget): void;
 declare global {
     let _targetFrameRate: number;
 }
@@ -784,7 +786,6 @@ declare function getSimTime(): number;
 declare function setLoadingTips(tips: string[]): void;
 declare function drawFPS(d?: P5DrawTarget): void;
 declare function drawLoading(d?: P5DrawTarget): void;
-declare function resize(_width?: number, _height?: number): void;
 declare function getRegl(): REGL.Regl;
 declare function refreshRegl(): void;
 declare function refreshReglFast(): void;
@@ -794,7 +795,7 @@ declare class CanvasDrawTarget extends DrawTarget<{
 }> {
     constructor(sizer?: (self: CanvasDrawTarget) => Vertex2);
 }
-declare function drawNativeToP5(p5Target?: P5DrawTarget, canvasTarget?: CanvasDrawTarget): void;
+declare function drawCanvasToP5(p5Target?: P5DrawTarget, canvasTarget?: CanvasDrawTarget): void;
 declare function setDefaultViewpoint(viewpoint: ViewpointAbstract): void;
 declare function getDefaultViewpoint(): ViewpointAbstract;
 declare class ClassicViewpoint extends ViewpointAbstract {
@@ -822,4 +823,4 @@ declare class Viewpoint extends ViewpointAbstract {
     set target(value: Vector2);
     get target(): Vector2;
 }
-export { createFastGraphics, Pool, Heap, MaxHeap, MinHeap, MappedHeap, MappedMaxHeap, MappedMinHeap, init$0 as init, update$0 as update, setTestStatus, getTestStatus, timewarp, getTimewarp, getTimewarps, InputMapper, disableContextMenu, P5Lighter, loadImageEarly, loadImageLate, loadImageDynamic, getImage, loadSoundEarly, loadSoundLate, getSound, setUnsafeLevelLoading, loadLevelEarly, loadLevelLate, getLevel, loaded, loadProgress, setParticleLimit, emitParticles, emitParticle, forEachParticle, forEachVisableParticle, draw as drawParticles, Particle, VelocityParticle, AStarPathfinder, drawColliders, RectBody, CircleBody, PolyBody, GridBody, RayBody, P5Tilemap, getTime, getExactTime, getSimTime, drawFPS, drawLoading, setLoadingTips, Vertex2, Vector2, resize, getRegl, refreshRegl, refreshReglFast, DrawBuffer, DrawTarget, setDrawTarget, hasDrawTarget, getDrawTarget, P5DrawBuffer, P5DrawTarget, getP5DrawTarget, CanvasDrawTarget, getCanvasDrawTarget, drawNativeToP5, setDefaultViewpoint, getDefaultViewpoint, ClassicViewpoint, Viewpoint };
+export { createFastGraphics, Pool, Heap, MaxHeap, MinHeap, MappedHeap, MappedMaxHeap, MappedMinHeap, init$0 as init, update$0 as update, setTestStatus, getTestStatus, timewarp, getTimewarp, getTimewarps, InputMapper, disableContextMenu, P5Lighter, loadImageEarly, loadImageLate, loadImageDynamic, getImage, loadSoundEarly, loadSoundLate, getSound, setUnsafeLevelLoading, loadLevelEarly, loadLevelLate, getLevel, loaded, loadProgress, setParticleLimit, emitParticles, emitParticle, forEachParticle, forEachVisableParticle, draw as drawParticles, Particle, VelocityParticle, AStarPathfinder, drawColliders, RectBody, CircleBody, PolyBody, GridBody, RayBody, P5Tilemap, getTime, getExactTime, getSimTime, drawFPS, drawLoading, setLoadingTips, Vertex2, Vector2, getRegl, refreshRegl, refreshReglFast, DrawBuffer, resize, DrawTarget, setDrawTarget, hasDrawTarget, getDrawTarget, P5DrawBuffer, P5DrawTarget, getP5DrawTarget, CanvasDrawTarget, getCanvasDrawTarget, drawCanvasToP5, setDefaultViewpoint, getDefaultViewpoint, ClassicViewpoint, Viewpoint };

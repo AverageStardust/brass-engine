@@ -418,25 +418,6 @@ var Brass = (function (exports, p5) {
         return MappedMinHeap;
     }(MappedHeap));
 
-    var sketch$2;
-    function init$8(_sketch) {
-        if (_sketch) {
-            sketch$2 = _sketch;
-        }
-        else {
-            if (!("p5" in globalThis)) {
-                throw Error("Can't find p5.js, it is required for Brass");
-            }
-            if (!("setup" in globalThis)) {
-                throw Error("Can't seem to find p5; If you are running in instance mode pass the sketch into Brass.init()");
-            }
-            sketch$2 = globalThis;
-        }
-    }
-    function getSketch() {
-        return sketch$2;
-    }
-
     function safeBind(func, thisArg) {
         var argArray = [];
         for (var _i = 2; _i < arguments.length; _i++) {
@@ -1572,390 +1553,6 @@ var Brass = (function (exports, p5) {
         return InputMapper;
     }());
 
-    var LayerAbstract = (function () {
-        function LayerAbstract(creator, resizer) {
-            if (resizer === void 0) { resizer = creator; }
-            this.id = Symbol();
-            this.creator = creator;
-            this.resizer = resizer;
-            this.setMaps(null);
-        }
-        LayerAbstract.prototype.hasSize = function () {
-            return this.size !== null;
-        };
-        LayerAbstract.prototype.getSize = function (ratio) {
-            if (ratio === void 0) { ratio = 1; }
-            if (this.size === null)
-                this.throwSizeError();
-            return {
-                x: this.size.x * ratio,
-                y: this.size.y * ratio
-            };
-        };
-        LayerAbstract.prototype.sizeMaps = function (size) {
-            if (this.size === null) {
-                this.setMaps(this.creator(size));
-            }
-            else {
-                if (this.size.x === size.x &&
-                    this.size.y === size.y)
-                    return;
-                this.setMaps(this.resizer(size, this.maps));
-            }
-            this.size = size;
-        };
-        LayerAbstract.prototype.setMaps = function (maps) {
-            if (maps === null) {
-                this.maps === new Proxy({}, { get: this.throwSizeError });
-            }
-            else {
-                this.maps = new Proxy(maps, { get: this.getMap.bind(this) });
-            }
-        };
-        LayerAbstract.prototype.getMap = function (maps, mapName) {
-            if (!maps.hasOwnProperty(mapName)) {
-                throw Error("Can't get (".concat(mapName, ") map in DrawTarget"));
-            }
-            return maps[mapName];
-        };
-        LayerAbstract.prototype.throwSizeError = function () {
-            throw Error("Could not use drawing layer, size has not been set");
-        };
-        return LayerAbstract;
-    }());
-
-    var drawTargets = new Map();
-    function setDrawTarget(name, drawTarget) {
-        if (hasDrawTarget(name)) {
-            throw Error("Can't overwrite (".concat(name, ") DrawTarget"));
-        }
-        drawTargets.set(name, drawTarget);
-    }
-    function getDrawTarget(name) {
-        var drawTarget = drawTargets.get(name);
-        if (drawTarget === undefined) {
-            throw Error("Could not find (".concat(name, ") DrawTarget; Maybe create one or run Brass.init() with drawTarget enabled"));
-        }
-        return drawTarget;
-    }
-    var hasDrawTarget = drawTargets.has.bind(drawTargets);
-    var DrawTarget = (function (_super) {
-        __extends(DrawTarget, _super);
-        function DrawTarget(creator, resizer, sizer) {
-            if (resizer === void 0) { resizer = creator; }
-            var _this = _super.call(this, creator, resizer) || this;
-            _this.sizer = sizer !== null && sizer !== void 0 ? sizer : _this.defaultSizer;
-            _this.size = _this.getSizerResult();
-            _this.setMaps(_this.creator(_this.size));
-            return _this;
-        }
-        DrawTarget.prototype.setSizer = function (sizer) {
-            this.sizer = sizer;
-            this.refresh();
-        };
-        DrawTarget.prototype.getMaps = function () {
-            return this.maps;
-        };
-        DrawTarget.prototype.refresh = function (causes) {
-            var e_1, _a, e_2, _b;
-            if (causes === void 0) { causes = []; }
-            var size = this.getSizerResult();
-            if (this.size !== undefined && this.size.x === size.x && this.size.y === size.y)
-                return;
-            try {
-                for (var causes_1 = __values(causes), causes_1_1 = causes_1.next(); !causes_1_1.done; causes_1_1 = causes_1.next()) {
-                    var cause = causes_1_1.value;
-                    if (cause !== this.id)
-                        continue;
-                    throw Error("Resize of DrawTarget caused itself to resize; Loop in sizer dependency chain");
-                }
-            }
-            catch (e_1_1) { e_1 = { error: e_1_1 }; }
-            finally {
-                try {
-                    if (causes_1_1 && !causes_1_1.done && (_a = causes_1.return)) _a.call(causes_1);
-                }
-                finally { if (e_1) throw e_1.error; }
-            }
-            this.sizeMaps(size);
-            try {
-                for (var _c = __values(drawTargets.values()), _d = _c.next(); !_d.done; _d = _c.next()) {
-                    var drawTarget = _d.value;
-                    if (drawTarget.id === this.id)
-                        continue;
-                    drawTarget.refresh(causes.concat(this.id));
-                }
-            }
-            catch (e_2_1) { e_2 = { error: e_2_1 }; }
-            finally {
-                try {
-                    if (_d && !_d.done && (_b = _c.return)) _b.call(_c);
-                }
-                finally { if (e_2) throw e_2.error; }
-            }
-        };
-        DrawTarget.prototype.hasName = function (name) {
-            if (!hasDrawTarget(name))
-                return false;
-            return getDrawTarget(name).id === this.id;
-        };
-        DrawTarget.prototype.getSizerResult = function () {
-            var floatSize = this.sizer(this);
-            return {
-                x: Math.floor(floatSize.x),
-                y: Math.floor(floatSize.y)
-            };
-        };
-        DrawTarget.prototype.defaultSizer = function (self) {
-            if (self.hasName("default")) {
-                return this.size;
-            }
-            return getDrawTarget("default").getSize();
-        };
-        return DrawTarget;
-    }(LayerAbstract));
-
-    var regl = null;
-    var doReglRefresh = false;
-    function init$6() {
-        var defaultReglTarget = getDrawTarget("defaultRegl");
-        var canvas = defaultReglTarget.getMaps().canvas;
-        regl = createREGL({ canvas: canvas });
-    }
-    function getRegl() {
-        assert(regl !== null, "Could not access regl; Include regl.js and enable it in Brass.init() first");
-        return regl;
-    }
-    function refreshRegl() {
-        var regl = getRegl();
-        regl._refresh();
-    }
-    function refreshReglFast() {
-        getRegl();
-        if (doReglRefresh)
-            return;
-        doReglRefresh = true;
-        queueMicrotask(honorReglRefresh);
-    }
-    function honorReglRefresh() {
-        if (!doReglRefresh)
-            return;
-        var regl = getRegl();
-        regl._refresh();
-        doReglRefresh = false;
-    }
-
-    function getCanvasDrawTarget(name) {
-        var drawTarget = getDrawTarget(name);
-        if (!(drawTarget instanceof CanvasDrawTarget)) {
-            throw Error("Could not find (".concat(name, ") CanvasDrawTarget; DrawTarget under that name is not of subclass CanvasDrawTarget"));
-        }
-        return drawTarget;
-    }
-    var CanvasDrawTarget = (function (_super) {
-        __extends(CanvasDrawTarget, _super);
-        function CanvasDrawTarget(sizer) {
-            return _super.call(this, function (_a) {
-                var x = _a.x, y = _a.y;
-                var canvas = document.createElement("CANVAS");
-                canvas.width = x;
-                canvas.height = y;
-                return { canvas: canvas };
-            }, function (_a, _b) {
-                var x = _a.x, y = _a.y;
-                var canvas = _b.canvas;
-                canvas.width = x;
-                canvas.height = y;
-                refreshReglFast();
-                return { canvas: canvas };
-            }, sizer) || this;
-        }
-        return CanvasDrawTarget;
-    }(DrawTarget));
-
-    var DrawBuffer = (function (_super) {
-        __extends(DrawBuffer, _super);
-        function DrawBuffer(creator, resizer) {
-            if (resizer === void 0) { resizer = creator; }
-            var _this = _super.call(this, creator, resizer) || this;
-            _this.size = null;
-            return _this;
-        }
-        DrawBuffer.prototype.getMaps = function (size) {
-            if (size === undefined) {
-                if (this.size === null)
-                    this.throwSizeError();
-            }
-            else {
-                this.sizeMaps(size);
-            }
-            return this.maps;
-        };
-        return DrawBuffer;
-    }(LayerAbstract));
-
-    function getP5DrawTarget(name) {
-        var drawTarget = getDrawTarget(name);
-        if (!(drawTarget instanceof P5DrawTarget)) {
-            throw Error("Could not find (".concat(name, ") P5DrawTarget; DrawTarget under that name is not of subclass P5DrawTarget"));
-        }
-        return drawTarget;
-    }
-    function resetAndSyncDefaultP5DrawTarget() {
-        if (hasDrawTarget("defaultP5")) {
-            var canvas = getDrawTarget("defaultP5").getMaps().canvas;
-            canvas.resetMatrix();
-            var sketch = getSketch();
-            sketch.width = canvas.width;
-            sketch.height = canvas.height;
-        }
-    }
-    var P5DrawBuffer = (function (_super) {
-        __extends(P5DrawBuffer, _super);
-        function P5DrawBuffer(arg) {
-            if (arg === void 0) { arg = P2D; }
-            return _super.call(this, function (_a) {
-                var x = _a.x, y = _a.y;
-                if (typeof arg === "string") {
-                    return { canvas: createFastGraphics(x, y, arg) };
-                }
-                else {
-                    if (arg.width !== x || arg.height !== y) {
-                        arg.resizeCanvas(x, y, true);
-                    }
-                    return { canvas: arg };
-                }
-            }, function (_a, _b) {
-                var x = _a.x, y = _a.y;
-                var canvas = _b.canvas;
-                canvas.resizeCanvas(x, y, true);
-                return { canvas: canvas };
-            }) || this;
-        }
-        return P5DrawBuffer;
-    }(DrawBuffer));
-    var P5DrawTarget = (function (_super) {
-        __extends(P5DrawTarget, _super);
-        function P5DrawTarget(sizer, arg) {
-            if (arg === void 0) { arg = P2D; }
-            return _super.call(this, function (_a) {
-                var x = _a.x, y = _a.y;
-                if (typeof arg === "string") {
-                    return { canvas: createFastGraphics(x, y, arg) };
-                }
-                else {
-                    if (arg.width !== x || arg.height !== y) {
-                        arg.resizeCanvas(x, y, true);
-                    }
-                    return { canvas: arg };
-                }
-            }, function (_a, _b) {
-                var x = _a.x, y = _a.y;
-                var canvas = _b.canvas;
-                canvas.resizeCanvas(x, y, true);
-                return { canvas: canvas };
-            }, sizer) || this;
-        }
-        return P5DrawTarget;
-    }(DrawTarget));
-
-    var width$1, height$1;
-    function init$5() {
-        width$1 = window.innerWidth;
-        width$1 = window.innerHeight;
-    }
-    function resize(_width, _height) {
-        if (_width === void 0) { _width = window.innerWidth; }
-        if (_height === void 0) { _height = window.innerHeight; }
-        width$1 = _width;
-        width$1 = _height;
-        getDrawTarget("default").setSizer(function () { return ({
-            x: width$1,
-            y: height$1
-        }); });
-        resetAndSyncDefaultP5DrawTarget();
-        honorReglRefresh();
-    }
-
-    function init$4(doRegl, drawTarget) {
-        init$5();
-        initDefaultDrawTarget(doRegl, drawTarget);
-        if (!hasDrawTarget("default"))
-            return;
-        resetAndSyncDefaultP5DrawTarget();
-        var defaultDrawTarget = getDrawTarget("default");
-        addDrawTargetElement(defaultDrawTarget);
-        if (doRegl) {
-            init$6();
-        }
-    }
-    function initDefaultDrawTarget(doRegl, drawTarget) {
-        if (drawTarget === undefined) {
-            var sketch = getSketch();
-            sketch.createCanvas(windowWidth, windowHeight);
-            var drawTarget_1 = new P5DrawTarget(undefined, sketch);
-            setDrawTarget("default", drawTarget_1);
-            setDrawTarget("defaultP5", drawTarget_1);
-        }
-        else {
-            noCanvas();
-            if (drawTarget instanceof DrawTarget) {
-                setDrawTarget("default", drawTarget);
-                if (drawTarget instanceof P5DrawTarget) {
-                    setDrawTarget("defaultP5", drawTarget);
-                }
-                if (drawTarget instanceof CanvasDrawTarget) {
-                    setDrawTarget("defaultRegl", drawTarget);
-                }
-            }
-            else if (drawTarget instanceof p5__default["default"].Graphics) {
-                var p5DrawTarget = new P5DrawTarget(undefined, drawTarget);
-                setDrawTarget("default", p5DrawTarget);
-                setDrawTarget("defaultP5", p5DrawTarget);
-            }
-            else {
-                throw Error("Can't make default drawTarget in Brass.init(), bad value");
-            }
-        }
-        if (doRegl) {
-            var drawTarget_2 = new CanvasDrawTarget();
-            setDrawTarget("defaultRegl", drawTarget_2);
-        }
-    }
-    function addDrawTargetElement(drawTarget) {
-        var htmlCanvas;
-        if (drawTarget instanceof P5DrawTarget) {
-            htmlCanvas = drawTarget.getMaps().canvas.canvas;
-        }
-        if (drawTarget instanceof CanvasDrawTarget) {
-            htmlCanvas = drawTarget.getMaps().canvas;
-        }
-        if (htmlCanvas) {
-            if (sketch._userNode) {
-                sketch._userNode.appendChild(htmlCanvas);
-            }
-            else {
-                if (document.getElementsByTagName("main").length === 0) {
-                    var main = document.createElement("main");
-                    document.body.appendChild(main);
-                }
-                document.getElementsByTagName("main")[0].appendChild(htmlCanvas);
-            }
-            htmlCanvas.style.display = "block";
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-    function drawNativeToP5(p5Target, canvasTarget) {
-        if (p5Target === void 0) { p5Target = getP5DrawTarget("defaultP5"); }
-        if (canvasTarget === void 0) { canvasTarget = getCanvasDrawTarget("defaultRegl"); }
-        var p5Canvas = p5Target.getMaps().canvas;
-        var canvasCanvas = canvasTarget.getMaps().canvas;
-        p5Canvas.drawingContext.drawImage(canvasCanvas, 0, 0, p5Canvas.width, p5Canvas.height);
-    }
-
     var _a;
     var AssetType;
     (function (AssetType) {
@@ -1979,8 +1576,11 @@ var Brass = (function (exports, p5) {
     var loadedLateAssets = 0;
     var errorImage;
     var errorSound;
-    function init$3(_useSound) {
+    function init$6(_useSound) {
         useSound = _useSound;
+        if (useSound && typeof p5__default["default"].SoundFile !== "function") {
+            throw Error("p5.Sound was not found; Can't initialize Brass loader sound without p5.Sound loaded first");
+        }
         errorImage = createFastGraphics(64, 64);
         errorImage.background(0);
         errorImage.fill(255, 0, 255);
@@ -2469,6 +2069,308 @@ var Brass = (function (exports, p5) {
         return { name: name, basePath: basePath, fullPath: fullPath, extension: extension };
     }
 
+    var LayerAbstract = (function () {
+        function LayerAbstract(creator, resizer) {
+            if (resizer === void 0) { resizer = creator; }
+            this.id = Symbol();
+            this.creator = creator;
+            this.resizer = resizer;
+            this.setMaps(null);
+        }
+        LayerAbstract.prototype.hasSize = function () {
+            return this.size !== null;
+        };
+        LayerAbstract.prototype.getSize = function (ratio) {
+            if (ratio === void 0) { ratio = 1; }
+            if (this.size === null)
+                this.throwSizeError();
+            return {
+                x: this.size.x * ratio,
+                y: this.size.y * ratio
+            };
+        };
+        LayerAbstract.prototype.sizeMaps = function (size) {
+            if (this.size === null) {
+                this.setMaps(this.creator(size));
+            }
+            else {
+                if (this.size.x === size.x &&
+                    this.size.y === size.y)
+                    return;
+                this.setMaps(this.resizer(size, this.maps));
+            }
+            this.size = size;
+        };
+        LayerAbstract.prototype.setMaps = function (maps) {
+            if (maps === null) {
+                this.maps === new Proxy({}, { get: this.throwSizeError });
+            }
+            else {
+                this.maps = new Proxy(maps, { get: this.getMap.bind(this) });
+            }
+        };
+        LayerAbstract.prototype.getMap = function (maps, mapName) {
+            if (!maps.hasOwnProperty(mapName)) {
+                throw Error("Can't get (".concat(mapName, ") map in DrawTarget"));
+            }
+            return maps[mapName];
+        };
+        LayerAbstract.prototype.throwSizeError = function () {
+            throw Error("Could not use drawing layer, size has not been set");
+        };
+        return LayerAbstract;
+    }());
+
+    var DrawBuffer = (function (_super) {
+        __extends(DrawBuffer, _super);
+        function DrawBuffer(creator, resizer) {
+            if (resizer === void 0) { resizer = creator; }
+            var _this = _super.call(this, creator, resizer) || this;
+            _this.size = null;
+            return _this;
+        }
+        DrawBuffer.prototype.getMaps = function (size) {
+            if (size === undefined) {
+                if (this.size === null)
+                    this.throwSizeError();
+            }
+            else {
+                this.sizeMaps(size);
+            }
+            return this.maps;
+        };
+        return DrawBuffer;
+    }(LayerAbstract));
+
+    var sketch;
+    function init$5(_sketch) {
+        if (_sketch) {
+            sketch = _sketch;
+        }
+        else {
+            if (!("p5" in globalThis)) {
+                throw Error("Can't find p5.js, it is required for Brass");
+            }
+            if (!("setup" in globalThis)) {
+                throw Error("Can't seem to find p5; If you are running in instance mode pass the sketch into Brass.init()");
+            }
+            sketch = globalThis;
+        }
+    }
+    function getSketch() {
+        return sketch;
+    }
+
+    var regl = null;
+    var doReglRefresh = false;
+    function init$4(drawTarget) {
+        if (typeof createREGL !== "function") {
+            throw Error("REGL was not found; Can't initialize Brass REGL without REGL.js loaded first");
+        }
+        var canvas = drawTarget.getMaps().canvas;
+        regl = createREGL({ canvas: canvas });
+    }
+    function getRegl() {
+        assert(regl !== null, "Could not access regl; Include regl.js and enable it in Brass.init() first");
+        return regl;
+    }
+    function refreshRegl() {
+        var regl = getRegl();
+        regl._refresh();
+    }
+    function refreshReglFast() {
+        getRegl();
+        if (doReglRefresh)
+            return;
+        doReglRefresh = true;
+        queueMicrotask(honorReglRefresh);
+    }
+    function honorReglRefresh() {
+        if (!doReglRefresh)
+            return;
+        var regl = getRegl();
+        regl._refresh();
+        doReglRefresh = false;
+    }
+
+    var drawTargets = new Map();
+    var globalWidth, globalHeight;
+    function resize(_width, _height) {
+        if (_width === void 0) { _width = window.innerWidth; }
+        if (_height === void 0) { _height = window.innerHeight; }
+        globalWidth = _width;
+        globalHeight = _height;
+        getDrawTarget("default").refresh();
+        syncDefaultP5DrawTarget();
+        honorReglRefresh();
+    }
+    function syncDefaultP5DrawTarget() {
+        if (hasDrawTarget("defaultP5")) {
+            var canvas = getDrawTarget("defaultP5").getMaps().canvas;
+            var sketch = getSketch();
+            sketch.width = canvas.width;
+            sketch.height = canvas.height;
+        }
+    }
+    function setDrawTarget(name, drawTarget) {
+        if (hasDrawTarget(name)) {
+            throw Error("Can't overwrite (".concat(name, ") DrawTarget"));
+        }
+        drawTargets.set(name, drawTarget);
+    }
+    function getDrawTarget(name) {
+        var drawTarget = drawTargets.get(name);
+        if (drawTarget === undefined) {
+            throw Error("Could not find (".concat(name, ") DrawTarget; Maybe create one or run Brass.init() with drawTarget enabled"));
+        }
+        return drawTarget;
+    }
+    var hasDrawTarget = drawTargets.has.bind(drawTargets);
+    var DrawTarget = (function (_super) {
+        __extends(DrawTarget, _super);
+        function DrawTarget(creator, resizer, sizer) {
+            if (resizer === void 0) { resizer = creator; }
+            var _this = _super.call(this, creator, resizer) || this;
+            _this.size = null;
+            _this.sizer = sizer !== null && sizer !== void 0 ? sizer : _this.defaultSizer;
+            return _this;
+        }
+        DrawTarget.prototype.setSizer = function (sizer) {
+            this.sizer = sizer;
+            this.ensureSize();
+            this.refresh();
+        };
+        DrawTarget.prototype.getMaps = function () {
+            this.ensureSize();
+            return this.maps;
+        };
+        DrawTarget.prototype.ensureSize = function () {
+            if (this.size === null) {
+                this.size = this.getSizerResult();
+                this.setMaps(this.creator(this.size));
+            }
+        };
+        DrawTarget.prototype.refresh = function (causes) {
+            var e_1, _a, e_2, _b;
+            if (causes === void 0) { causes = []; }
+            var size = this.getSizerResult();
+            if (this.size !== null && this.size.x === size.x && this.size.y === size.y)
+                return;
+            try {
+                for (var causes_1 = __values(causes), causes_1_1 = causes_1.next(); !causes_1_1.done; causes_1_1 = causes_1.next()) {
+                    var cause = causes_1_1.value;
+                    if (cause !== this.id)
+                        continue;
+                    throw Error("Resize of DrawTarget caused itself to resize; Loop in sizer dependency chain");
+                }
+            }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
+                try {
+                    if (causes_1_1 && !causes_1_1.done && (_a = causes_1.return)) _a.call(causes_1);
+                }
+                finally { if (e_1) throw e_1.error; }
+            }
+            this.sizeMaps(size);
+            try {
+                for (var _c = __values(drawTargets.values()), _d = _c.next(); !_d.done; _d = _c.next()) {
+                    var drawTarget = _d.value;
+                    if (drawTarget.id === this.id)
+                        continue;
+                    drawTarget.refresh(causes.concat(this.id));
+                }
+            }
+            catch (e_2_1) { e_2 = { error: e_2_1 }; }
+            finally {
+                try {
+                    if (_d && !_d.done && (_b = _c.return)) _b.call(_c);
+                }
+                finally { if (e_2) throw e_2.error; }
+            }
+        };
+        DrawTarget.prototype.hasName = function (name) {
+            if (!hasDrawTarget(name))
+                return false;
+            return getDrawTarget(name).id === this.id;
+        };
+        DrawTarget.prototype.getSizerResult = function () {
+            var floatSize = this.sizer(this);
+            return {
+                x: Math.floor(floatSize.x),
+                y: Math.floor(floatSize.y)
+            };
+        };
+        DrawTarget.prototype.defaultSizer = function (self) {
+            if (!hasDrawTarget("default")) {
+                throw Error("Can't use draw target, run Brass.init() first");
+            }
+            if (self.hasName("default")) {
+                return {
+                    x: globalWidth,
+                    y: globalHeight
+                };
+            }
+            return getDrawTarget("default").getSize();
+        };
+        return DrawTarget;
+    }(LayerAbstract));
+
+    function getP5DrawTarget(name) {
+        var drawTarget = getDrawTarget(name);
+        if (!(drawTarget instanceof P5DrawTarget)) {
+            throw Error("Could not find (".concat(name, ") P5DrawTarget; DrawTarget under that name is not of subclass P5DrawTarget"));
+        }
+        return drawTarget;
+    }
+    var P5DrawBuffer = (function (_super) {
+        __extends(P5DrawBuffer, _super);
+        function P5DrawBuffer(arg) {
+            if (arg === void 0) { arg = P2D; }
+            return _super.call(this, function (_a) {
+                var x = _a.x, y = _a.y;
+                if (typeof arg === "string") {
+                    return { canvas: createFastGraphics(x, y, arg) };
+                }
+                else {
+                    if (arg.width !== x || arg.height !== y) {
+                        arg.resizeCanvas(x, y, true);
+                    }
+                    return { canvas: arg };
+                }
+            }, function (_a, _b) {
+                var x = _a.x, y = _a.y;
+                var canvas = _b.canvas;
+                canvas.resizeCanvas(x, y, true);
+                return { canvas: canvas };
+            }) || this;
+        }
+        return P5DrawBuffer;
+    }(DrawBuffer));
+    var P5DrawTarget = (function (_super) {
+        __extends(P5DrawTarget, _super);
+        function P5DrawTarget(sizer, arg) {
+            if (arg === void 0) { arg = P2D; }
+            return _super.call(this, function (_a) {
+                var x = _a.x, y = _a.y;
+                if (typeof arg === "string") {
+                    return { canvas: createFastGraphics(x, y, arg) };
+                }
+                else {
+                    if (arg.width !== x || arg.height !== y) {
+                        arg.resizeCanvas(x, y, true);
+                    }
+                    return { canvas: arg };
+                }
+            }, function (_a, _b) {
+                var x = _a.x, y = _a.y;
+                var canvas = _b.canvas;
+                canvas.resizeCanvas(x, y, true);
+                return { canvas: canvas };
+            }, sizer) || this;
+        }
+        return P5DrawTarget;
+    }(DrawTarget));
+
     var lastUpdateTime = 0;
     var simTime = 0;
     update$5();
@@ -2630,7 +2532,7 @@ var Brass = (function (exports, p5) {
     }(ViewpointAbstract));
 
     var defaultViewpoint;
-    function init$2(viewpoint) {
+    function init$3(viewpoint) {
         if (viewpoint === undefined) {
             setDefaultViewpoint(new ClassicViewpoint(1, new Vector2(0, 0)));
         }
@@ -2661,6 +2563,679 @@ var Brass = (function (exports, p5) {
         if (defaultViewpoint === undefined)
             throw Error("Could not find default viewpoint; maybe run Brass.init() first");
         return defaultViewpoint;
+    }
+
+    function getCanvasDrawTarget(name) {
+        var drawTarget = getDrawTarget(name);
+        if (!(drawTarget instanceof CanvasDrawTarget)) {
+            throw Error("Could not find (".concat(name, ") CanvasDrawTarget; DrawTarget under that name is not of subclass CanvasDrawTarget"));
+        }
+        return drawTarget;
+    }
+    var CanvasDrawTarget = (function (_super) {
+        __extends(CanvasDrawTarget, _super);
+        function CanvasDrawTarget(sizer) {
+            return _super.call(this, function (_a) {
+                var x = _a.x, y = _a.y;
+                var canvas = document.createElement("CANVAS");
+                canvas.width = x;
+                canvas.height = y;
+                return { canvas: canvas };
+            }, function (_a, _b) {
+                var x = _a.x, y = _a.y;
+                var canvas = _b.canvas;
+                canvas.width = x;
+                canvas.height = y;
+                refreshReglFast();
+                return { canvas: canvas };
+            }, sizer) || this;
+        }
+        return CanvasDrawTarget;
+    }(DrawTarget));
+
+    function init$2(doRegl, drawTarget) {
+        initDefaultDrawTarget(doRegl, drawTarget);
+        var defaultDrawTarget = getDrawTarget("default");
+        addDrawTargetElement(defaultDrawTarget);
+        if (doRegl) {
+            var drawTarget_1 = getCanvasDrawTarget("defaultCanvas");
+            init$4(drawTarget_1);
+        }
+    }
+    function initDefaultDrawTarget(doRegl, drawTarget) {
+        if (drawTarget === undefined) {
+            var sketch = getSketch();
+            sketch.createCanvas(windowWidth, windowHeight);
+            var drawTarget_2 = new P5DrawTarget(undefined, sketch);
+            setDrawTarget("default", drawTarget_2);
+            setDrawTarget("defaultP5", drawTarget_2);
+        }
+        else {
+            noCanvas();
+            if (drawTarget instanceof DrawTarget) {
+                setDrawTarget("default", drawTarget);
+                if (drawTarget instanceof P5DrawTarget) {
+                    setDrawTarget("defaultP5", drawTarget);
+                }
+                if (drawTarget instanceof CanvasDrawTarget) {
+                    setDrawTarget("defaultRegl", drawTarget);
+                }
+            }
+            else if (drawTarget instanceof p5__default["default"].Graphics) {
+                var p5DrawTarget = new P5DrawTarget(undefined, drawTarget);
+                setDrawTarget("default", p5DrawTarget);
+                setDrawTarget("defaultP5", p5DrawTarget);
+            }
+            else {
+                throw Error("Can't make default drawTarget in Brass.init(), bad value");
+            }
+        }
+        if (doRegl) {
+            var drawTarget_3 = new CanvasDrawTarget();
+            setDrawTarget("defaultRegl", drawTarget_3);
+        }
+        resize();
+        if (hasDrawTarget("defaultP5")) {
+            syncDefaultP5DrawTarget();
+        }
+    }
+    function addDrawTargetElement(drawTarget) {
+        var htmlCanvas;
+        if (drawTarget instanceof P5DrawTarget) {
+            htmlCanvas = drawTarget.getMaps().canvas.canvas;
+        }
+        if (drawTarget instanceof CanvasDrawTarget) {
+            htmlCanvas = drawTarget.getMaps().canvas;
+        }
+        if (htmlCanvas) {
+            var sketch = getSketch();
+            if (sketch._userNode) {
+                sketch._userNode.appendChild(htmlCanvas);
+            }
+            else {
+                if (document.getElementsByTagName("main").length === 0) {
+                    var main = document.createElement("main");
+                    document.body.appendChild(main);
+                }
+                document.getElementsByTagName("main")[0].appendChild(htmlCanvas);
+            }
+            htmlCanvas.style.display = "block";
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    function drawCanvasToP5(p5Target, canvasTarget) {
+        if (p5Target === void 0) { p5Target = getP5DrawTarget("defaultP5"); }
+        if (canvasTarget === void 0) { canvasTarget = getCanvasDrawTarget("defaultRegl"); }
+        var p5Canvas = p5Target.getMaps().canvas;
+        var canvasCanvas = canvasTarget.getMaps().canvas;
+        p5Canvas.drawingContext.drawImage(canvasCanvas, 0, 0, p5Canvas.width, p5Canvas.height);
+    }
+
+    var spaceScale;
+    var world;
+    function setMatterWorld(_world) {
+        world = _world;
+    }
+    function getMatterWorld() {
+        return world;
+    }
+    function assertMatterWorld(action) {
+        if (action === void 0) { action = ""; }
+        assert(getMatterWorld() !== undefined, "Failed ".concat(action, ", Matter physics is not running"));
+    }
+    function setSpaceScale(_spaceScale) {
+        spaceScale = _spaceScale !== null && _spaceScale !== void 0 ? _spaceScale : 1;
+    }
+    function getSpaceScale() {
+        return spaceScale;
+    }
+    var BodyAbstract = (function () {
+        function BodyAbstract() {
+            this.sensors = [];
+            this.alive = true;
+            this.data = null;
+            assertMatterWorld("creating a physics body");
+        }
+        BodyAbstract.prototype.addSensor = function (callback) {
+            this.sensors.push(callback);
+            return this;
+        };
+        BodyAbstract.prototype.removeSensor = function (callback) {
+            var index = [].findIndex(function (sensor) { return sensor === callback; });
+            this.sensors.splice(index, 1);
+            return this;
+        };
+        BodyAbstract.prototype.triggerSensors = function (collision) {
+            this.sensors.forEach(function (callback) { return callback(collision); });
+            return this;
+        };
+        BodyAbstract.prototype.kill = function () {
+            this.alive = false;
+        };
+        BodyAbstract.prototype.validateCollisionIndex = function (index) {
+            if (typeof index !== "number" ||
+                index !== Math.floor(index))
+                throw Error("Collision category must be an integer");
+            if (index < 0 || index > 31)
+                throw Error("Collision category must be in 0 through 31 inclusive");
+            return index;
+        };
+        BodyAbstract.prototype.validateCollisionMask = function (mask) {
+            if (typeof mask !== "number" ||
+                mask !== Math.floor(mask))
+                throw Error("Collision mask must be an integer");
+            if (mask < 0x00000000 || mask > 0xFFFFFFFF)
+                throw Error("Collision mask must be 32-bit");
+            return mask;
+        };
+        BodyAbstract.prototype.collisionIndexToCategory = function (index) {
+            this.validateCollisionIndex(index);
+            return 1 << index;
+        };
+        BodyAbstract.prototype.collisionCategoryToIndex = function (category) {
+            if (category === 0x8000) {
+                return 31;
+            }
+            else {
+                var index = Math.log2(category);
+                if (index !== Math.floor(index))
+                    throw Error("Internal Matter.js body could not be fit in one collision category");
+                return index;
+            }
+        };
+        return BodyAbstract;
+    }());
+
+    var bodies = Array(32).fill(null).map(function () { return new Map(); });
+    var forceUnit = 1e-6;
+    function getBodies() {
+        return bodies;
+    }
+    var MaterialBodyAbstract = (function (_super) {
+        __extends(MaterialBodyAbstract, _super);
+        function MaterialBodyAbstract(body) {
+            var _this = _super.call(this) || this;
+            _this.setBody(body);
+            return _this;
+        }
+        MaterialBodyAbstract.prototype.setBody = function (body) {
+            if (this.body !== undefined) {
+                this.remove();
+            }
+            this.body = body;
+            this.body.__brassBody__ = this;
+            this.body.collisionFilter.category = this.collisionIndexToCategory(0);
+            bodies[0].set(this.body.id, this);
+            Matter.World.add(getMatterWorld(), body);
+        };
+        MaterialBodyAbstract.prototype.removeBody = function () {
+        };
+        Object.defineProperty(MaterialBodyAbstract.prototype, "position", {
+            get: function () {
+                var position = Vector2.fromObj(this.body.position).divScalar(getSpaceScale());
+                return position.watch(this.setPosition.bind(this));
+            },
+            set: function (position) {
+                var spaceScale = getSpaceScale();
+                position = Matter.Vector.create(position.x * spaceScale, position.y * spaceScale);
+                Matter.Body.setPosition(this.body, position);
+            },
+            enumerable: false,
+            configurable: true
+        });
+        MaterialBodyAbstract.prototype.setPosition = function (position) {
+            this.position = position;
+        };
+        Object.defineProperty(MaterialBodyAbstract.prototype, "velocity", {
+            get: function () {
+                var velocity = Vector2.fromObj(this.body.velocity).divScalar(getSpaceScale());
+                return velocity.watch(this.setVelocity.bind(this));
+            },
+            set: function (velocity) {
+                var spaceScale = getSpaceScale();
+                velocity = Matter.Vector.create(velocity.x * spaceScale, velocity.y * spaceScale);
+                Matter.Body.setVelocity(this.body, velocity);
+            },
+            enumerable: false,
+            configurable: true
+        });
+        MaterialBodyAbstract.prototype.setVelocity = function (velocity) {
+            this.velocity = velocity;
+        };
+        Object.defineProperty(MaterialBodyAbstract.prototype, "angle", {
+            get: function () {
+                return this.body.angle;
+            },
+            set: function (angle) {
+                Matter.Body.setAngle(this.body, angle);
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(MaterialBodyAbstract.prototype, "angularVelocity", {
+            get: function () {
+                return this.body.angularVelocity;
+            },
+            set: function (angularVelocity) {
+                Matter.Body.setAngularVelocity(this.body, angularVelocity);
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(MaterialBodyAbstract.prototype, "static", {
+            get: function () {
+                return this.body.isStatic;
+            },
+            set: function (isStatic) {
+                Matter.Body.setStatic(this.body, isStatic);
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(MaterialBodyAbstract.prototype, "ghost", {
+            get: function () {
+                return this.body.isSensor;
+            },
+            set: function (isGhost) {
+                this.body.isSensor = isGhost;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(MaterialBodyAbstract.prototype, "collisionCategory", {
+            set: function (categoryIndex) {
+                var oldCategoryIndex = this.collisionCategoryToIndex(this.body.collisionFilter.category);
+                bodies[oldCategoryIndex].delete(this.body.id);
+                this.body.collisionFilter.category = this.collisionIndexToCategory(categoryIndex);
+                bodies[categoryIndex].set(this.body.id, this);
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(MaterialBodyAbstract.prototype, "collidesWith", {
+            set: function (category) {
+                var _this = this;
+                this.body.collisionFilter.mask = 0;
+                if (category === "everything") {
+                    this.body.collisionFilter.mask = 0xFFFFFFFF;
+                }
+                else if (category === "nothing") {
+                    this.body.collisionFilter.mask = 0;
+                }
+                else if (Array.isArray(category)) {
+                    category.map(function (subCategory) { return _this.setCollidesWith(subCategory); });
+                }
+                else {
+                    this.setCollidesWith(category);
+                }
+            },
+            enumerable: false,
+            configurable: true
+        });
+        MaterialBodyAbstract.prototype.setCollidesWith = function (category) {
+            this.validateCollisionIndex(category);
+            if (category >= 0) {
+                this.body.collisionFilter.mask |= 1 << category;
+            }
+            else {
+                this.body.collisionFilter.mask &= ~(1 << -category);
+            }
+            return this;
+        };
+        MaterialBodyAbstract.prototype.rotate = function (rotation) {
+            Matter.Body.rotate(this.body, rotation);
+            return this;
+        };
+        MaterialBodyAbstract.prototype.applyForce = function (force, position) {
+            if (position === void 0) { position = this.position; }
+            var spaceScale = getSpaceScale();
+            var forceScale = spaceScale * spaceScale * spaceScale * forceUnit;
+            var matterForce = Matter.Vector.create(force.x * forceScale, force.y * forceScale);
+            var matterPosition = Matter.Vector.create(position.x * spaceScale, position.y * spaceScale);
+            queueMicrotask(Matter.Body.applyForce.bind(globalThis, this.body, matterPosition, matterForce));
+            return this;
+        };
+        MaterialBodyAbstract.prototype.kill = function () {
+            _super.prototype.kill.call(this);
+            this.remove();
+        };
+        MaterialBodyAbstract.prototype.remove = function () {
+            var categoryIndex = this.collisionCategoryToIndex(this.body.collisionFilter.category);
+            bodies[categoryIndex].delete(this.body.id);
+            Matter.World.remove(getMatterWorld(), this.body);
+        };
+        return MaterialBodyAbstract;
+    }(BodyAbstract));
+
+    var rays = new Map();
+    function getRays() {
+        return rays;
+    }
+    var RayBody = (function (_super) {
+        __extends(RayBody, _super);
+        function RayBody(x, y, width, options) {
+            if (width === void 0) { width = 0.1; }
+            if (options === void 0) { options = {}; }
+            var _this = this;
+            var _a, _b;
+            _this = _super.call(this) || this;
+            _this.id = Symbol();
+            _this.position = new Vector2(x, y);
+            _this.velocity = Vector2.fromObj((_a = options.velocity) !== null && _a !== void 0 ? _a : { x: 0, y: 0 });
+            _this.width = width;
+            _this.mask = _this.validateCollisionMask((_b = options.mask) !== null && _b !== void 0 ? _b : 0xFFFFFFFF);
+            rays.set(_this.id, _this);
+            return _this;
+        }
+        Object.defineProperty(RayBody.prototype, "angle", {
+            get: function () {
+                throw Error("RayBody can't have rotation");
+            },
+            set: function (_) {
+                throw Error("RayBody can't have rotation");
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(RayBody.prototype, "angularVelocity", {
+            get: function () {
+                throw Error("RayBody can't have rotation");
+            },
+            set: function (_) {
+                throw Error("RayBody can't have rotation");
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(RayBody.prototype, "static", {
+            get: function () {
+                return false;
+            },
+            set: function (isStatic) {
+                if (isStatic === true) {
+                    throw Error("RayBody can't have static behaviour enabled");
+                }
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(RayBody.prototype, "ghost", {
+            get: function () {
+                return true;
+            },
+            set: function (isGhost) {
+                if (isGhost === false) {
+                    throw Error("RayBody can't have ghost behaviour disabled");
+                }
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(RayBody.prototype, "collisionCategory", {
+            set: function (_) { },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(RayBody.prototype, "collidesWith", {
+            set: function (category) {
+                var _this = this;
+                this.mask = 0;
+                if (category === "everything") {
+                    this.mask = 0xFFFFFFFF;
+                }
+                else if (category === "nothing") {
+                    this.mask = 0;
+                }
+                else if (Array.isArray(category)) {
+                    category.map(function (subCategory) { return _this.setCollidesWith(subCategory); });
+                }
+                else {
+                    this.setCollidesWith(category);
+                }
+            },
+            enumerable: false,
+            configurable: true
+        });
+        RayBody.prototype.setCollidesWith = function (category) {
+            this.validateCollisionIndex(category);
+            if (category >= 0) {
+                this.mask |= 1 << category;
+            }
+            else {
+                this.mask &= ~(1 << -category);
+            }
+            return this;
+        };
+        RayBody.prototype.rotate = function (_) {
+            throw Error("RayBody can't have rotation");
+        };
+        RayBody.prototype.applyForce = function () {
+            throw Error("RayBody can't have forces applied");
+        };
+        RayBody.prototype.kill = function () {
+            _super.prototype.kill.call(this);
+            this.remove();
+        };
+        RayBody.prototype.remove = function () {
+            rays.delete(this.id);
+        };
+        RayBody.prototype.castOverTime = function (delta, steps) {
+            var timeSteps = (delta / 1000 * 60);
+            var displacement = this.velocity.copy().multScalar(timeSteps);
+            return this.cast(displacement, steps);
+        };
+        RayBody.prototype.cast = function (_displacement, steps) {
+            if (steps === void 0) { steps = 20; }
+            var spaceScale = getSpaceScale();
+            var displacement = _displacement.multScalar(spaceScale);
+            var testBrassBodies = [];
+            for (var i = 0; i < 32; i++) {
+                if (!(this.mask & (1 << i)))
+                    continue;
+                var catagoryBodies = getBodies()[i];
+                testBrassBodies.push.apply(testBrassBodies, __spreadArray([], __read(Array.from(catagoryBodies.values())), false));
+            }
+            var testBodies = testBrassBodies.map(function (brassBody) { return brassBody.body; });
+            var start = this.position.copy().multScalar(spaceScale);
+            var testPoint = 1, testJump = 0.5, hits = [], hitEnd = displacement.copy().multScalar(testPoint).add(start), hitPoint = 1;
+            for (var i = 0; i < steps; i++) {
+                var end = displacement.copy().multScalar(testPoint).add(start);
+                var currentHits = Matter.Query.ray(testBodies, start, end, this.width * spaceScale);
+                if (currentHits.length < 1) {
+                    if (i === 0)
+                        break;
+                    testPoint += testJump;
+                    testJump /= 2;
+                }
+                else if (currentHits.length === 1) {
+                    hits = currentHits;
+                    hitPoint = testPoint;
+                    hitEnd = end;
+                    testPoint -= testJump;
+                    testJump /= 2;
+                }
+                else {
+                    if (currentHits.length !== 1) {
+                        hits = currentHits;
+                        hitPoint = testPoint;
+                        hitEnd = end;
+                    }
+                    testPoint -= testJump;
+                    testJump /= 2;
+                }
+            }
+            if (hits.length > 1) {
+                hits = hits.sort(function (a, b) { return start.distSq(a.bodyA.position) - start.distSq(b.bodyA.position); });
+            }
+            var hitBody;
+            if (hits.length === 0) {
+                hitBody = null;
+            }
+            else {
+                hitBody = hits[0].parentA.__brassBody__;
+            }
+            return {
+                point: hitEnd.divScalar(spaceScale),
+                dist: displacement.mag * hitPoint / spaceScale,
+                body: hitBody
+            };
+        };
+        return RayBody;
+    }(BodyAbstract));
+
+    var lastDelta = null;
+    var engine;
+    function init$1(_options) {
+        var _a;
+        if (_options === void 0) { _options = {}; }
+        if (typeof Matter !== "object") {
+            throw Error("Matter was not found; Can't initialize Brass physics without Matter.js loaded first");
+        }
+        setSpaceScale(_options.spaceScale);
+        (_a = _options.gravity) !== null && _a !== void 0 ? _a : (_options.gravity = { scale: 0 });
+        var options = _options;
+        engine = Matter.Engine.create(options);
+        setMatterWorld(engine.world);
+        Matter.Events.on(engine, "collisionActive", handleActiveCollisions);
+    }
+    function handleActiveCollisions(_a) {
+        var pairs = _a.pairs;
+        var spaceScale = getSpaceScale();
+        pairs.map(function (pair) {
+            var e_1, _a;
+            var bodyA = pair.bodyA.__brassBody__;
+            var bodyB = pair.bodyB.__brassBody__;
+            var points = [];
+            try {
+                for (var _b = __values(pair.activeContacts), _c = _b.next(); !_c.done; _c = _b.next()) {
+                    var vertex_1 = _c.value.vertex;
+                    points.push(new Vector2(vertex_1.x / spaceScale, vertex_1.y / spaceScale));
+                }
+            }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
+                try {
+                    if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+                }
+                finally { if (e_1) throw e_1.error; }
+            }
+            bodyA.triggerSensors({ self: bodyA, body: bodyB, points: points.map(function (v) { return v.copy(); }) });
+            bodyB.triggerSensors({ self: bodyB, body: bodyA, points: points });
+        });
+    }
+    function update$4(delta) {
+        var e_2, _a;
+        assertMatterWorld("updating physics");
+        if (lastDelta === null)
+            lastDelta = delta;
+        if (lastDelta !== 0) {
+            Matter.Engine.update(engine, delta, delta / lastDelta);
+        }
+        lastDelta = delta;
+        try {
+            for (var _b = __values(getRays().entries()), _c = _b.next(); !_c.done; _c = _b.next()) {
+                var _d = __read(_c.value, 2), _ = _d[0], ray = _d[1];
+                var _e = ray.castOverTime(delta), body = _e.body, point_1 = _e.point;
+                ray.position = point_1.copy();
+                if (!body)
+                    continue;
+                ray.triggerSensors({ body: body, self: ray, points: [point_1] });
+                ray.kill();
+            }
+        }
+        catch (e_2_1) { e_2 = { error: e_2_1 }; }
+        finally {
+            try {
+                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+            }
+            finally { if (e_2) throw e_2.error; }
+        }
+    }
+    function drawColliders(weight, arrowRatio, d) {
+        if (weight === void 0) { weight = 0.1; }
+        if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+        var g = d.getMaps().canvas;
+        g.push();
+        g.noFill();
+        g.strokeWeight(weight);
+        g.stroke(0, 255, 0);
+        drawBodies(g);
+        g.stroke(255, 0, 0);
+        drawRays(arrowRatio, g);
+        g.pop();
+    }
+    function drawBodies(g) {
+        var e_3, _a, e_4, _b;
+        var bodyQueue = __spreadArray([], __read(getMatterWorld().bodies), false);
+        var queuedBodies = new Set(bodyQueue.map(function (b) { return b.id; }));
+        var spaceScale = getSpaceScale();
+        while (bodyQueue.length > 0) {
+            var body = bodyQueue.pop();
+            try {
+                for (var _c = (e_3 = void 0, __values(body.parts)), _d = _c.next(); !_d.done; _d = _c.next()) {
+                    var part = _d.value;
+                    if (!queuedBodies.has(part.id)) {
+                        bodyQueue.push(part);
+                        queuedBodies.add(part.id);
+                    }
+                }
+            }
+            catch (e_3_1) { e_3 = { error: e_3_1 }; }
+            finally {
+                try {
+                    if (_d && !_d.done && (_a = _c.return)) _a.call(_c);
+                }
+                finally { if (e_3) throw e_3.error; }
+            }
+            g.beginShape();
+            try {
+                for (var _e = (e_4 = void 0, __values(body.vertices)), _f = _e.next(); !_f.done; _f = _e.next()) {
+                    var vert = _f.value;
+                    g.vertex(vert.x / spaceScale, vert.y / spaceScale);
+                }
+            }
+            catch (e_4_1) { e_4 = { error: e_4_1 }; }
+            finally {
+                try {
+                    if (_f && !_f.done && (_b = _e.return)) _b.call(_e);
+                }
+                finally { if (e_4) throw e_4.error; }
+            }
+            g.endShape(CLOSE);
+        }
+    }
+    function drawRays(arrowRatio, g) {
+        var e_5, _a;
+        g.beginShape(LINES);
+        try {
+            for (var _b = __values(getRays().values()), _c = _b.next(); !_c.done; _c = _b.next()) {
+                var ray = _c.value;
+                var position = ray.position;
+                var endPosition = position.copy().add(ray.velocity);
+                var endLength = ray.velocity.mag * (arrowRatio !== null && arrowRatio !== void 0 ? arrowRatio : 0.5);
+                var x1 = position.x, y1 = position.y;
+                var x2 = endPosition.x, y2 = endPosition.y;
+                var _d = endPosition.copy().add(ray.velocity.copy().rotate(PI * 0.75).norm(endLength)), x3 = _d.x, y3 = _d.y;
+                var _e = endPosition.copy().add(ray.velocity.copy().rotate(-PI * 0.75).norm(endLength)), x4 = _e.x, y4 = _e.y;
+                g.vertex(x1, y1);
+                g.vertex(x2, y2);
+                g.vertex(x2, y2);
+                g.vertex(x3, y3);
+                g.vertex(x2, y2);
+                g.vertex(x4, y4);
+            }
+        }
+        catch (e_5_1) { e_5 = { error: e_5_1 }; }
+        finally {
+            try {
+                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+            }
+            finally { if (e_5) throw e_5.error; }
+        }
+        g.endShape();
     }
 
     var frameRateList = [];
@@ -2778,7 +3353,7 @@ var Brass = (function (exports, p5) {
 
     var particles = new Map();
     var particleLimit = 300;
-    function update$4(delta) {
+    function update$3(delta) {
         var e_1, _a;
         try {
             for (var particles_1 = __values(particles), particles_1_1 = particles_1.next(); !particles_1_1.done; particles_1_1 = particles_1.next()) {
@@ -3353,7 +3928,7 @@ var Brass = (function (exports, p5) {
 
     var pathfinderUpdateTime = 3;
     var waitingPathfinder = 0;
-    function update$3() {
+    function update$2() {
         var endTime = getExactTime() + pathfinderUpdateTime;
         var pathfinders = getPathfinders();
         var lastPathfinderIndex = waitingPathfinder + pathfinders.length;
@@ -3364,569 +3939,6 @@ var Brass = (function (exports, p5) {
             if (getExactTime() > endTime)
                 return;
         }
-    }
-
-    var spaceScale;
-    var world;
-    function setMatterWorld(_world) {
-        world = _world;
-    }
-    function getMatterWorld() {
-        return world;
-    }
-    function assertMatterWorld(action) {
-        if (action === void 0) { action = ""; }
-        assert(getMatterWorld() !== undefined, "Failed ".concat(action, ", Matter physics is not running"));
-    }
-    function setSpaceScale(_spaceScale) {
-        spaceScale = _spaceScale !== null && _spaceScale !== void 0 ? _spaceScale : 1;
-    }
-    function getSpaceScale() {
-        return spaceScale;
-    }
-    var BodyAbstract = (function () {
-        function BodyAbstract() {
-            this.sensors = [];
-            this.alive = true;
-            this.data = null;
-            assertMatterWorld("creating a physics body");
-        }
-        BodyAbstract.prototype.addSensor = function (callback) {
-            this.sensors.push(callback);
-            return this;
-        };
-        BodyAbstract.prototype.removeSensor = function (callback) {
-            var index = [].findIndex(function (sensor) { return sensor === callback; });
-            this.sensors.splice(index, 1);
-            return this;
-        };
-        BodyAbstract.prototype.triggerSensors = function (collision) {
-            this.sensors.forEach(function (callback) { return callback(collision); });
-            return this;
-        };
-        BodyAbstract.prototype.kill = function () {
-            this.alive = false;
-        };
-        BodyAbstract.prototype.validateCollisionIndex = function (index) {
-            if (typeof index !== "number" ||
-                index !== Math.floor(index))
-                throw Error("Collision category must be an integer");
-            if (index < 0 || index > 31)
-                throw Error("Collision category must be in 0 through 31 inclusive");
-            return index;
-        };
-        BodyAbstract.prototype.validateCollisionMask = function (mask) {
-            if (typeof mask !== "number" ||
-                mask !== Math.floor(mask))
-                throw Error("Collision mask must be an integer");
-            if (mask < 0x00000000 || mask > 0xFFFFFFFF)
-                throw Error("Collision mask must be 32-bit");
-            return mask;
-        };
-        BodyAbstract.prototype.collisionIndexToCategory = function (index) {
-            this.validateCollisionIndex(index);
-            return 1 << index;
-        };
-        BodyAbstract.prototype.collisionCategoryToIndex = function (category) {
-            if (category === 0x8000) {
-                return 31;
-            }
-            else {
-                var index = Math.log2(category);
-                if (index !== Math.floor(index))
-                    throw Error("Internal Matter.js body could not be fit in one collision category");
-                return index;
-            }
-        };
-        return BodyAbstract;
-    }());
-
-    var bodies = Array(32).fill(null).map(function () { return new Map(); });
-    var forceUnit = 1e-6;
-    function getBodies() {
-        return bodies;
-    }
-    var MaterialBodyAbstract = (function (_super) {
-        __extends(MaterialBodyAbstract, _super);
-        function MaterialBodyAbstract(body) {
-            var _this = _super.call(this) || this;
-            _this.setBody(body);
-            return _this;
-        }
-        MaterialBodyAbstract.prototype.setBody = function (body) {
-            if (this.body !== undefined) {
-                this.remove();
-            }
-            this.body = body;
-            this.body.__brassBody__ = this;
-            this.body.collisionFilter.category = this.collisionIndexToCategory(0);
-            bodies[0].set(this.body.id, this);
-            Matter.World.add(getMatterWorld(), body);
-        };
-        MaterialBodyAbstract.prototype.removeBody = function () {
-        };
-        Object.defineProperty(MaterialBodyAbstract.prototype, "position", {
-            get: function () {
-                var position = Vector2.fromObj(this.body.position).divScalar(getSpaceScale());
-                return position.watch(this.setPosition.bind(this));
-            },
-            set: function (position) {
-                var spaceScale = getSpaceScale();
-                position = Matter.Vector.create(position.x * spaceScale, position.y * spaceScale);
-                Matter.Body.setPosition(this.body, position);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        MaterialBodyAbstract.prototype.setPosition = function (position) {
-            this.position = position;
-        };
-        Object.defineProperty(MaterialBodyAbstract.prototype, "velocity", {
-            get: function () {
-                var velocity = Vector2.fromObj(this.body.velocity).divScalar(getSpaceScale());
-                return velocity.watch(this.setVelocity.bind(this));
-            },
-            set: function (velocity) {
-                var spaceScale = getSpaceScale();
-                velocity = Matter.Vector.create(velocity.x * spaceScale, velocity.y * spaceScale);
-                Matter.Body.setVelocity(this.body, velocity);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        MaterialBodyAbstract.prototype.setVelocity = function (velocity) {
-            this.velocity = velocity;
-        };
-        Object.defineProperty(MaterialBodyAbstract.prototype, "angle", {
-            get: function () {
-                return this.body.angle;
-            },
-            set: function (angle) {
-                Matter.Body.setAngle(this.body, angle);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(MaterialBodyAbstract.prototype, "angularVelocity", {
-            get: function () {
-                return this.body.angularVelocity;
-            },
-            set: function (angularVelocity) {
-                Matter.Body.setAngularVelocity(this.body, angularVelocity);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(MaterialBodyAbstract.prototype, "static", {
-            get: function () {
-                return this.body.isStatic;
-            },
-            set: function (isStatic) {
-                Matter.Body.setStatic(this.body, isStatic);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(MaterialBodyAbstract.prototype, "ghost", {
-            get: function () {
-                return this.body.isSensor;
-            },
-            set: function (isGhost) {
-                this.body.isSensor = isGhost;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(MaterialBodyAbstract.prototype, "collisionCategory", {
-            set: function (categoryIndex) {
-                var oldCategoryIndex = this.collisionCategoryToIndex(this.body.collisionFilter.category);
-                bodies[oldCategoryIndex].delete(this.body.id);
-                this.body.collisionFilter.category = this.collisionIndexToCategory(categoryIndex);
-                bodies[categoryIndex].set(this.body.id, this);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(MaterialBodyAbstract.prototype, "collidesWith", {
-            set: function (category) {
-                var _this = this;
-                this.body.collisionFilter.mask = 0;
-                if (category === "everything") {
-                    this.body.collisionFilter.mask = 0xFFFFFFFF;
-                }
-                else if (category === "nothing") {
-                    this.body.collisionFilter.mask = 0;
-                }
-                else if (Array.isArray(category)) {
-                    category.map(function (subCategory) { return _this.setCollidesWith(subCategory); });
-                }
-                else {
-                    this.setCollidesWith(category);
-                }
-            },
-            enumerable: false,
-            configurable: true
-        });
-        MaterialBodyAbstract.prototype.setCollidesWith = function (category) {
-            this.validateCollisionIndex(category);
-            if (category >= 0) {
-                this.body.collisionFilter.mask |= 1 << category;
-            }
-            else {
-                this.body.collisionFilter.mask &= ~(1 << -category);
-            }
-            return this;
-        };
-        MaterialBodyAbstract.prototype.rotate = function (rotation) {
-            Matter.Body.rotate(this.body, rotation);
-            return this;
-        };
-        MaterialBodyAbstract.prototype.applyForce = function (force, position) {
-            if (position === void 0) { position = this.position; }
-            var spaceScale = getSpaceScale();
-            var forceScale = spaceScale * spaceScale * spaceScale * forceUnit;
-            var matterForce = Matter.Vector.create(force.x * forceScale, force.y * forceScale);
-            var matterPosition = Matter.Vector.create(position.x * spaceScale, position.y * spaceScale);
-            queueMicrotask(Matter.Body.applyForce.bind(globalThis, this.body, matterPosition, matterForce));
-            return this;
-        };
-        MaterialBodyAbstract.prototype.kill = function () {
-            _super.prototype.kill.call(this);
-            this.remove();
-        };
-        MaterialBodyAbstract.prototype.remove = function () {
-            var categoryIndex = this.collisionCategoryToIndex(this.body.collisionFilter.category);
-            bodies[categoryIndex].delete(this.body.id);
-            Matter.World.remove(getMatterWorld(), this.body);
-        };
-        return MaterialBodyAbstract;
-    }(BodyAbstract));
-
-    var rays = new Map();
-    function getRays() {
-        return rays;
-    }
-    var RayBody = (function (_super) {
-        __extends(RayBody, _super);
-        function RayBody(x, y, width, options) {
-            if (width === void 0) { width = 0.1; }
-            if (options === void 0) { options = {}; }
-            var _this = this;
-            var _a, _b;
-            _this = _super.call(this) || this;
-            _this.id = Symbol();
-            _this.position = new Vector2(x, y);
-            _this.velocity = Vector2.fromObj((_a = options.velocity) !== null && _a !== void 0 ? _a : { x: 0, y: 0 });
-            _this.width = width;
-            _this.mask = _this.validateCollisionMask((_b = options.mask) !== null && _b !== void 0 ? _b : 0xFFFFFFFF);
-            rays.set(_this.id, _this);
-            return _this;
-        }
-        Object.defineProperty(RayBody.prototype, "angle", {
-            get: function () {
-                throw Error("RayBody can't have rotation");
-            },
-            set: function (_) {
-                throw Error("RayBody can't have rotation");
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(RayBody.prototype, "angularVelocity", {
-            get: function () {
-                throw Error("RayBody can't have rotation");
-            },
-            set: function (_) {
-                throw Error("RayBody can't have rotation");
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(RayBody.prototype, "static", {
-            get: function () {
-                return false;
-            },
-            set: function (isStatic) {
-                if (isStatic === true) {
-                    throw Error("RayBody can't have static behaviour enabled");
-                }
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(RayBody.prototype, "ghost", {
-            get: function () {
-                return true;
-            },
-            set: function (isGhost) {
-                if (isGhost === false) {
-                    throw Error("RayBody can't have ghost behaviour disabled");
-                }
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(RayBody.prototype, "collisionCategory", {
-            set: function (_) { },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(RayBody.prototype, "collidesWith", {
-            set: function (category) {
-                var _this = this;
-                this.mask = 0;
-                if (category === "everything") {
-                    this.mask = 0xFFFFFFFF;
-                }
-                else if (category === "nothing") {
-                    this.mask = 0;
-                }
-                else if (Array.isArray(category)) {
-                    category.map(function (subCategory) { return _this.setCollidesWith(subCategory); });
-                }
-                else {
-                    this.setCollidesWith(category);
-                }
-            },
-            enumerable: false,
-            configurable: true
-        });
-        RayBody.prototype.setCollidesWith = function (category) {
-            this.validateCollisionIndex(category);
-            if (category >= 0) {
-                this.mask |= 1 << category;
-            }
-            else {
-                this.mask &= ~(1 << -category);
-            }
-            return this;
-        };
-        RayBody.prototype.rotate = function (_) {
-            throw Error("RayBody can't have rotation");
-        };
-        RayBody.prototype.applyForce = function () {
-            throw Error("RayBody can't have forces applied");
-        };
-        RayBody.prototype.kill = function () {
-            _super.prototype.kill.call(this);
-            this.remove();
-        };
-        RayBody.prototype.remove = function () {
-            rays.delete(this.id);
-        };
-        RayBody.prototype.castOverTime = function (delta, steps) {
-            var timeSteps = (delta / 1000 * 60);
-            var displacement = this.velocity.copy().multScalar(timeSteps);
-            return this.cast(displacement, steps);
-        };
-        RayBody.prototype.cast = function (_displacement, steps) {
-            if (steps === void 0) { steps = 20; }
-            var spaceScale = getSpaceScale();
-            var displacement = _displacement.multScalar(spaceScale);
-            var testBrassBodies = [];
-            for (var i = 0; i < 32; i++) {
-                if (!(this.mask & (1 << i)))
-                    continue;
-                var catagoryBodies = getBodies()[i];
-                testBrassBodies.push.apply(testBrassBodies, __spreadArray([], __read(Array.from(catagoryBodies.values())), false));
-            }
-            var testBodies = testBrassBodies.map(function (brassBody) { return brassBody.body; });
-            var start = this.position.copy().multScalar(spaceScale);
-            var testPoint = 1, testJump = 0.5, hits = [], hitEnd = displacement.copy().multScalar(testPoint).add(start), hitPoint = 1;
-            for (var i = 0; i < steps; i++) {
-                var end = displacement.copy().multScalar(testPoint).add(start);
-                var currentHits = Matter.Query.ray(testBodies, start, end, this.width * spaceScale);
-                if (currentHits.length < 1) {
-                    if (i === 0)
-                        break;
-                    testPoint += testJump;
-                    testJump /= 2;
-                }
-                else if (currentHits.length === 1) {
-                    hits = currentHits;
-                    hitPoint = testPoint;
-                    hitEnd = end;
-                    testPoint -= testJump;
-                    testJump /= 2;
-                }
-                else {
-                    if (currentHits.length !== 1) {
-                        hits = currentHits;
-                        hitPoint = testPoint;
-                        hitEnd = end;
-                    }
-                    testPoint -= testJump;
-                    testJump /= 2;
-                }
-            }
-            if (hits.length > 1) {
-                hits = hits.sort(function (a, b) { return start.distSq(a.bodyA.position) - start.distSq(b.bodyA.position); });
-            }
-            var hitBody;
-            if (hits.length === 0) {
-                hitBody = null;
-            }
-            else {
-                hitBody = hits[0].parentA.__brassBody__;
-            }
-            return {
-                point: hitEnd.divScalar(spaceScale),
-                dist: displacement.mag * hitPoint / spaceScale,
-                body: hitBody
-            };
-        };
-        return RayBody;
-    }(BodyAbstract));
-
-    var lastDelta = null;
-    var engine;
-    function init$1(_options) {
-        var _a;
-        if (_options === void 0) { _options = {}; }
-        if (typeof Matter !== "object") {
-            throw Error("Matter was not found; Can't initialize Brass physics without Matter.js initialized first");
-        }
-        setSpaceScale(_options.spaceScale);
-        (_a = _options.gravity) !== null && _a !== void 0 ? _a : (_options.gravity = { scale: 0 });
-        var options = _options;
-        engine = Matter.Engine.create(options);
-        setMatterWorld(engine.world);
-        Matter.Events.on(engine, "collisionActive", handleActiveCollisions);
-    }
-    function handleActiveCollisions(_a) {
-        var pairs = _a.pairs;
-        var spaceScale = getSpaceScale();
-        pairs.map(function (pair) {
-            var e_1, _a;
-            var bodyA = pair.bodyA.__brassBody__;
-            var bodyB = pair.bodyB.__brassBody__;
-            var points = [];
-            try {
-                for (var _b = __values(pair.activeContacts), _c = _b.next(); !_c.done; _c = _b.next()) {
-                    var vertex_1 = _c.value.vertex;
-                    points.push(new Vector2(vertex_1.x / spaceScale, vertex_1.y / spaceScale));
-                }
-            }
-            catch (e_1_1) { e_1 = { error: e_1_1 }; }
-            finally {
-                try {
-                    if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
-                }
-                finally { if (e_1) throw e_1.error; }
-            }
-            bodyA.triggerSensors({ self: bodyA, body: bodyB, points: points.map(function (v) { return v.copy(); }) });
-            bodyB.triggerSensors({ self: bodyB, body: bodyA, points: points });
-        });
-    }
-    function update$2(delta) {
-        var e_2, _a;
-        assertMatterWorld("updating physics");
-        if (lastDelta === null)
-            lastDelta = delta;
-        if (lastDelta !== 0) {
-            Matter.Engine.update(engine, delta, delta / lastDelta);
-        }
-        lastDelta = delta;
-        try {
-            for (var _b = __values(getRays().entries()), _c = _b.next(); !_c.done; _c = _b.next()) {
-                var _d = __read(_c.value, 2), _ = _d[0], ray = _d[1];
-                var _e = ray.castOverTime(delta), body = _e.body, point_1 = _e.point;
-                ray.position = point_1.copy();
-                if (!body)
-                    continue;
-                ray.triggerSensors({ body: body, self: ray, points: [point_1] });
-                ray.kill();
-            }
-        }
-        catch (e_2_1) { e_2 = { error: e_2_1 }; }
-        finally {
-            try {
-                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
-            }
-            finally { if (e_2) throw e_2.error; }
-        }
-    }
-    function drawColliders(weight, d) {
-        if (weight === void 0) { weight = 0.5; }
-        if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
-        var g = d.getMaps().canvas;
-        g.push();
-        g.noFill();
-        g.strokeWeight(weight);
-        g.stroke(0, 255, 0);
-        drawBodies(g);
-        g.stroke(255, 0, 0);
-        drawRays(g);
-        g.pop();
-    }
-    function drawBodies(g) {
-        var e_3, _a, e_4, _b;
-        var bodyQueue = __spreadArray([], __read(getMatterWorld().bodies), false);
-        var queuedBodies = new Set(bodyQueue.map(function (b) { return b.id; }));
-        var spaceScale = getSpaceScale();
-        while (bodyQueue.length > 0) {
-            var body = bodyQueue.pop();
-            try {
-                for (var _c = (e_3 = void 0, __values(body.parts)), _d = _c.next(); !_d.done; _d = _c.next()) {
-                    var part = _d.value;
-                    if (!queuedBodies.has(part.id)) {
-                        bodyQueue.push(part);
-                        queuedBodies.add(part.id);
-                    }
-                }
-            }
-            catch (e_3_1) { e_3 = { error: e_3_1 }; }
-            finally {
-                try {
-                    if (_d && !_d.done && (_a = _c.return)) _a.call(_c);
-                }
-                finally { if (e_3) throw e_3.error; }
-            }
-            g.beginShape();
-            try {
-                for (var _e = (e_4 = void 0, __values(body.vertices)), _f = _e.next(); !_f.done; _f = _e.next()) {
-                    var vert = _f.value;
-                    g.vertex(vert.x / spaceScale, vert.y / spaceScale);
-                }
-            }
-            catch (e_4_1) { e_4 = { error: e_4_1 }; }
-            finally {
-                try {
-                    if (_f && !_f.done && (_b = _e.return)) _b.call(_e);
-                }
-                finally { if (e_4) throw e_4.error; }
-            }
-            g.endShape(CLOSE);
-        }
-    }
-    function drawRays(g) {
-        var e_5, _a;
-        g.beginShape(LINES);
-        try {
-            for (var _b = __values(getRays().values()), _c = _b.next(); !_c.done; _c = _b.next()) {
-                var ray = _c.value;
-                var position = ray.position;
-                var endPosition = position.copy().add(ray.velocity);
-                var x1 = position.x, y1 = position.y;
-                var x2 = endPosition.x, y2 = endPosition.y;
-                var _d = endPosition.copy().add(ray.velocity.copy().rotate(PI * 0.75).norm(1)), x3 = _d.x, y3 = _d.y;
-                var _e = endPosition.copy().add(ray.velocity.copy().rotate(-PI * 0.75).norm(1)), x4 = _e.x, y4 = _e.y;
-                g.vertex(x1, y1);
-                g.vertex(x2, y2);
-                g.vertex(x2, y2);
-                g.vertex(x3, y3);
-                g.vertex(x2, y2);
-                g.vertex(x4, y4);
-            }
-        }
-        catch (e_5_1) { e_5 = { error: e_5_1 }; }
-        finally {
-            try {
-                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
-            }
-            finally { if (e_5) throw e_5.error; }
-        }
-        g.endShape();
     }
 
     var arrayConstructors = {
@@ -4445,7 +4457,6 @@ var Brass = (function (exports, p5) {
 
     var inited = false;
     var testStatus = null;
-    var sketch$1;
     var maxTimeDelta, targetTimeDelta, minTimeDelta;
     var timewarpList = [];
     var runningPhysics = false;
@@ -4474,17 +4485,18 @@ var Brass = (function (exports, p5) {
         if (options.regl === undefined && globalThis.createREGL !== undefined) {
             console.warn("regl.js has been found; Enable or disable regl in Brass.init()");
         }
-        init$8(options.sketch);
+        init$5(options.sketch);
         init$7();
-        init$4((_a = options.regl) !== null && _a !== void 0 ? _a : false, options.drawTarget);
-        init$2(options.viewpoint);
+        init$2((_a = options.regl) !== null && _a !== void 0 ? _a : false, options.drawTarget);
+        init$3(options.viewpoint);
         var targetFrameRate = Math.min(_targetFrameRate, (_b = options.maxFrameRate) !== null && _b !== void 0 ? _b : 60);
-        sketch$1.frameRate(targetFrameRate);
+        var sketch = getSketch();
+        sketch.frameRate(targetFrameRate);
         targetTimeDelta = 1000 / targetFrameRate;
         maxTimeDelta = (_c = options.maxTimeDelta) !== null && _c !== void 0 ? _c : targetTimeDelta * 2.0;
         minTimeDelta = (_d = options.minTimeDelta) !== null && _d !== void 0 ? _d : targetTimeDelta * 0.5;
         update$5();
-        init$3((_e = options.sound) !== null && _e !== void 0 ? _e : false);
+        init$6((_e = options.sound) !== null && _e !== void 0 ? _e : false);
         runningPhysics = options.matter !== undefined;
         if (runningPhysics) {
             if (typeof options.matter === "object") {
@@ -4494,11 +4506,11 @@ var Brass = (function (exports, p5) {
                 init$1();
             }
         }
-        if (sketch$1.draw === undefined) {
-            sketch$1.draw = defaultSketchDraw;
+        if (sketch.draw === undefined) {
+            sketch.draw = defaultSketchDraw;
         }
-        if (sketch$1.windowResized === undefined) {
-            sketch$1.windowResized = function () { return resize(window.innerWidth, window.innerHeight); };
+        if (sketch.windowResized === undefined) {
+            sketch.windowResized = function () { return resize(window.innerWidth, window.innerHeight); };
         }
         inited = true;
     }
@@ -4517,10 +4529,15 @@ var Brass = (function (exports, p5) {
         realDelta = Math.max(minTimeDelta, realDelta);
         var simDelta = updateSimTiming(realDelta);
         updateEarly();
-        if (sketch$1.brassUpdate !== undefined)
-            ;
+        var sketch = getSketch();
+        if (sketch.brassUpdate !== undefined)
+            sketch.brassUpdate(simDelta);
         updateLate(simDelta);
-        if (sketch$1.brassDraw !== undefined) ;
+        if (sketch.brassDraw !== undefined) {
+            syncDefaultP5DrawTarget();
+            getP5DrawTarget("defaultP5").getMaps().canvas.resetMatrix();
+            sketch.brassDraw(simDelta);
+        }
     }
     function updateSimTiming(realDelta) {
         var simDelta = 0;
@@ -4551,11 +4568,11 @@ var Brass = (function (exports, p5) {
     function updateLate(delta) {
         enforceInit("updating Brass");
         if (runningPhysics)
-            update$2(delta);
+            update$4(delta);
         updateViewpoints(delta);
         update$1();
-        update$3();
-        update$4(delta);
+        update$2();
+        update$3(delta);
     }
     function timewarp(duration, rate) {
         if (rate === void 0) { rate = 0; }
@@ -5514,10 +5531,10 @@ var Brass = (function (exports, p5) {
     exports.Viewpoint = Viewpoint;
     exports.createFastGraphics = createFastGraphics;
     exports.disableContextMenu = disableContextMenu;
+    exports.drawCanvasToP5 = drawCanvasToP5;
     exports.drawColliders = drawColliders;
     exports.drawFPS = drawFPS;
     exports.drawLoading = drawLoading;
-    exports.drawNativeToP5 = drawNativeToP5;
     exports.drawParticles = draw;
     exports.emitParticle = emitParticle;
     exports.emitParticles = emitParticles;

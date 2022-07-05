@@ -4,7 +4,7 @@ const MAX_MAP_SIZE = 256;
 let tilemap, viewpoint, lighter;
 let player, pathfinder;
 
-async function setup() {
+function setup() {
 	viewpoint = new Brass.Viewpoint(64);
 
 	Brass.init({
@@ -65,16 +65,18 @@ async function setup() {
 			loadPromise.then(() => tilemap.clearCaches());
 		});
 
-	tilemap.import(await Brass.loadWorldLate({
+	Brass.loadLevelLate({
 		surface: "uint16",
 		items: "uint16"
 	},
 		"tilemap.json"
-	));
+	).then(
+		(level) => tilemap.import(level)
+	);
 }
 
 function createPlayer() {
-	player = new Brass.RayBody(35.5, 35.5, 0.4, {
+	player = new Brass.RayBody(35.5, 35.5, 0.25, {
 		velocity: Brass.Vector2.fromDirMag(random(TWO_PI), random(0.1, 0.3))
 	});
 	player.addSensor(() => {
@@ -89,8 +91,10 @@ function brassDraw() {
 
 	background(127);
 	tilemap.draw();
-	noStroke();
-	fill(255);
 
-	circle(player.position.x, player.position.y, 0.8);
+	noStroke();
+	fill(0);
+	circle(player.position.x, player.position.y, 0.15);
+	
+	Brass.drawColliders(0.04);
 }

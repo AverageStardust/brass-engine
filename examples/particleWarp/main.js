@@ -22,7 +22,7 @@ function brassDraw(delta) {
 	Brass.setTestStatus(frameCount > 60);
 }
 
-class Particle extends Brass.VelocityParticleAbstract {
+class Particle extends Brass.VelocityParticle {
 	constructor(position) {
 		super(position);
 		this.xSeed = floor(random(Number.MAX_SAFE_INTEGER));

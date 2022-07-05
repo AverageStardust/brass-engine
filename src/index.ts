@@ -107,9 +107,6 @@ export {
 } from "./vector/vector2";
 
 export {
-	resize,
-} from "./layers/globalResize";
-export {
 	getRegl,
 	refreshRegl,
 	refreshReglFast,
@@ -118,6 +115,7 @@ export {
 	DrawBuffer
 } from "./layers/drawBuffer";
 export {
+	resize,
 	DrawTarget,
 	setDrawTarget,
 	hasDrawTarget,
@@ -133,7 +131,7 @@ export {
 	getCanvasDrawTarget
 } from "./layers/canvasLayers";
 export {
-	drawNativeToP5
+	drawCanvasToP5
 } from "./layers/layers";
 
 export {

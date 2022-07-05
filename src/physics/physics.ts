@@ -25,7 +25,7 @@ let engine: Matter.Engine;
 
 export function init(_options: MatterWorldDefinition = {}) {
 	if (typeof Matter !== "object") {
-		throw Error("Matter was not found; Can't initialize Brass physics without Matter.js initialized first");
+		throw Error("Matter was not found; Can't initialize Brass physics without Matter.js loaded first");
 	}
 
 	setSpaceScale(_options.spaceScale);
@@ -76,7 +76,7 @@ export function update(delta: number) {
 	}
 }
 
-export function drawColliders(weight = 0.5, d = getP5DrawTarget("defaultP5")) {
+export function drawColliders(weight = 0.1, arrowRatio?: number,  d = getP5DrawTarget("defaultP5")) {
 	const g = d.getMaps().canvas;
 	g.push();
 	g.noFill();
@@ -86,7 +86,7 @@ export function drawColliders(weight = 0.5, d = getP5DrawTarget("defaultP5")) {
 	drawBodies(g);
 
 	g.stroke(255, 0, 0);
-	drawRays(g);
+	drawRays(arrowRatio, g);
 
 	g.pop();
 }
@@ -114,16 +114,17 @@ function drawBodies(g: P5LayerMap) {
 	}
 }
 
-function drawRays(g: P5LayerMap) {
+function drawRays(arrowRatio: number | undefined, g: P5LayerMap) {
 	g.beginShape(LINES);
 	for (const ray of getRays().values()) {
 		const position = ray.position;
 		const endPosition = position.copy().add(ray.velocity);
+		const endLength = ray.velocity.mag * (arrowRatio ?? 0.5);
 
 		const { x: x1, y: y1 } = position;
 		const { x: x2, y: y2 } = endPosition;
-		const { x: x3, y: y3 } = endPosition.copy().add(ray.velocity.copy().rotate(PI * 0.75).norm(1));
-		const { x: x4, y: y4 } = endPosition.copy().add(ray.velocity.copy().rotate(-PI * 0.75).norm(1));
+		const { x: x3, y: y3 } = endPosition.copy().add(ray.velocity.copy().rotate(PI * 0.75).norm(endLength));
+		const { x: x4, y: y4 } = endPosition.copy().add(ray.velocity.copy().rotate(-PI * 0.75).norm(endLength));
 
 		g.vertex(x1, y1);
 		g.vertex(x2, y2);

@@ -2,7 +2,14 @@ import p5 from "p5";
 
 
 
-let sketch: p5;
+interface BrassP5 extends p5 {
+	brassDraw?: (delta: number) => void
+	brassUpdate?: (delta: number) => void
+}
+
+
+
+let sketch: BrassP5;
 
 
 

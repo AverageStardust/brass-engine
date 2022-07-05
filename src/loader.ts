@@ -67,6 +67,9 @@ let errorSound: p5.SoundFile;
 
 export function init(_useSound: boolean) {
 	useSound = _useSound;
+	if (useSound && typeof p5.SoundFile !== "function") {
+		throw Error("p5.Sound was not found; Can't initialize Brass loader sound without p5.Sound loaded first");
+	}
 
 	errorImage = createFastGraphics(64, 64);
 

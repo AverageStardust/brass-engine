@@ -4,21 +4,21 @@
  */
 
 import p5 from "p5";
-import { init as initSketch } from "./sketch";
+
 import { init as initInput, update as updateInput } from "../inputMapper";
-import { init as initDrawLayer } from "../layers/layers";
-import { DrawTarget } from "../layers/drawTarget";
 import { init as initLoader, loaded } from "../loader";
 import { init as initViewpoint, updateViewpoints } from "../camera/camera";
+import { init as initLayer } from "../layers/layers";
+import { init as initSketch, getSketch } from "./sketch";
+import { init as initPhysics, MatterWorldDefinition, update as updatePhysics } from "../physics/physics";
+import { DrawTarget, resize, syncDefaultP5DrawTarget } from "../layers/drawTarget";
 import { ViewpointAbstract } from "../camera/viewpointAbstract";
 import { deltaSimTime, update as updateTime } from "./time";
 import { drawLoading } from "../ui/legacyUI";
 import { update as updateEffects } from "../effects/effects";
 import { update as updatePathfinders } from "../pathfinder/pathfinder";
-import { init as initPhysics, MatterWorldDefinition, update as updatePhysics } from "../physics/physics";
 import { update as updateTilemaps } from "../tilemap/tilemap";
-import { resize } from "../layers/globalResize";
-import { resetAndSyncDefaultP5DrawTarget } from "../layers/p5Layers";
+import { getP5DrawTarget } from "../layers/p5Layers";
 
 
 
@@ -50,7 +50,6 @@ interface InitOptions {
 
 let inited = false;
 let testStatus: true | string | null = null;
-let sketch: p5;
 let maxTimeDelta: number, targetTimeDelta: number, minTimeDelta: number;
 const timewarpList: Timewarp[] = [];
 let runningPhysics = false;
@@ -86,11 +85,12 @@ export function init(options: InitOptions = {}) {
 
 	initInput();
 
-	initDrawLayer(options.regl ?? false, options.drawTarget);
+	initLayer(options.regl ?? false, options.drawTarget);
 
 	initViewpoint(options.viewpoint);
 
 	const targetFrameRate = Math.min(_targetFrameRate, options.maxFrameRate ?? 60);
+	const sketch = getSketch();
 	sketch.frameRate(targetFrameRate);
 	targetTimeDelta = 1000 / targetFrameRate;
 	maxTimeDelta = options.maxTimeDelta ?? targetTimeDelta * 2.0;
@@ -139,15 +139,15 @@ function defaultSketchDraw() {
 
 	updateEarly();
 
-	// @ts-ignore because this is outside of Brass engine and can't be type checked
+	const sketch = getSketch();
+
 	if (sketch.brassUpdate !== undefined) sketch.brassUpdate(simDelta);
 
 	updateLate(simDelta);
 
-	// @ts-ignore because this is outside of Brass engine and can't be type checked
 	if (sketch.brassDraw !== undefined) {
-		resetAndSyncDefaultP5DrawTarget();
-		// @ts-ignore
+		syncDefaultP5DrawTarget();
+		getP5DrawTarget("defaultP5").getMaps().canvas.resetMatrix();
 		sketch.brassDraw(simDelta);
 	}
 }

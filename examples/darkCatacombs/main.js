@@ -44,11 +44,11 @@ function load() {
 		.then((image) => tilesheet = image);
 
 	// load world from Tiled map
-	Brass.loadWorldLate({
+	Brass.loadLevelLate({
 			"tile": "uint8",
 		}, "tilemap.json")
-		.then((world) => {
-			tilemap.import(world);
+		.then((level) => {
+			tilemap.import(level);
 			for (let x = 0; x < tilemap.width; x++) {
 				for (let y = 0; y < tilemap.height; y++) {
 					const tile = tilemap.get(x, y);
@@ -439,7 +439,7 @@ function emitCandleFire(position, delta) {
 		position.copy().addScalar(random(-0.05, 0.05), 0));
 }
 
-class FireParticle extends Brass.VelocityParticleAbstract {
+class FireParticle extends Brass.VelocityParticle {
 	constructor(position) {
 		super(position, new Brass.Vector2(random(-0.001, 0.001), -0.001));
 		this.lifetime = random(2500, 3500);

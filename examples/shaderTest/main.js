@@ -59,5 +59,5 @@ function draw() {
 
 function displayTri() {
 	triCommand();
-	Brass.displayRegl();
+	Brass.drawCanvasToP5();
 }
