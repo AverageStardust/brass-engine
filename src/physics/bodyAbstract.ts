@@ -1,6 +1,46 @@
+import { assert } from "../common/runtimeChecking";
+import { Opaque } from "../common/types";
 import { Vector2, Vertex2 } from "../vector/vector2";
-import { CollisionCallback, enforceInit, Collision, CollisionFilterCategory, CollisionFilterMask, CollisionFilterIndex } from "./physics";
 
+
+
+export interface Collision {
+	body: BodyAbstract;
+	self: BodyAbstract;
+	points: Vector2[];
+}
+
+export type CollisionCallback = (collision: Collision) => void;
+export type CollisionFilterIndex = Opaque<number, "CollisionFilterIndex">; // index for bitmask, between 0 and 31 inclusive
+export type CollisionFilterMask = Opaque<number, "CollisionFilterMask">; // bitmask for what categories to collide with
+export type CollisionFilterCategory = Opaque<number, "CollisionFilterCategory">; // bitmask with one bit set for collisions
+
+
+
+let spaceScale: number;
+let world: Matter.World;
+
+
+
+export function setMatterWorld(_world: Matter.World) {
+	world = _world;
+}
+
+export function getMatterWorld() {
+	return world;
+}
+
+export function assertMatterWorld(action = "") {
+	assert(getMatterWorld() !== undefined, `Failed ${action}, Matter physics is not running`);
+}
+
+export function setSpaceScale(_spaceScale?: number) {
+	spaceScale = _spaceScale ?? 1;
+}
+
+export function getSpaceScale() {
+	return spaceScale;
+}
 
 export abstract class BodyAbstract {
 	private sensors: CollisionCallback[] = [];
@@ -8,7 +48,7 @@ export abstract class BodyAbstract {
 	data: any = null;
 
 	constructor() {
-		enforceInit("creating a body");
+		assertMatterWorld("creating a physics body");
 	}
 
 	abstract get position(): Vector2;

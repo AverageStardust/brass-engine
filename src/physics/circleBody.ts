@@ -1,5 +1,5 @@
+import { getSpaceScale } from "./bodyAbstract";
 import { MaterialBodyAbstract } from "./materialBodyAbstract";
-import { getSpaceScale } from "./physics";
 
 
 export class CircleBody extends MaterialBodyAbstract {

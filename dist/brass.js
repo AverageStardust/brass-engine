@@ -1971,7 +1971,7 @@ var Brass = (function (exports, p5) {
     var assets = {};
     var loadQueue = [];
     var useSound = false;
-    var inited$2 = false;
+    var inited$1 = false;
     var soundFormatsConfigured = false;
     var unsafeLevelLoading = false;
     var totalLateAssets = 0;
@@ -1996,11 +1996,11 @@ var Brass = (function (exports, p5) {
             errorSound.buffer = audioBuffer;
             errorSound.panner.inputChannels(audioBuffer.numberOfChannels);
         }
-        inited$2 = true;
+        inited$1 = true;
         loadQueuedAssets();
     }
-    function enforceInit$2(action) {
-        if (inited$2)
+    function enforceInit$1(action) {
+        if (inited$1)
             return;
         throw Error("Brass loader must be initialized before ".concat(action, "; Run Brass.init()"));
     }
@@ -2018,7 +2018,7 @@ var Brass = (function (exports, p5) {
         queueMicrotask(loadQueuedAssets);
     }
     function loadQueuedAssets() {
-        if (!inited$2)
+        if (!inited$1)
             return;
         if (loadingAssets >= 2)
             return;
@@ -2176,7 +2176,7 @@ var Brass = (function (exports, p5) {
         };
     }
     function getImage(name) {
-        enforceInit$2("getting images");
+        enforceInit$1("getting images");
         var image = assets[name];
         if (image)
             return image;
@@ -2207,7 +2207,7 @@ var Brass = (function (exports, p5) {
         });
     }
     function getSound(name) {
-        enforceInit$2("getting sounds");
+        enforceInit$1("getting sounds");
         enforceP5SoundPresent("getting sounds");
         var sound = assets[name];
         return sound !== null && sound !== void 0 ? sound : errorSound;
@@ -2258,7 +2258,7 @@ var Brass = (function (exports, p5) {
     }
     function getLevel(name) {
         var _a;
-        enforceInit$2("getting levels");
+        enforceInit$1("getting levels");
         return (_a = assets[name]) !== null && _a !== void 0 ? _a : null;
     }
     function parseLevelJson(fields, json) {
@@ -3366,259 +3366,30 @@ var Brass = (function (exports, p5) {
         }
     }
 
-    var inited$1 = false;
-    var lastDelta = null;
-    var engine;
-    var world;
     var spaceScale;
-    var rays = new Map();
-    var bodies = Array(32).fill(null).map(function () { return new Map(); });
-    var forceUnit = 1e-6;
-    function init$1(_options) {
-        var _a, _b;
-        if (_options === void 0) { _options = {}; }
-        if (typeof Matter !== "object") {
-            throw Error("Matter was not found; Can't initialize Brass physics without Matter.js initialized first");
-        }
-        (_a = _options.gravity) !== null && _a !== void 0 ? _a : (_options.gravity = { scale: 0 });
-        spaceScale = (_b = _options.spaceScale) !== null && _b !== void 0 ? _b : 1;
-        var options = _options;
-        engine = Matter.Engine.create(options);
-        world = engine.world;
-        Matter.Events.on(engine, "collisionActive", handleActiveCollisions);
-        inited$1 = true;
-    }
-    function handleActiveCollisions(_a) {
-        var pairs = _a.pairs;
-        pairs.map(function (pair) {
-            var e_1, _a;
-            var bodyA = pair.bodyA.__brassBody__;
-            var bodyB = pair.bodyB.__brassBody__;
-            var points = [];
-            try {
-                for (var _b = __values(pair.activeContacts), _c = _b.next(); !_c.done; _c = _b.next()) {
-                    var vertex_1 = _c.value.vertex;
-                    points.push(new Vector2(vertex_1.x / spaceScale, vertex_1.y / spaceScale));
-                }
-            }
-            catch (e_1_1) { e_1 = { error: e_1_1 }; }
-            finally {
-                try {
-                    if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
-                }
-                finally { if (e_1) throw e_1.error; }
-            }
-            bodyA.triggerSensors({ self: bodyA, body: bodyB, points: points.map(function (v) { return v.copy(); }) });
-            bodyB.triggerSensors({ self: bodyB, body: bodyA, points: points });
-        });
-    }
-    function isPhysicsActive() {
-        return inited$1;
-    }
-    function enforceInit$1(action) {
-        if (inited$1)
-            return;
-        throw Error("Matter must be enabled in Brass.init() before ".concat(action));
-    }
-    function update$2(delta) {
-        var e_2, _a;
-        enforceInit$1("updating physics");
-        if (lastDelta === null)
-            lastDelta = delta;
-        if (lastDelta !== 0) {
-            Matter.Engine.update(engine, delta, delta / lastDelta);
-        }
-        lastDelta = delta;
-        try {
-            for (var _b = __values(rays.entries()), _c = _b.next(); !_c.done; _c = _b.next()) {
-                var _d = __read(_c.value, 2), _ = _d[0], ray = _d[1];
-                var _e = ray.castOverTime(delta), body = _e.body, point_1 = _e.point;
-                ray.position = point_1.copy();
-                if (!body)
-                    continue;
-                ray.triggerSensors({ body: body, self: ray, points: [point_1] });
-                ray.kill();
-            }
-        }
-        catch (e_2_1) { e_2 = { error: e_2_1 }; }
-        finally {
-            try {
-                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
-            }
-            finally { if (e_2) throw e_2.error; }
-        }
-    }
-    function drawColliders(weight, d) {
-        var e_3, _a, e_4, _b;
-        if (weight === void 0) { weight = 0.5; }
-        if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
-        var g = d.getMaps().canvas;
-        g.push();
-        g.noFill();
-        g.stroke(0, 255, 0);
-        g.strokeWeight(weight);
-        var bodyQueue = __spreadArray([], __read(world.bodies), false);
-        var queuedBodies = new Set(bodyQueue.map(function (b) { return b.id; }));
-        while (bodyQueue.length > 0) {
-            var body = bodyQueue.pop();
-            try {
-                for (var _c = (e_3 = void 0, __values(body.parts)), _d = _c.next(); !_d.done; _d = _c.next()) {
-                    var part = _d.value;
-                    if (!queuedBodies.has(part.id)) {
-                        bodyQueue.push(part);
-                        queuedBodies.add(part.id);
-                    }
-                }
-            }
-            catch (e_3_1) { e_3 = { error: e_3_1 }; }
-            finally {
-                try {
-                    if (_d && !_d.done && (_a = _c.return)) _a.call(_c);
-                }
-                finally { if (e_3) throw e_3.error; }
-            }
-            g.beginShape();
-            try {
-                for (var _e = (e_4 = void 0, __values(body.vertices)), _f = _e.next(); !_f.done; _f = _e.next()) {
-                    var vert = _f.value;
-                    g.vertex(vert.x / spaceScale, vert.y / spaceScale);
-                }
-            }
-            catch (e_4_1) { e_4 = { error: e_4_1 }; }
-            finally {
-                try {
-                    if (_f && !_f.done && (_b = _e.return)) _b.call(_e);
-                }
-                finally { if (e_4) throw e_4.error; }
-            }
-            g.endShape(CLOSE);
-        }
-        g.pop();
+    var world;
+    function setMatterWorld(_world) {
+        world = _world;
     }
     function getMatterWorld() {
         return world;
     }
+    function assertMatterWorld(action) {
+        if (action === void 0) { action = ""; }
+        assert(getMatterWorld() !== undefined, "Failed ".concat(action, ", Matter physics is not running"));
+    }
+    function setSpaceScale(_spaceScale) {
+        spaceScale = _spaceScale !== null && _spaceScale !== void 0 ? _spaceScale : 1;
+    }
     function getSpaceScale() {
         return spaceScale;
     }
-    function createRectBodyFast(x, y, width, height) {
-        var body = {
-            id: Matter.Common.nextId(),
-            type: "body",
-            label: "rectBody",
-            plugin: {},
-            parts: [],
-            angle: 0,
-            vertices: [
-                { x: -width * 0.5, y: -height * 0.5, index: 0, isInternal: false },
-                { x: width * 0.5, y: -height * 0.5, index: 1, isInternal: false },
-                { x: width * 0.5, y: height * 0.5, index: 2, isInternal: false },
-                { x: -width * 0.5, y: height * 0.5, index: 3, isInternal: false }
-            ],
-            position: { x: x + width * 0.5, y: y + height * 0.5 },
-            force: { x: 0, y: 0 },
-            torque: 0,
-            positionImpulse: { x: 0, y: 0 },
-            constraintImpulse: { x: 0, y: 0, angle: 0 },
-            totalContacts: 0,
-            speed: 0,
-            angularSpeed: 0,
-            velocity: { x: 0, y: 0 },
-            angularVelocity: 0,
-            isSensor: false,
-            isStatic: false,
-            isSleeping: false,
-            motion: 0,
-            sleepThreshold: 60,
-            density: 0.001,
-            restitution: 0,
-            friction: 0.1,
-            frictionStatic: 0.5,
-            frictionAir: 0.01,
-            collisionFilter: {
-                category: 0x0001,
-                mask: 0xFFFFFFFF,
-                group: 0
-            },
-            slop: 0.05,
-            timeScale: 1,
-            circleRadius: 0,
-            positionPrev: { x: x + width * 0.5, y: y + height * 0.5 },
-            anglePrev: 0,
-            area: 0,
-            mass: 0,
-            inertia: 0,
-            _original: null
-        };
-        body.parts = [body];
-        body.parent = body;
-        Matter.Body.set(body, {
-            bounds: Matter.Bounds.create(body.vertices),
-            vertices: body.vertices,
-        });
-        Matter.Bounds.update(body.bounds, body.vertices, body.velocity);
-        return body;
-    }
-
-    var arrayConstructors = {
-        "any": Array,
-        "int8": Int8Array,
-        "int16": Int16Array,
-        "int32": Int32Array,
-        "uint8": Uint8Array,
-        "uint16": Uint16Array,
-        "uint32": Uint32Array,
-        "float32": Float32Array,
-        "float64": Float64Array
-    };
-    function createDynamicArray(type, size) {
-        var constructor = getArrayConstructor(type);
-        return new constructor(size);
-    }
-    function cloneDynamicArray(resultType, data) {
-        var _a;
-        var constructor = getArrayConstructor(resultType);
-        if (resultType === "any") {
-            return new ((_a = constructor).bind.apply(_a, __spreadArray([void 0], __read(data), false)))();
-        }
-        else {
-            return new constructor(data);
-        }
-    }
-    function encodeDynamicTypedArray(data) {
-        var raw = new Uint8Array(data.buffer);
-        var binary = [];
-        for (var i = 0; i < raw.byteLength; i++) {
-            binary.push(String.fromCharCode(raw[i]));
-        }
-        return btoa(binary.join(""));
-    }
-    function decodeDynamicTypedArray(type, base64) {
-        var binary = window.atob(base64);
-        var raw = new Uint8Array(binary.length);
-        for (var i = 0; i < raw.byteLength; i++) {
-            raw[i] = binary.charCodeAt(i);
-        }
-        return createDynamicTypedArray(type, raw.buffer);
-    }
-    function createDynamicTypedArray(type, buffer) {
-        var constructor = getArrayConstructor(type);
-        return new constructor(buffer);
-    }
-    function getArrayConstructor(type) {
-        var constructor = arrayConstructors[type];
-        if (constructor === undefined) {
-            throw Error("Can't find type (".concat(type, ") array constructor"));
-        }
-        return constructor;
-    }
-
     var BodyAbstract = (function () {
         function BodyAbstract() {
             this.sensors = [];
             this.alive = true;
             this.data = null;
-            enforceInit$1("creating a body");
+            assertMatterWorld("creating a physics body");
         }
         BodyAbstract.prototype.addSensor = function (callback) {
             this.sensors.push(callback);
@@ -3670,6 +3441,11 @@ var Brass = (function (exports, p5) {
         return BodyAbstract;
     }());
 
+    var bodies = Array(32).fill(null).map(function () { return new Map(); });
+    var forceUnit = 1e-6;
+    function getBodies() {
+        return bodies;
+    }
     var MaterialBodyAbstract = (function (_super) {
         __extends(MaterialBodyAbstract, _super);
         function MaterialBodyAbstract(body) {
@@ -3826,6 +3602,352 @@ var Brass = (function (exports, p5) {
         return MaterialBodyAbstract;
     }(BodyAbstract));
 
+    var rays = new Map();
+    function getRays() {
+        return rays;
+    }
+    var RayBody = (function (_super) {
+        __extends(RayBody, _super);
+        function RayBody(x, y, width, options) {
+            if (width === void 0) { width = 0.1; }
+            if (options === void 0) { options = {}; }
+            var _this = this;
+            var _a, _b;
+            _this = _super.call(this) || this;
+            _this.id = Symbol();
+            _this.position = new Vector2(x, y);
+            _this.velocity = Vector2.fromObj((_a = options.velocity) !== null && _a !== void 0 ? _a : { x: 0, y: 0 });
+            _this.width = width;
+            _this.mask = _this.validateCollisionMask((_b = options.mask) !== null && _b !== void 0 ? _b : 0xFFFFFFFF);
+            rays.set(_this.id, _this);
+            return _this;
+        }
+        Object.defineProperty(RayBody.prototype, "angle", {
+            get: function () {
+                throw Error("RayBody can't have rotation");
+            },
+            set: function (_) {
+                throw Error("RayBody can't have rotation");
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(RayBody.prototype, "angularVelocity", {
+            get: function () {
+                throw Error("RayBody can't have rotation");
+            },
+            set: function (_) {
+                throw Error("RayBody can't have rotation");
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(RayBody.prototype, "static", {
+            get: function () {
+                return false;
+            },
+            set: function (isStatic) {
+                if (isStatic === true) {
+                    throw Error("RayBody can't have static behaviour enabled");
+                }
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(RayBody.prototype, "ghost", {
+            get: function () {
+                return true;
+            },
+            set: function (isGhost) {
+                if (isGhost === false) {
+                    throw Error("RayBody can't have ghost behaviour disabled");
+                }
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(RayBody.prototype, "collisionCategory", {
+            set: function (_) { },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(RayBody.prototype, "collidesWith", {
+            set: function (category) {
+                var _this = this;
+                this.mask = 0;
+                if (category === "everything") {
+                    this.mask = 0xFFFFFFFF;
+                }
+                else if (category === "nothing") {
+                    this.mask = 0;
+                }
+                else if (Array.isArray(category)) {
+                    category.map(function (subCategory) { return _this.setCollidesWith(subCategory); });
+                }
+                else {
+                    this.setCollidesWith(category);
+                }
+            },
+            enumerable: false,
+            configurable: true
+        });
+        RayBody.prototype.setCollidesWith = function (category) {
+            this.validateCollisionIndex(category);
+            if (category >= 0) {
+                this.mask |= 1 << category;
+            }
+            else {
+                this.mask &= ~(1 << -category);
+            }
+            return this;
+        };
+        RayBody.prototype.rotate = function (_) {
+            throw Error("RayBody can't have rotation");
+        };
+        RayBody.prototype.applyForce = function () {
+            throw Error("RayBody can't have forces applied");
+        };
+        RayBody.prototype.kill = function () {
+            _super.prototype.kill.call(this);
+            this.remove();
+        };
+        RayBody.prototype.remove = function () {
+            rays.delete(this.id);
+        };
+        RayBody.prototype.castOverTime = function (delta, steps) {
+            var timeSteps = (delta / 1000 * 60);
+            var displacement = this.velocity.copy().multScalar(timeSteps);
+            return this.cast(displacement, steps);
+        };
+        RayBody.prototype.cast = function (_displacement, steps) {
+            if (steps === void 0) { steps = 20; }
+            var spaceScale = getSpaceScale();
+            var displacement = _displacement.multScalar(spaceScale);
+            var testBrassBodies = [];
+            for (var i = 0; i < 32; i++) {
+                if (!(this.mask & (1 << i)))
+                    continue;
+                var catagoryBodies = getBodies()[i];
+                testBrassBodies.push.apply(testBrassBodies, __spreadArray([], __read(Array.from(catagoryBodies.values())), false));
+            }
+            var testBodies = testBrassBodies.map(function (brassBody) { return brassBody.body; });
+            var start = this.position.copy().multScalar(spaceScale);
+            var testPoint = 1, testJump = 0.5, hits = [], hitEnd = displacement.copy().multScalar(testPoint).add(start), hitPoint = 1;
+            for (var i = 0; i < steps; i++) {
+                var end = displacement.copy().multScalar(testPoint).add(start);
+                var currentHits = Matter.Query.ray(testBodies, start, end, this.width * spaceScale);
+                if (currentHits.length < 1) {
+                    if (i === 0)
+                        break;
+                    testPoint += testJump;
+                    testJump /= 2;
+                }
+                else if (currentHits.length === 1) {
+                    hits = currentHits;
+                    hitPoint = testPoint;
+                    hitEnd = end;
+                    testPoint -= testJump;
+                    testJump /= 2;
+                }
+                else {
+                    if (currentHits.length !== 1) {
+                        hits = currentHits;
+                        hitPoint = testPoint;
+                        hitEnd = end;
+                    }
+                    testPoint -= testJump;
+                    testJump /= 2;
+                }
+            }
+            if (hits.length > 1) {
+                hits = hits.sort(function (a, b) { return start.distSq(a.bodyA.position) - start.distSq(b.bodyA.position); });
+            }
+            var hitBody;
+            if (hits.length === 0) {
+                hitBody = null;
+            }
+            else {
+                hitBody = hits[0].parentA.__brassBody__;
+            }
+            return {
+                point: hitEnd.divScalar(spaceScale),
+                dist: displacement.mag * hitPoint / spaceScale,
+                body: hitBody
+            };
+        };
+        return RayBody;
+    }(BodyAbstract));
+
+    var lastDelta = null;
+    var engine;
+    function init$1(_options) {
+        var _a;
+        if (_options === void 0) { _options = {}; }
+        if (typeof Matter !== "object") {
+            throw Error("Matter was not found; Can't initialize Brass physics without Matter.js initialized first");
+        }
+        setSpaceScale(_options.spaceScale);
+        (_a = _options.gravity) !== null && _a !== void 0 ? _a : (_options.gravity = { scale: 0 });
+        var options = _options;
+        engine = Matter.Engine.create(options);
+        setMatterWorld(engine.world);
+        Matter.Events.on(engine, "collisionActive", handleActiveCollisions);
+    }
+    function handleActiveCollisions(_a) {
+        var pairs = _a.pairs;
+        var spaceScale = getSpaceScale();
+        pairs.map(function (pair) {
+            var e_1, _a;
+            var bodyA = pair.bodyA.__brassBody__;
+            var bodyB = pair.bodyB.__brassBody__;
+            var points = [];
+            try {
+                for (var _b = __values(pair.activeContacts), _c = _b.next(); !_c.done; _c = _b.next()) {
+                    var vertex_1 = _c.value.vertex;
+                    points.push(new Vector2(vertex_1.x / spaceScale, vertex_1.y / spaceScale));
+                }
+            }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
+                try {
+                    if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+                }
+                finally { if (e_1) throw e_1.error; }
+            }
+            bodyA.triggerSensors({ self: bodyA, body: bodyB, points: points.map(function (v) { return v.copy(); }) });
+            bodyB.triggerSensors({ self: bodyB, body: bodyA, points: points });
+        });
+    }
+    function update$2(delta) {
+        var e_2, _a;
+        assertMatterWorld("updating physics");
+        if (lastDelta === null)
+            lastDelta = delta;
+        if (lastDelta !== 0) {
+            Matter.Engine.update(engine, delta, delta / lastDelta);
+        }
+        lastDelta = delta;
+        try {
+            for (var _b = __values(getRays().entries()), _c = _b.next(); !_c.done; _c = _b.next()) {
+                var _d = __read(_c.value, 2), _ = _d[0], ray = _d[1];
+                var _e = ray.castOverTime(delta), body = _e.body, point_1 = _e.point;
+                ray.position = point_1.copy();
+                if (!body)
+                    continue;
+                ray.triggerSensors({ body: body, self: ray, points: [point_1] });
+                ray.kill();
+            }
+        }
+        catch (e_2_1) { e_2 = { error: e_2_1 }; }
+        finally {
+            try {
+                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+            }
+            finally { if (e_2) throw e_2.error; }
+        }
+    }
+    function drawColliders(weight, d) {
+        var e_3, _a, e_4, _b;
+        if (weight === void 0) { weight = 0.5; }
+        if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+        var g = d.getMaps().canvas;
+        g.push();
+        g.noFill();
+        g.stroke(0, 255, 0);
+        g.strokeWeight(weight);
+        var bodyQueue = __spreadArray([], __read(getMatterWorld().bodies), false);
+        var queuedBodies = new Set(bodyQueue.map(function (b) { return b.id; }));
+        var spaceScale = getSpaceScale();
+        while (bodyQueue.length > 0) {
+            var body = bodyQueue.pop();
+            try {
+                for (var _c = (e_3 = void 0, __values(body.parts)), _d = _c.next(); !_d.done; _d = _c.next()) {
+                    var part = _d.value;
+                    if (!queuedBodies.has(part.id)) {
+                        bodyQueue.push(part);
+                        queuedBodies.add(part.id);
+                    }
+                }
+            }
+            catch (e_3_1) { e_3 = { error: e_3_1 }; }
+            finally {
+                try {
+                    if (_d && !_d.done && (_a = _c.return)) _a.call(_c);
+                }
+                finally { if (e_3) throw e_3.error; }
+            }
+            g.beginShape();
+            try {
+                for (var _e = (e_4 = void 0, __values(body.vertices)), _f = _e.next(); !_f.done; _f = _e.next()) {
+                    var vert = _f.value;
+                    g.vertex(vert.x / spaceScale, vert.y / spaceScale);
+                }
+            }
+            catch (e_4_1) { e_4 = { error: e_4_1 }; }
+            finally {
+                try {
+                    if (_f && !_f.done && (_b = _e.return)) _b.call(_e);
+                }
+                finally { if (e_4) throw e_4.error; }
+            }
+            g.endShape(CLOSE);
+        }
+        g.pop();
+    }
+
+    var arrayConstructors = {
+        "any": Array,
+        "int8": Int8Array,
+        "int16": Int16Array,
+        "int32": Int32Array,
+        "uint8": Uint8Array,
+        "uint16": Uint16Array,
+        "uint32": Uint32Array,
+        "float32": Float32Array,
+        "float64": Float64Array
+    };
+    function createDynamicArray(type, size) {
+        var constructor = getArrayConstructor(type);
+        return new constructor(size);
+    }
+    function cloneDynamicArray(resultType, data) {
+        var _a;
+        var constructor = getArrayConstructor(resultType);
+        if (resultType === "any") {
+            return new ((_a = constructor).bind.apply(_a, __spreadArray([void 0], __read(data), false)))();
+        }
+        else {
+            return new constructor(data);
+        }
+    }
+    function encodeDynamicTypedArray(data) {
+        var raw = new Uint8Array(data.buffer);
+        var binary = [];
+        for (var i = 0; i < raw.byteLength; i++) {
+            binary.push(String.fromCharCode(raw[i]));
+        }
+        return btoa(binary.join(""));
+    }
+    function decodeDynamicTypedArray(type, base64) {
+        var binary = window.atob(base64);
+        var raw = new Uint8Array(binary.length);
+        for (var i = 0; i < raw.byteLength; i++) {
+            raw[i] = binary.charCodeAt(i);
+        }
+        return createDynamicTypedArray(type, raw.buffer);
+    }
+    function createDynamicTypedArray(type, buffer) {
+        var constructor = getArrayConstructor(type);
+        return new constructor(buffer);
+    }
+    function getArrayConstructor(type) {
+        var constructor = arrayConstructors[type];
+        if (constructor === undefined) {
+            throw Error("Can't find type (".concat(type, ") array constructor"));
+        }
+        return constructor;
+    }
+
     var GridBody = (function (_super) {
         __extends(GridBody, _super);
         function GridBody(width, height, grid, options, gridScale) {
@@ -3955,6 +4077,64 @@ var Brass = (function (exports, p5) {
         };
         return GridBody;
     }(MaterialBodyAbstract));
+    function createRectBodyFast(x, y, width, height) {
+        var body = {
+            id: Matter.Common.nextId(),
+            type: "body",
+            label: "rectBody",
+            plugin: {},
+            parts: [],
+            angle: 0,
+            vertices: [
+                { x: -width * 0.5, y: -height * 0.5, index: 0, isInternal: false },
+                { x: width * 0.5, y: -height * 0.5, index: 1, isInternal: false },
+                { x: width * 0.5, y: height * 0.5, index: 2, isInternal: false },
+                { x: -width * 0.5, y: height * 0.5, index: 3, isInternal: false }
+            ],
+            position: { x: x + width * 0.5, y: y + height * 0.5 },
+            force: { x: 0, y: 0 },
+            torque: 0,
+            positionImpulse: { x: 0, y: 0 },
+            constraintImpulse: { x: 0, y: 0, angle: 0 },
+            totalContacts: 0,
+            speed: 0,
+            angularSpeed: 0,
+            velocity: { x: 0, y: 0 },
+            angularVelocity: 0,
+            isSensor: false,
+            isStatic: false,
+            isSleeping: false,
+            motion: 0,
+            sleepThreshold: 60,
+            density: 0.001,
+            restitution: 0,
+            friction: 0.1,
+            frictionStatic: 0.5,
+            frictionAir: 0.01,
+            collisionFilter: {
+                category: 0x0001,
+                mask: 0xFFFFFFFF,
+                group: 0
+            },
+            slop: 0.05,
+            timeScale: 1,
+            circleRadius: 0,
+            positionPrev: { x: x + width * 0.5, y: y + height * 0.5 },
+            anglePrev: 0,
+            area: 0,
+            mass: 0,
+            inertia: 0,
+            _original: null
+        };
+        body.parts = [body];
+        body.parent = body;
+        Matter.Body.set(body, {
+            bounds: Matter.Bounds.create(body.vertices),
+            vertices: body.vertices,
+        });
+        Matter.Bounds.update(body.bounds, body.vertices, body.velocity);
+        return body;
+    }
 
     var tilemaps = [];
     function getTilemaps() {
@@ -3991,10 +4171,8 @@ var Brass = (function (exports, p5) {
                 this.fields.push(this.createField(fieldType));
             }
             this.solidFieldId = this.fieldIds[solidFieldName];
-            if (isPhysicsActive()) {
-                if (options.body === undefined) {
-                    console.warn("Matter physics is active but Tilemap does not have body; If this is intentional pass false for the body option");
-                }
+            if (getMatterWorld() !== undefined && options.body === undefined) {
+                console.warn("Matter physics is active but Tilemap does not have body; If this is intentional pass false for the body option");
             }
             this.hasBody = !!options.body;
             this.autoMaintainBody = (_d = options.autoMaintainBody) !== null && _d !== void 0 ? _d : true;
@@ -4365,177 +4543,6 @@ var Brass = (function (exports, p5) {
         }
         return color.apply(void 0, __spreadArray([], __read(colArgs), false));
     }
-
-    var RayBody = (function (_super) {
-        __extends(RayBody, _super);
-        function RayBody(x, y, width, options) {
-            if (width === void 0) { width = 0.1; }
-            if (options === void 0) { options = {}; }
-            var _this = this;
-            var _a, _b;
-            _this = _super.call(this) || this;
-            _this.id = Symbol();
-            _this.position = new Vector2(x, y);
-            _this.velocity = Vector2.fromObj((_a = options.velocity) !== null && _a !== void 0 ? _a : { x: 0, y: 0 });
-            _this.width = width;
-            _this.mask = _this.validateCollisionMask((_b = options.mask) !== null && _b !== void 0 ? _b : 0xFFFFFFFF);
-            rays.set(_this.id, _this);
-            return _this;
-        }
-        Object.defineProperty(RayBody.prototype, "angle", {
-            get: function () {
-                throw Error("RayBody can't have rotation");
-            },
-            set: function (_) {
-                throw Error("RayBody can't have rotation");
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(RayBody.prototype, "angularVelocity", {
-            get: function () {
-                throw Error("RayBody can't have rotation");
-            },
-            set: function (_) {
-                throw Error("RayBody can't have rotation");
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(RayBody.prototype, "static", {
-            get: function () {
-                return false;
-            },
-            set: function (isStatic) {
-                if (isStatic === true) {
-                    throw Error("RayBody can't have static behaviour enabled");
-                }
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(RayBody.prototype, "ghost", {
-            get: function () {
-                return true;
-            },
-            set: function (isGhost) {
-                if (isGhost === false) {
-                    throw Error("RayBody can't have ghost behaviour disabled");
-                }
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(RayBody.prototype, "collisionCategory", {
-            set: function (_) { },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(RayBody.prototype, "collidesWith", {
-            set: function (category) {
-                var _this = this;
-                this.mask = 0;
-                if (category === "everything") {
-                    this.mask = 0xFFFFFFFF;
-                }
-                else if (category === "nothing") {
-                    this.mask = 0;
-                }
-                else if (Array.isArray(category)) {
-                    category.map(function (subCategory) { return _this.setCollidesWith(subCategory); });
-                }
-                else {
-                    this.setCollidesWith(category);
-                }
-            },
-            enumerable: false,
-            configurable: true
-        });
-        RayBody.prototype.setCollidesWith = function (category) {
-            this.validateCollisionIndex(category);
-            if (category >= 0) {
-                this.mask |= 1 << category;
-            }
-            else {
-                this.mask &= ~(1 << -category);
-            }
-            return this;
-        };
-        RayBody.prototype.rotate = function (_) {
-            throw Error("RayBody can't have rotation");
-        };
-        RayBody.prototype.applyForce = function () {
-            throw Error("RayBody can't have forces applied");
-        };
-        RayBody.prototype.kill = function () {
-            _super.prototype.kill.call(this);
-            this.remove();
-        };
-        RayBody.prototype.remove = function () {
-            rays.delete(this.id);
-        };
-        RayBody.prototype.castOverTime = function (delta, steps) {
-            var timeSteps = (delta / 1000 * 60);
-            var displacement = this.velocity.copy().multScalar(timeSteps);
-            return this.cast(displacement, steps);
-        };
-        RayBody.prototype.cast = function (_displacement, steps) {
-            if (steps === void 0) { steps = 20; }
-            var spaceScale = getSpaceScale();
-            var displacement = _displacement.multScalar(spaceScale);
-            var testBrassBodies = [];
-            for (var i = 0; i < 32; i++) {
-                if (!(this.mask & (1 << i)))
-                    continue;
-                testBrassBodies.push.apply(testBrassBodies, __spreadArray([], __read(Array.from(bodies[i].values())), false));
-            }
-            var testBodies = testBrassBodies.map(function (brassBody) { return brassBody.body; });
-            var start = this.position.copy().multScalar(spaceScale);
-            var testPoint = 1, testJump = 0.5, hits = [], hitEnd = displacement.copy().multScalar(testPoint).add(start), hitPoint = 1;
-            for (var i = 0; i < steps; i++) {
-                var end = displacement.copy().multScalar(testPoint).add(start);
-                var currentHits = Matter.Query.ray(testBodies, start, end, this.width * spaceScale);
-                if (currentHits.length < 1) {
-                    if (i === 0)
-                        break;
-                    testPoint += testJump;
-                    testJump /= 2;
-                }
-                else if (currentHits.length === 1) {
-                    hits = currentHits;
-                    hitPoint = testPoint;
-                    hitEnd = end;
-                    testPoint -= testJump;
-                    testJump /= 2;
-                }
-                else {
-                    if (currentHits.length !== 1) {
-                        hits = currentHits;
-                        hitPoint = testPoint;
-                        hitEnd = end;
-                    }
-                    testPoint -= testJump;
-                    testJump /= 2;
-                }
-            }
-            if (hits.length > 1) {
-                hits = hits.sort(function (a, b) { return start.distSq(a.bodyA.position) - start.distSq(b.bodyA.position); });
-            }
-            var hitBody;
-            if (hits.length === 0) {
-                hitBody = null;
-            }
-            else {
-                hitBody = hits[0].parentA.__brassBody__;
-            }
-            return {
-                point: hitEnd.divScalar(spaceScale),
-                dist: displacement.mag * hitPoint / spaceScale,
-                body: hitBody
-            };
-        };
-        return RayBody;
-    }(BodyAbstract));
 
     var P5Lighter = (function () {
         function P5Lighter(options) {

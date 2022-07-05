@@ -4,8 +4,6 @@
  * @module main
  */
 
-// TODO: replace registered list systems with abstract self-listing systems
-
 export {
 	createFastGraphics
 } from "./common/fastGraphics";

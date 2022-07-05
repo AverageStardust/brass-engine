@@ -1,7 +1,16 @@
 import { Vector2, Vertex2 } from "../vector/vector2";
-import { CollisionFilterMask, rays, getSpaceScale, bodies, CollisionFilterIndex, InternalMatterBody } from "./physics";
-import { BodyAbstract } from "./bodyAbstract";
-import { MaterialBodyAbstract } from "./materialBodyAbstract";
+import { BodyAbstract, CollisionFilterIndex, CollisionFilterMask, getSpaceScale } from "./bodyAbstract";
+import { getBodies, InternalMatterBody, MaterialBodyAbstract } from "./materialBodyAbstract";
+
+
+
+const rays: Map<symbol, RayBody> = new Map();
+
+
+
+export function getRays() {
+	return rays;
+}
 
 
 
@@ -122,7 +131,8 @@ export class RayBody extends BodyAbstract {
 		for (let i = 0; i < 32; i++) {
 			if (!(this.mask & (1 << i)))
 				continue;
-			testBrassBodies.push(...Array.from(bodies[i as CollisionFilterIndex].values()));
+			const catagoryBodies = getBodies()[i as CollisionFilterIndex];
+			testBrassBodies.push(...Array.from(catagoryBodies.values()));
 		}
 
 		const testBodies = testBrassBodies.map((brassBody) => brassBody.body);

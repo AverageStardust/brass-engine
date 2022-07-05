@@ -1,6 +1,21 @@
 import { Vector2, Vertex2 } from "../vector/vector2";
-import { InternalMatterBody, bodies, CollisionFilterIndex, getMatterWorld, getSpaceScale, forceUnit } from "./physics";
-import { BodyAbstract } from "./bodyAbstract";
+import { BodyAbstract, CollisionFilterCategory, CollisionFilterIndex, getMatterWorld, getSpaceScale } from "./bodyAbstract";
+
+
+
+export type InternalMatterBody = Matter.Body & { collisionFilter: { category: CollisionFilterCategory }, __brassBody__: MaterialBodyAbstract };
+
+
+
+const bodies: { [index: CollisionFilterIndex]: Map<number, MaterialBodyAbstract> } = Array(32).fill(null).map(() => new Map());
+const forceUnit = 1e-6;
+
+
+
+export function getBodies() {
+	return bodies;
+}
+
 
 
 export abstract class MaterialBodyAbstract extends BodyAbstract {
@@ -62,7 +77,8 @@ export abstract class MaterialBodyAbstract extends BodyAbstract {
 		return this.body.isSensor;
 	}
 
-	set position(position: Vertex2) {;
+	set position(position: Vertex2) {
+		;
 		const spaceScale = getSpaceScale();
 		position = Matter.Vector.create(position.x * spaceScale, position.y * spaceScale);
 		Matter.Body.setPosition(this.body, position);

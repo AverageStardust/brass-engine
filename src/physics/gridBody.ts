@@ -1,5 +1,5 @@
-import { getSpaceScale, InternalMatterBody, createRectBodyFast } from "./physics";
-import { MaterialBodyAbstract } from "./materialBodyAbstract";
+import { InternalMatterBody, MaterialBodyAbstract } from "./materialBodyAbstract";
+import { getSpaceScale } from "./bodyAbstract";
 
 
 
@@ -126,4 +126,67 @@ export class GridBody extends MaterialBodyAbstract {
 		const body = Matter.Body.create(this.options);
 		this.setBody(body);
 	}
+}
+
+export function createRectBodyFast(x: number, y: number, width: number, height: number) {
+	const body = {
+		id: Matter.Common.nextId(),
+		type: "body",
+		label: "rectBody",
+		plugin: {},
+		parts: [],
+		angle: 0,
+		vertices: [
+			{ x: -width * 0.5, y: -height * 0.5, index: 0, isInternal: false },
+			{ x: width * 0.5, y: -height * 0.5, index: 1, isInternal: false },
+			{ x: width * 0.5, y: height * 0.5, index: 2, isInternal: false },
+			{ x: -width * 0.5, y: height * 0.5, index: 3, isInternal: false }
+		],
+		position: { x: x + width * 0.5, y: y + height * 0.5 },
+		force: { x: 0, y: 0 },
+		torque: 0,
+		positionImpulse: { x: 0, y: 0 },
+		constraintImpulse: { x: 0, y: 0, angle: 0 },
+		totalContacts: 0,
+		speed: 0,
+		angularSpeed: 0,
+		velocity: { x: 0, y: 0 },
+		angularVelocity: 0,
+		isSensor: false,
+		isStatic: false,
+		isSleeping: false,
+		motion: 0,
+		sleepThreshold: 60,
+		density: 0.001,
+		restitution: 0,
+		friction: 0.1,
+		frictionStatic: 0.5,
+		frictionAir: 0.01,
+		collisionFilter: {
+			category: 0x0001,
+			mask: 0xFFFFFFFF,
+			group: 0
+		},
+		slop: 0.05,
+		timeScale: 1,
+		circleRadius: 0,
+		positionPrev: { x: x + width * 0.5, y: y + height * 0.5 },
+		anglePrev: 0,
+		area: 0,
+		mass: 0,
+		inertia: 0,
+		_original: null
+	} as unknown as Matter.Body;
+
+	body.parts = [body];
+	body.parent = body;
+
+	Matter.Body.set(body, {
+		bounds: Matter.Bounds.create(body.vertices),
+		vertices: body.vertices,
+	});
+
+	Matter.Bounds.update(body.bounds, body.vertices, body.velocity);
+
+	return body;
 }

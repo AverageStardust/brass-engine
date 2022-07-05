@@ -5,8 +5,8 @@
 
 import { safeBind } from "../common/runtimeChecking";
 import { cloneDynamicArray, createDynamicArray, decodeDynamicTypedArray, DynamicArray, DynamicArrayType, DynamicTypedArray, DynamicTypedArrayType, encodeDynamicTypedArray } from "../common/dynamicArray";
-import { isPhysicsActive } from "../physics/physics";
 import { GridBody } from "../physics/gridBody";
+import { getMatterWorld } from "../physics/bodyAbstract";
 
 
 
@@ -133,10 +133,8 @@ export abstract class TilemapAbstract {
 
 		this.solidFieldId = this.fieldIds[solidFieldName];
 
-		if (isPhysicsActive()) {
-			if (options.body === undefined) {
-				console.warn("Matter physics is active but Tilemap does not have body; If this is intentional pass false for the body option");
-			}
+		if (getMatterWorld() !== undefined && options.body === undefined) {
+			console.warn("Matter physics is active but Tilemap does not have body; If this is intentional pass false for the body option");
 		}
 		this.hasBody = !!options.body;
 

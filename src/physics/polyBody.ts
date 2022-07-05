@@ -1,6 +1,6 @@
 import { Vertex2 } from "../vector/vector2";
+import { getSpaceScale } from "./bodyAbstract";
 import { MaterialBodyAbstract } from "./materialBodyAbstract";
-import { getSpaceScale } from "./physics";
 
 
 export class PolyBody extends MaterialBodyAbstract {
