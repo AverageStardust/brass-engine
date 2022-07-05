@@ -1,10 +1,9 @@
 import { Vector2 } from "../vector/vector2";
-import { getDrawTarget } from "../drawSurface";
 import { BranchComponentAbstract } from "./branchComponentAbstract";
 
 
 
-export class ScreenComponent extends BranchComponentAbstract {
+export class StrechComponent extends BranchComponentAbstract {
 	distributeSize(size: Vector2, oldSize: Vector2) {
 		const scaleRatio = size.copy().div(oldSize);
 		for (const child of this.children) {
@@ -14,6 +13,6 @@ export class ScreenComponent extends BranchComponentAbstract {
 	}
 
 	collectTargetSize() {
-		return Vector2.fromObjFast(getDrawTarget("default").getSize());
+		return new Vector2(Infinity, Infinity);
 	}
 }

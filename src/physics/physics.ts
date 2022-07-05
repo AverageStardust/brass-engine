@@ -5,7 +5,7 @@
  */
 
 import { Opaque } from "../common";
-import { getP5DrawTarget } from "../drawSurface";
+import { getP5DrawTarget } from "../layers/p5Layers";
 import { Vector2 } from "../vector/vector2";
 import { BodyAbstract } from "./bodyAbstract";
 import { MaterialBodyAbstract } from "./materialBodyAbstract";

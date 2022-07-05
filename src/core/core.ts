@@ -4,16 +4,20 @@
  */
 
 import p5 from "p5";
-import { init as initInput, update as updateInput } from "./inputMapper";
-import { DrawTarget, init as initDrawSurface, resetAndSyncDefaultP5DrawTarget, resize } from "./drawSurface";
-import { init as initLoader, loaded } from "./loader";
-import { init as initViewpoint, updateViewpoints, ViewpointAbstract } from "./viewpoint";
-import { deltaSimTime, update as updateTime } from "./time";
-import { drawLoading } from "./ui/legacyUI";
-import { update as updateParticles } from "./particle";
-import { update as updatePathfinders } from "./pathfinder/pathfinder";
-import { init as initPhysics, MatterWorldDefinition, update as updatePhysics } from "./physics/physics";
-import { update as updateTilemaps } from "./tilemap/tilemap";
+import { init as initSketch } from "./sketch";
+import { init as initInput, update as updateInput } from "../inputMapper";
+import { init as initDrawLayer } from "../layers/layers";
+import { DrawTarget } from "../layers/drawTarget";
+import { init as initLoader, loaded } from "../loader";
+import { init as initViewpoint, updateViewpoints, ViewpointAbstract } from "../viewpoint";
+import { deltaSimTime, update as updateTime } from "../time";
+import { drawLoading } from "../ui/legacyUI";
+import { update as updateParticles } from "../particle";
+import { update as updatePathfinders } from "../pathfinder/pathfinder";
+import { init as initPhysics, MatterWorldDefinition, update as updatePhysics } from "../physics/physics";
+import { update as updateTilemaps } from "../tilemap/tilemap";
+import { resize } from "../layers/globalResize";
+import { resetAndSyncDefaultP5DrawTarget } from "../layers/p5Layers";
 
 
 
@@ -77,23 +81,11 @@ export function init(options: InitOptions = {}) {
 		console.warn("regl.js has been found; Enable or disable regl in Brass.init()");
 	}
 
-	if (options.sketch) {
-		sketch = options.sketch;
-	} else {
-		if (!("p5" in globalThis)) {
-			throw Error("Can't find p5.js, it is required for Brass");
-		}
-		if (!("setup" in globalThis)) {
-			throw Error("Can't seem to find p5; If you are running in instance mode pass the sketch into Brass.init()");
-		}
-		sketch = globalThis as unknown as p5;
-	}
-
-	sketch.disableFriendlyErrors = true;
+	initSketch(options.sketch);
 
 	initInput();
 
-	initDrawSurface(sketch, options.regl ?? false, options.drawTarget);
+	initDrawLayer(options.regl ?? false, options.drawTarget);
 
 	initViewpoint(options.viewpoint);
 

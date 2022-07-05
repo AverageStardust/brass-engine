@@ -5,7 +5,8 @@
  */
 
 
-import { getP5DrawTarget, P5DrawSurface, P5DrawTarget } from "./drawSurface";
+
+import { getP5DrawTarget, P5Layer, P5DrawTarget } from "./layers/p5Layers";
 import { getTime } from "./time";
 import { Vector2 } from "./vector/vector2";
 
@@ -85,7 +86,7 @@ export abstract class ViewpointAbstract {
 	// camera
 	abstract update(delta: number): void;
 
-	view(d: P5DrawSurface = getP5DrawTarget("defaultP5")) {
+	view(d: P5Layer = getP5DrawTarget("defaultP5")) {
 		const g = d.getMaps().canvas;
 
 		const viewOrigin = this.getViewOrigin(d);
@@ -99,7 +100,7 @@ export abstract class ViewpointAbstract {
 		g.translate(-this.shakePosition.x, -this.shakePosition.y);
 	}
 
-	getScreenViewArea(d: P5DrawSurface = getP5DrawTarget("defaultP5")) {
+	getScreenViewArea(d: P5Layer = getP5DrawTarget("defaultP5")) {
 		const g = d.getMaps().canvas;
 
 		const viewOrigin = this.getViewOrigin(d);
@@ -112,7 +113,7 @@ export abstract class ViewpointAbstract {
 		};
 	}
 
-	getWorldViewArea(d: P5DrawSurface = getP5DrawTarget("defaultP5")) {
+	getWorldViewArea(d: P5Layer = getP5DrawTarget("defaultP5")) {
 		const g = d.getMaps().canvas;
 
 		const translation = this.effectiveTranslation;
@@ -168,7 +169,7 @@ export abstract class ViewpointAbstract {
 		return coord;
 	}
 
-	protected abstract getViewOrigin(g: P5DrawSurface): Vector2;
+	protected abstract getViewOrigin(g: P5Layer): Vector2;
 
 	protected get effectiveTranslation() {
 		if (this.integerTranslation) {

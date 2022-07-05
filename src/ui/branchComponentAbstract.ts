@@ -1,7 +1,7 @@
 import { Vector2 } from "../vector/vector2";
-import { P5DrawBuffer, P5DrawSurfaceMap } from "../drawSurface";
-import p5 from "p5";
 import { ComponentAbstract } from "./componentAbstract";
+import { P5DrawBuffer, P5LayerMap } from "../layers/p5Layers";
+import p5 from "p5";
 
 
 export abstract class BranchComponentAbstract extends ComponentAbstract {
@@ -53,7 +53,7 @@ export abstract class BranchComponentAbstract extends ComponentAbstract {
 	abstract distributeSize(size: Vector2, oldSize: Vector2);
 	abstract collectTargetSize(): Vector2;
 
-	draw(g: P5DrawSurfaceMap) {
+	draw(g: P5LayerMap) {
 		if (this.bufferDisplay) {
 			const buffer = this.drawBuffer.getMaps(this.size).canvas;
 			this._draw(buffer);
@@ -63,7 +63,7 @@ export abstract class BranchComponentAbstract extends ComponentAbstract {
 		this._draw(g);
 	}
 
-	_draw(g: P5DrawSurfaceMap) {
+	_draw(g: P5LayerMap) {
 		this.children.map((child) => {
 			g.push();
 			const { x, y } = child.position;

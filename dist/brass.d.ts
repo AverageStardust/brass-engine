@@ -1,6 +1,6 @@
 /// <reference types="matter-js" />
 import p5 from "p5";
-import REGL from "../types/regl";
+import REGL from "../../types/regl";
 type Opaque<T, S> = T & {
     __opaque__: S;
 };
@@ -126,21 +126,7 @@ declare class Vector2 extends VectorAbstract {
     get array(): number[];
     set array([x, y]: number[]);
 }
-type P5DrawSurfaceMap = p5.Graphics | p5;
-type P5DrawSurface = DrawSurfaceAbstract<{
-    canvas: P5DrawSurfaceMap;
-}>;
-declare function setDrawTarget(name: string, drawTarget: DrawTarget<any>): void;
-declare function getDrawTarget(name: string): DrawTarget<any>;
-declare const hasDrawTarget: (key: string) => boolean;
-declare function getP5DrawTarget(name: string): P5DrawTarget;
-declare function getCanvasDrawTarget(name: string): CanvasDrawTarget;
-declare function resize(width?: number, height?: number): void;
-declare function getRegl(): REGL.Regl;
-declare function refreshRegl(): void;
-declare function refreshReglFast(): void;
-declare function displayRegl(d?: P5DrawTarget): void;
-declare abstract class DrawSurfaceAbstract<T extends {
+declare abstract class LayerAbstract<T extends {
     [key: string]: any;
 }> {
     id: symbol;
@@ -156,29 +142,43 @@ declare abstract class DrawSurfaceAbstract<T extends {
     };
     abstract getMaps(size?: Vertex2): T;
     sizeMaps(size: Vertex2): void;
-    hasName(name: string): boolean;
     protected setMaps(maps: T | null): void;
     private getMap;
     protected throwSizeError(): never;
 }
-declare class DrawTarget<T> extends DrawSurfaceAbstract<T> {
+declare function setDrawTarget(name: string, drawTarget: DrawTarget<any>): void;
+declare function getDrawTarget(name: string): DrawTarget<any>;
+declare const hasDrawTarget: (key: string) => boolean;
+declare class DrawTarget<T> extends LayerAbstract<T> {
     protected size: Vertex2;
     private sizer;
     constructor(creator: (size: Vertex2) => T, resizer?: (size: Vertex2, oldMaps: T) => T, sizer?: (self: DrawTarget<T>) => Vertex2);
     setSizer(sizer: (self: DrawTarget<T>) => Vertex2): void;
     getMaps(): T;
     refresh(causes?: Symbol[]): void;
+    hasName(name: string): boolean;
     private getSizerResult;
+    private defaultSizer;
+}
+declare class DrawBuffer<T> extends LayerAbstract<T> {
+    protected size: Vertex2 | null;
+    constructor(creator: (size: Vertex2) => T, resizer?: (size: Vertex2, oldMaps: T) => T);
+    getMaps(size?: Vertex2): T;
+}
+type P5LayerMap = p5.Graphics | p5;
+type P5Layer = LayerAbstract<{
+    canvas: P5LayerMap;
+}>;
+declare function getP5DrawTarget(name: string): P5DrawTarget;
+declare class P5DrawBuffer extends DrawBuffer<{
+    canvas: P5LayerMap;
+}> {
+    constructor(arg?: p5.RENDERER | P5LayerMap);
 }
 declare class P5DrawTarget extends DrawTarget<{
-    canvas: P5DrawSurfaceMap;
+    canvas: P5LayerMap;
 }> {
-    constructor(sizer?: (self: P5DrawTarget) => Vertex2, arg?: p5.RENDERER | P5DrawSurfaceMap);
-}
-declare class CanvasDrawTarget extends DrawTarget<{
-    canvas: HTMLCanvasElement;
-}> {
-    constructor(sizer?: (self: CanvasDrawTarget) => Vertex2);
+    constructor(sizer?: (self: P5DrawTarget) => Vertex2, arg?: p5.RENDERER | P5LayerMap);
 }
 interface AbstractViewpointOptions {
     integerTranslation?: boolean;
@@ -204,14 +204,14 @@ declare abstract class ViewpointAbstract {
     protected shakePosition: Vector2;
     constructor(scale: number, translation: Vector2, options?: AbstractViewpointOptions);
     abstract update(delta: number): void;
-    view(d?: P5DrawSurface): void;
-    getScreenViewArea(d?: P5DrawSurface): {
+    view(d?: P5Layer): void;
+    getScreenViewArea(d?: P5Layer): {
         minX: number;
         maxX: number;
         minY: number;
         maxY: number;
     };
-    getWorldViewArea(d?: P5DrawSurface): {
+    getWorldViewArea(d?: P5Layer): {
         minX: number;
         minY: number;
         maxX: number;
@@ -220,7 +220,7 @@ declare abstract class ViewpointAbstract {
     traslateScreen(screenTranslation: Vector2): void;
     screenToWorld(screenCoord: Vector2, d?: P5DrawTarget): Vector2;
     worldToScreen(worldCoord: Vector2, d?: P5DrawTarget): Vector2;
-    protected abstract getViewOrigin(g: P5DrawSurface): Vector2;
+    protected abstract getViewOrigin(g: P5Layer): Vector2;
     protected get effectiveTranslation(): Vector2;
     protected get effectiveScale(): number;
     shake(strength: number, duration?: number): void;
@@ -377,7 +377,7 @@ interface InitOptions {
 }
 declare function setTestStatus(newStatus: boolean | string): void;
 declare function getTestStatus(): string | true | null;
-declare function init$2(options?: InitOptions): void;
+declare function init$1(options?: InitOptions): void;
 declare function update$0(delta?: number): void;
 declare function timewarp(duration: number, rate?: number): void;
 declare function getTimewarp(): Timewarp | undefined;
@@ -450,7 +450,7 @@ interface DirectionalOptions {
     drawOffscreen?: boolean;
 }
 declare class P5Lighter {
-    private lightSurface;
+    private lightBuffer;
     private resolution;
     private _blur;
     private color;
@@ -458,7 +458,7 @@ declare class P5Lighter {
     private viewpoint;
     constructor(options?: P5LighterOptions);
     begin(v?: ViewpointAbstract, d?: P5DrawTarget): this;
-    end(d?: P5DrawSurface): void;
+    end(d?: P5Layer): void;
     set blur(value: number);
     get blur(): number;
     fill(...colArgs: ColorArgs): this;
@@ -606,7 +606,7 @@ declare class Particle {
     private spawnTime;
     constructor();
     update(delta: number): void;
-    draw(g: P5DrawSurfaceMap): void;
+    draw(g: P5LayerMap): void;
     alive(): boolean;
     visable(viewArea: {
         minX: number;
@@ -765,7 +765,7 @@ interface P5TilemapOptions extends TilemapAbstractOptions {
     drawCachePadding?: number;
     drawCachePaddingTime?: number;
     drawCachePoolInitalSize?: number;
-    drawTile?: (data: any, x: number, y: number, g: P5DrawSurfaceMap) => void;
+    drawTile?: (data: any, x: number, y: number, g: P5LayerMap) => void;
     drawOrder?: (data: any) => number;
     canCacheTile?: (data: any) => boolean;
 }
@@ -800,4 +800,15 @@ declare function getSimTime(): number;
 declare function setLoadingTips(tips: string[]): void;
 declare function drawFPS(d?: P5DrawTarget): void;
 declare function drawLoading(d?: P5DrawTarget): void;
-export { Heap, MaxHeap, MinHeap, MappedHeap, MappedMaxHeap, MappedMinHeap, init$2 as init, update$0 as update, setTestStatus, getTestStatus, timewarp, getTimewarp, getTimewarps, InputMapper, disableContextMenu, P5Lighter, loadImageEarly, loadImageLate, loadImageDynamic, getImage, loadSoundEarly, loadSoundLate, getSound, enableUnsafeWorldLoading, loadWorldEarly, loadWorldLate, getWorld, loaded, loadProgress, setParticleLimit, emitParticles, emitParticle, forEachParticle, forEachVisableParticle, draw as drawParticles, Particle, VelocityParticle, AStarPathfinder, drawColliders, RectBody, CircleBody, PolyBody, GridBody, RayBody, P5Tilemap, getTime, getExactTime, getSimTime, drawFPS, drawLoading, setLoadingTips, Vertex2, Vector2, DrawTarget, P5DrawTarget, CanvasDrawTarget, setDrawTarget, hasDrawTarget, getDrawTarget, getP5DrawTarget, getCanvasDrawTarget, resize, getRegl, refreshRegl, refreshReglFast, displayRegl, ClassicViewpoint, Viewpoint, setDefaultViewpoint, getDefaultViewpoint };
+declare function resize(_width?: number, _height?: number): void;
+declare function getRegl(): REGL.Regl;
+declare function refreshRegl(): void;
+declare function refreshReglFast(): void;
+declare function getCanvasDrawTarget(name: string): CanvasDrawTarget;
+declare class CanvasDrawTarget extends DrawTarget<{
+    canvas: HTMLCanvasElement;
+}> {
+    constructor(sizer?: (self: CanvasDrawTarget) => Vertex2);
+}
+declare function drawNativeToP5(p5Target?: P5DrawTarget, canvasTarget?: CanvasDrawTarget): void;
+export { Heap, MaxHeap, MinHeap, MappedHeap, MappedMaxHeap, MappedMinHeap, init$1 as init, update$0 as update, setTestStatus, getTestStatus, timewarp, getTimewarp, getTimewarps, InputMapper, disableContextMenu, P5Lighter, loadImageEarly, loadImageLate, loadImageDynamic, getImage, loadSoundEarly, loadSoundLate, getSound, enableUnsafeWorldLoading, loadWorldEarly, loadWorldLate, getWorld, loaded, loadProgress, setParticleLimit, emitParticles, emitParticle, forEachParticle, forEachVisableParticle, draw as drawParticles, Particle, VelocityParticle, AStarPathfinder, drawColliders, RectBody, CircleBody, PolyBody, GridBody, RayBody, P5Tilemap, getTime, getExactTime, getSimTime, drawFPS, drawLoading, setLoadingTips, Vertex2, Vector2, resize, getRegl, refreshRegl, refreshReglFast, DrawBuffer, DrawTarget, setDrawTarget, hasDrawTarget, getDrawTarget, P5DrawBuffer, P5DrawTarget, getP5DrawTarget, CanvasDrawTarget, getCanvasDrawTarget, drawNativeToP5, ClassicViewpoint, Viewpoint, setDefaultViewpoint, getDefaultViewpoint };

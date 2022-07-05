@@ -493,6 +493,25 @@ var Brass = (function (exports, p5) {
         return constructor;
     }
 
+    var sketch$2;
+    function init$8(_sketch) {
+        if (_sketch) {
+            sketch$2 = _sketch;
+        }
+        else {
+            if (!("p5" in globalThis)) {
+                throw Error("Can't find p5.js, it is required for Brass");
+            }
+            if (!("setup" in globalThis)) {
+                throw Error("Can't seem to find p5; If you are running in instance mode pass the sketch into Brass.init()");
+            }
+            sketch$2 = globalThis;
+        }
+    }
+    function getSketch() {
+        return sketch$2;
+    }
+
     var VectorAbstract = (function () {
         function VectorAbstract() {
         }
@@ -795,7 +814,7 @@ var Brass = (function (exports, p5) {
     var inputMappers = [];
     var deriverCatalogue = new Map();
     var gamepadLinks = [];
-    function init$5() {
+    function init$7() {
         window.addEventListener("gamepadconnected", handleGamepadConnected);
         window.addEventListener("gamepaddisconnected", handleGamepadDisconnected);
         deriverCatalogue.set("movement", function (mapper) {
@@ -1609,85 +1628,59 @@ var Brass = (function (exports, p5) {
         return InputMapper;
     }());
 
+    var LayerAbstract = (function () {
+        function LayerAbstract(creator, resizer) {
+            if (resizer === void 0) { resizer = creator; }
+            this.id = Symbol();
+            this.creator = creator;
+            this.resizer = resizer;
+            this.setMaps(null);
+        }
+        LayerAbstract.prototype.hasSize = function () {
+            return this.size !== null;
+        };
+        LayerAbstract.prototype.getSize = function (ratio) {
+            if (ratio === void 0) { ratio = 1; }
+            if (this.size === null)
+                this.throwSizeError();
+            return {
+                x: this.size.x * ratio,
+                y: this.size.y * ratio
+            };
+        };
+        LayerAbstract.prototype.sizeMaps = function (size) {
+            if (this.size === null) {
+                this.setMaps(this.creator(size));
+            }
+            else {
+                if (this.size.x === size.x &&
+                    this.size.y === size.y)
+                    return;
+                this.setMaps(this.resizer(size, this.maps));
+            }
+            this.size = size;
+        };
+        LayerAbstract.prototype.setMaps = function (maps) {
+            if (maps === null) {
+                this.maps === new Proxy({}, { get: this.throwSizeError });
+            }
+            else {
+                this.maps = new Proxy(maps, { get: this.getMap.bind(this) });
+            }
+        };
+        LayerAbstract.prototype.getMap = function (maps, mapName) {
+            if (!maps.hasOwnProperty(mapName)) {
+                throw Error("Can't get (".concat(mapName, ") map in DrawTarget"));
+            }
+            return maps[mapName];
+        };
+        LayerAbstract.prototype.throwSizeError = function () {
+            throw Error("Could not use drawing layer, size has not been set");
+        };
+        return LayerAbstract;
+    }());
+
     var drawTargets = new Map();
-    var _regl = null;
-    var doReglRefresh = false;
-    var sketch$1;
-    var setWidth = window.innerWidth, setHeight = window.innerHeight;
-    function init$4(_sketch, doRegl, drawTarget) {
-        sketch$1 = _sketch;
-        setWidth = window.innerWidth;
-        setHeight = window.innerHeight;
-        initDefaultDrawTarget(doRegl, drawTarget);
-        if (!hasDrawTarget("default"))
-            return;
-        resetAndSyncDefaultP5DrawTarget();
-        var defaultDrawTarget = getDrawTarget("default");
-        displayDrawTarget(defaultDrawTarget);
-        if (doRegl) {
-            var defaultReglTarget = getDrawTarget("defaultRegl");
-            var canvas = defaultReglTarget.getMaps().canvas;
-            _regl = createREGL({ canvas: canvas });
-        }
-    }
-    function initDefaultDrawTarget(doRegl, drawTarget) {
-        if (drawTarget === undefined) {
-            sketch$1.createCanvas(windowWidth, windowHeight);
-            var drawTarget_1 = new P5DrawTarget(undefined, sketch$1);
-            setDrawTarget("default", drawTarget_1);
-            setDrawTarget("defaultP5", drawTarget_1);
-        }
-        else {
-            noCanvas();
-            if (drawTarget instanceof DrawTarget) {
-                setDrawTarget("default", drawTarget);
-                if (drawTarget instanceof P5DrawTarget) {
-                    setDrawTarget("defaultP5", drawTarget);
-                }
-                if (drawTarget instanceof CanvasDrawTarget) {
-                    setDrawTarget("defaultRegl", drawTarget);
-                }
-            }
-            else if (drawTarget instanceof p5__default["default"].Graphics) {
-                var p5DrawTarget = new P5DrawTarget(undefined, drawTarget);
-                setDrawTarget("default", p5DrawTarget);
-                setDrawTarget("defaultP5", p5DrawTarget);
-            }
-            else {
-                throw Error("Can't make default drawTarget in Brass.init(), bad value");
-            }
-        }
-        if (doRegl) {
-            var drawTarget_2 = new CanvasDrawTarget();
-            setDrawTarget("defaultRegl", drawTarget_2);
-        }
-    }
-    function displayDrawTarget(drawTarget) {
-        var htmlCanvas;
-        if (drawTarget instanceof P5DrawTarget) {
-            htmlCanvas = drawTarget.getMaps().canvas.canvas;
-        }
-        if (drawTarget instanceof CanvasDrawTarget) {
-            htmlCanvas = drawTarget.getMaps().canvas;
-        }
-        if (htmlCanvas) {
-            if (sketch$1._userNode) {
-                sketch$1._userNode.appendChild(htmlCanvas);
-            }
-            else {
-                if (document.getElementsByTagName("main").length === 0) {
-                    var main = document.createElement("main");
-                    document.body.appendChild(main);
-                }
-                document.getElementsByTagName("main")[0].appendChild(htmlCanvas);
-            }
-            htmlCanvas.style.display = "block";
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
     function setDrawTarget(name, drawTarget) {
         if (hasDrawTarget(name)) {
             throw Error("Can't overwrite (".concat(name, ") DrawTarget"));
@@ -1702,149 +1695,12 @@ var Brass = (function (exports, p5) {
         return drawTarget;
     }
     var hasDrawTarget = drawTargets.has.bind(drawTargets);
-    function getP5DrawTarget(name) {
-        var drawTarget = getDrawTarget(name);
-        if (!(drawTarget instanceof P5DrawTarget)) {
-            throw Error("Could not find (".concat(name, ") P5DrawTarget; DrawTarget under that name is not of subclass P5DrawTarget"));
-        }
-        return drawTarget;
-    }
-    function getCanvasDrawTarget(name) {
-        var drawTarget = getDrawTarget(name);
-        if (!(drawTarget instanceof CanvasDrawTarget)) {
-            throw Error("Could not find (".concat(name, ") CanvasDrawTarget; DrawTarget under that name is not of subclass CanvasDrawTarget"));
-        }
-        return drawTarget;
-    }
-    function resize(width, height) {
-        if (width === void 0) { width = window.innerWidth; }
-        if (height === void 0) { height = window.innerHeight; }
-        setWidth = width;
-        setHeight = height;
-        getDrawTarget("default").refresh();
-        resetAndSyncDefaultP5DrawTarget();
-        honorReglRefresh();
-    }
-    function resetAndSyncDefaultP5DrawTarget() {
-        if (hasDrawTarget("defaultP5")) {
-            var canvas = getDrawTarget("defaultP5").getMaps().canvas;
-            canvas.resetMatrix();
-            sketch$1.width = canvas.width;
-            sketch$1.height = canvas.height;
-        }
-    }
-    function getRegl() {
-        assert(_regl !== null, "Could not access regl; Include regl.js and enable it in Brass.init() first");
-        return _regl;
-    }
-    function refreshRegl() {
-        var regl = getRegl();
-        regl._refresh();
-    }
-    function refreshReglFast() {
-        getRegl();
-        if (doReglRefresh)
-            return;
-        doReglRefresh = true;
-        queueMicrotask(honorReglRefresh);
-    }
-    function honorReglRefresh() {
-        if (!doReglRefresh)
-            return;
-        var regl = getRegl();
-        regl._refresh();
-        doReglRefresh = false;
-    }
-    function displayRegl(d) {
-        if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
-        getRegl();
-        var p5Canvas = d.getMaps().canvas;
-        var reglCanvas = getCanvasDrawTarget("defaultRegl").getMaps().canvas;
-        p5Canvas.drawingContext.drawImage(reglCanvas, 0, 0, p5Canvas.width, p5Canvas.height);
-    }
-    var DrawSurfaceAbstract = (function () {
-        function DrawSurfaceAbstract(creator, resizer) {
-            if (resizer === void 0) { resizer = creator; }
-            this.id = Symbol();
-            this.creator = creator;
-            this.resizer = resizer;
-            this.setMaps(null);
-        }
-        DrawSurfaceAbstract.prototype.hasSize = function () {
-            return this.size !== null;
-        };
-        DrawSurfaceAbstract.prototype.getSize = function (ratio) {
-            if (ratio === void 0) { ratio = 1; }
-            if (this.size === null)
-                this.throwSizeError();
-            return {
-                x: this.size.x * ratio,
-                y: this.size.y * ratio
-            };
-        };
-        DrawSurfaceAbstract.prototype.sizeMaps = function (size) {
-            if (this.size === null) {
-                this.setMaps(this.creator(size));
-            }
-            else {
-                if (this.size.x === size.x &&
-                    this.size.y === size.y)
-                    return;
-                this.setMaps(this.resizer(size, this.maps));
-            }
-            this.size = size;
-        };
-        DrawSurfaceAbstract.prototype.hasName = function (name) {
-            if (!hasDrawTarget(name))
-                return false;
-            return getDrawTarget(name).id === this.id;
-        };
-        DrawSurfaceAbstract.prototype.setMaps = function (maps) {
-            if (maps === null) {
-                this.maps === new Proxy({}, { get: this.throwSizeError });
-            }
-            else {
-                this.maps = new Proxy(maps, { get: this.getMap.bind(this) });
-            }
-        };
-        DrawSurfaceAbstract.prototype.getMap = function (maps, mapName) {
-            if (!maps.hasOwnProperty(mapName)) {
-                throw Error("Can't get (".concat(mapName, ") map in DrawTarget"));
-            }
-            return maps[mapName];
-        };
-        DrawSurfaceAbstract.prototype.throwSizeError = function () {
-            throw Error("Could not use DrawSurface, size has not been set");
-        };
-        return DrawSurfaceAbstract;
-    }());
-    var DrawBuffer = (function (_super) {
-        __extends(DrawBuffer, _super);
-        function DrawBuffer(creator, resizer) {
-            if (resizer === void 0) { resizer = creator; }
-            var _this = _super.call(this, creator, resizer) || this;
-            _this.size = null;
-            return _this;
-        }
-        DrawBuffer.prototype.getMaps = function (size) {
-            if (size === undefined) {
-                if (this.size === null)
-                    this.throwSizeError();
-            }
-            else {
-                this.sizeMaps(size);
-            }
-            return this.maps;
-        };
-        return DrawBuffer;
-    }(DrawSurfaceAbstract));
     var DrawTarget = (function (_super) {
         __extends(DrawTarget, _super);
         function DrawTarget(creator, resizer, sizer) {
             if (resizer === void 0) { resizer = creator; }
-            if (sizer === void 0) { sizer = defaultMatchSizer; }
             var _this = _super.call(this, creator, resizer) || this;
-            _this.sizer = sizer;
+            _this.sizer = sizer !== null && sizer !== void 0 ? sizer : _this.defaultSizer;
             _this.size = _this.getSizerResult();
             _this.setMaps(_this.creator(_this.size));
             return _this;
@@ -1894,6 +1750,11 @@ var Brass = (function (exports, p5) {
                 finally { if (e_2) throw e_2.error; }
             }
         };
+        DrawTarget.prototype.hasName = function (name) {
+            if (!hasDrawTarget(name))
+                return false;
+            return getDrawTarget(name).id === this.id;
+        };
         DrawTarget.prototype.getSizerResult = function () {
             var floatSize = this.sizer(this);
             return {
@@ -1901,8 +1762,110 @@ var Brass = (function (exports, p5) {
                 y: Math.floor(floatSize.y)
             };
         };
+        DrawTarget.prototype.defaultSizer = function (self) {
+            if (self.hasName("default")) {
+                return this.size;
+            }
+            return getDrawTarget("default").getSize();
+        };
         return DrawTarget;
-    }(DrawSurfaceAbstract));
+    }(LayerAbstract));
+
+    var regl = null;
+    var doReglRefresh = false;
+    function init$6() {
+        var defaultReglTarget = getDrawTarget("defaultRegl");
+        var canvas = defaultReglTarget.getMaps().canvas;
+        regl = createREGL({ canvas: canvas });
+    }
+    function getRegl() {
+        assert(regl !== null, "Could not access regl; Include regl.js and enable it in Brass.init() first");
+        return regl;
+    }
+    function refreshRegl() {
+        var regl = getRegl();
+        regl._refresh();
+    }
+    function refreshReglFast() {
+        getRegl();
+        if (doReglRefresh)
+            return;
+        doReglRefresh = true;
+        queueMicrotask(honorReglRefresh);
+    }
+    function honorReglRefresh() {
+        if (!doReglRefresh)
+            return;
+        var regl = getRegl();
+        regl._refresh();
+        doReglRefresh = false;
+    }
+
+    function getCanvasDrawTarget(name) {
+        var drawTarget = getDrawTarget(name);
+        if (!(drawTarget instanceof CanvasDrawTarget)) {
+            throw Error("Could not find (".concat(name, ") CanvasDrawTarget; DrawTarget under that name is not of subclass CanvasDrawTarget"));
+        }
+        return drawTarget;
+    }
+    var CanvasDrawTarget = (function (_super) {
+        __extends(CanvasDrawTarget, _super);
+        function CanvasDrawTarget(sizer) {
+            return _super.call(this, function (_a) {
+                var x = _a.x, y = _a.y;
+                var canvas = document.createElement("CANVAS");
+                canvas.width = x;
+                canvas.height = y;
+                return { canvas: canvas };
+            }, function (_a, _b) {
+                var x = _a.x, y = _a.y;
+                var canvas = _b.canvas;
+                canvas.width = x;
+                canvas.height = y;
+                refreshReglFast();
+                return { canvas: canvas };
+            }, sizer) || this;
+        }
+        return CanvasDrawTarget;
+    }(DrawTarget));
+
+    var DrawBuffer = (function (_super) {
+        __extends(DrawBuffer, _super);
+        function DrawBuffer(creator, resizer) {
+            if (resizer === void 0) { resizer = creator; }
+            var _this = _super.call(this, creator, resizer) || this;
+            _this.size = null;
+            return _this;
+        }
+        DrawBuffer.prototype.getMaps = function (size) {
+            if (size === undefined) {
+                if (this.size === null)
+                    this.throwSizeError();
+            }
+            else {
+                this.sizeMaps(size);
+            }
+            return this.maps;
+        };
+        return DrawBuffer;
+    }(LayerAbstract));
+
+    function getP5DrawTarget(name) {
+        var drawTarget = getDrawTarget(name);
+        if (!(drawTarget instanceof P5DrawTarget)) {
+            throw Error("Could not find (".concat(name, ") P5DrawTarget; DrawTarget under that name is not of subclass P5DrawTarget"));
+        }
+        return drawTarget;
+    }
+    function resetAndSyncDefaultP5DrawTarget() {
+        if (hasDrawTarget("defaultP5")) {
+            var canvas = getDrawTarget("defaultP5").getMaps().canvas;
+            canvas.resetMatrix();
+            var sketch = getSketch();
+            sketch.width = canvas.width;
+            sketch.height = canvas.height;
+        }
+    }
     var P5DrawBuffer = (function (_super) {
         __extends(P5DrawBuffer, _super);
         function P5DrawBuffer(arg) {
@@ -1930,7 +1893,6 @@ var Brass = (function (exports, p5) {
     var P5DrawTarget = (function (_super) {
         __extends(P5DrawTarget, _super);
         function P5DrawTarget(sizer, arg) {
-            if (sizer === void 0) { sizer = defaultMatchSizer; }
             if (arg === void 0) { arg = P2D; }
             return _super.call(this, function (_a) {
                 var x = _a.x, y = _a.y;
@@ -1952,32 +1914,102 @@ var Brass = (function (exports, p5) {
         }
         return P5DrawTarget;
     }(DrawTarget));
-    var CanvasDrawTarget = (function (_super) {
-        __extends(CanvasDrawTarget, _super);
-        function CanvasDrawTarget(sizer) {
-            if (sizer === void 0) { sizer = defaultMatchSizer; }
-            return _super.call(this, function (_a) {
-                var x = _a.x, y = _a.y;
-                var canvas = document.createElement("CANVAS");
-                canvas.width = x;
-                canvas.height = y;
-                return { canvas: canvas };
-            }, function (_a, _b) {
-                var x = _a.x, y = _a.y;
-                var canvas = _b.canvas;
-                canvas.width = x;
-                canvas.height = y;
-                refreshReglFast();
-                return { canvas: canvas };
-            }, sizer) || this;
+
+    var width$1, height$1;
+    function init$5() {
+        width$1 = window.innerWidth;
+        width$1 = window.innerHeight;
+    }
+    function resize(_width, _height) {
+        if (_width === void 0) { _width = window.innerWidth; }
+        if (_height === void 0) { _height = window.innerHeight; }
+        width$1 = _width;
+        width$1 = _height;
+        getDrawTarget("default").setSizer(function () { return ({
+            x: width$1,
+            y: height$1
+        }); });
+        resetAndSyncDefaultP5DrawTarget();
+        honorReglRefresh();
+    }
+
+    function init$4(doRegl, drawTarget) {
+        init$5();
+        initDefaultDrawTarget(doRegl, drawTarget);
+        if (!hasDrawTarget("default"))
+            return;
+        resetAndSyncDefaultP5DrawTarget();
+        var defaultDrawTarget = getDrawTarget("default");
+        addDrawTargetElement(defaultDrawTarget);
+        if (doRegl) {
+            init$6();
         }
-        return CanvasDrawTarget;
-    }(DrawTarget));
-    function defaultMatchSizer(self) {
-        if (!hasDrawTarget("default") || self.hasName("default")) {
-            return { x: setWidth, y: setHeight };
+    }
+    function initDefaultDrawTarget(doRegl, drawTarget) {
+        if (drawTarget === undefined) {
+            var sketch = getSketch();
+            sketch.createCanvas(windowWidth, windowHeight);
+            var drawTarget_1 = new P5DrawTarget(undefined, sketch);
+            setDrawTarget("default", drawTarget_1);
+            setDrawTarget("defaultP5", drawTarget_1);
         }
-        return getDrawTarget("default").getSize();
+        else {
+            noCanvas();
+            if (drawTarget instanceof DrawTarget) {
+                setDrawTarget("default", drawTarget);
+                if (drawTarget instanceof P5DrawTarget) {
+                    setDrawTarget("defaultP5", drawTarget);
+                }
+                if (drawTarget instanceof CanvasDrawTarget) {
+                    setDrawTarget("defaultRegl", drawTarget);
+                }
+            }
+            else if (drawTarget instanceof p5__default["default"].Graphics) {
+                var p5DrawTarget = new P5DrawTarget(undefined, drawTarget);
+                setDrawTarget("default", p5DrawTarget);
+                setDrawTarget("defaultP5", p5DrawTarget);
+            }
+            else {
+                throw Error("Can't make default drawTarget in Brass.init(), bad value");
+            }
+        }
+        if (doRegl) {
+            var drawTarget_2 = new CanvasDrawTarget();
+            setDrawTarget("defaultRegl", drawTarget_2);
+        }
+    }
+    function addDrawTargetElement(drawTarget) {
+        var htmlCanvas;
+        if (drawTarget instanceof P5DrawTarget) {
+            htmlCanvas = drawTarget.getMaps().canvas.canvas;
+        }
+        if (drawTarget instanceof CanvasDrawTarget) {
+            htmlCanvas = drawTarget.getMaps().canvas;
+        }
+        if (htmlCanvas) {
+            if (sketch._userNode) {
+                sketch._userNode.appendChild(htmlCanvas);
+            }
+            else {
+                if (document.getElementsByTagName("main").length === 0) {
+                    var main = document.createElement("main");
+                    document.body.appendChild(main);
+                }
+                document.getElementsByTagName("main")[0].appendChild(htmlCanvas);
+            }
+            htmlCanvas.style.display = "block";
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    function drawNativeToP5(p5Target, canvasTarget) {
+        if (p5Target === void 0) { p5Target = getP5DrawTarget("defaultP5"); }
+        if (canvasTarget === void 0) { canvasTarget = getCanvasDrawTarget("defaultRegl"); }
+        var p5Canvas = p5Target.getMaps().canvas;
+        var canvasCanvas = canvasTarget.getMaps().canvas;
+        p5Canvas.drawingContext.drawImage(canvasCanvas, 0, 0, p5Canvas.width, p5Canvas.height);
     }
 
     var _a;
@@ -3306,7 +3338,7 @@ var Brass = (function (exports, p5) {
 
     var inited = false;
     var testStatus = null;
-    var sketch;
+    var sketch$1;
     var maxTimeDelta, targetTimeDelta, minTimeDelta;
     var timewarpList = [];
     var runningPhysics = false;
@@ -3335,24 +3367,12 @@ var Brass = (function (exports, p5) {
         if (options.regl === undefined && globalThis.createREGL !== undefined) {
             console.warn("regl.js has been found; Enable or disable regl in Brass.init()");
         }
-        if (options.sketch) {
-            sketch = options.sketch;
-        }
-        else {
-            if (!("p5" in globalThis)) {
-                throw Error("Can't find p5.js, it is required for Brass");
-            }
-            if (!("setup" in globalThis)) {
-                throw Error("Can't seem to find p5; If you are running in instance mode pass the sketch into Brass.init()");
-            }
-            sketch = globalThis;
-        }
-        sketch.disableFriendlyErrors = true;
-        init$5();
-        init$4(sketch, (_a = options.regl) !== null && _a !== void 0 ? _a : false, options.drawTarget);
+        init$8(options.sketch);
+        init$7();
+        init$4((_a = options.regl) !== null && _a !== void 0 ? _a : false, options.drawTarget);
         init$2(options.viewpoint);
         var targetFrameRate = Math.min(_targetFrameRate, (_b = options.maxFrameRate) !== null && _b !== void 0 ? _b : 60);
-        sketch.frameRate(targetFrameRate);
+        sketch$1.frameRate(targetFrameRate);
         targetTimeDelta = 1000 / targetFrameRate;
         maxTimeDelta = (_c = options.maxTimeDelta) !== null && _c !== void 0 ? _c : targetTimeDelta * 2.0;
         minTimeDelta = (_d = options.minTimeDelta) !== null && _d !== void 0 ? _d : targetTimeDelta * 0.5;
@@ -3367,11 +3387,11 @@ var Brass = (function (exports, p5) {
                 init$1();
             }
         }
-        if (sketch.draw === undefined) {
-            sketch.draw = defaultSketchDraw;
+        if (sketch$1.draw === undefined) {
+            sketch$1.draw = defaultSketchDraw;
         }
-        if (sketch.windowResized === undefined) {
-            sketch.windowResized = function () { return resize(window.innerWidth, window.innerHeight); };
+        if (sketch$1.windowResized === undefined) {
+            sketch$1.windowResized = function () { return resize(window.innerWidth, window.innerHeight); };
         }
         inited = true;
     }
@@ -3390,13 +3410,10 @@ var Brass = (function (exports, p5) {
         realDelta = Math.max(minTimeDelta, realDelta);
         var simDelta = updateSimTiming(realDelta);
         updateEarly();
-        if (sketch.brassUpdate !== undefined)
-            sketch.brassUpdate(simDelta);
+        if (sketch$1.brassUpdate !== undefined)
+            ;
         updateLate(simDelta);
-        if (sketch.brassDraw !== undefined) {
-            resetAndSyncDefaultP5DrawTarget();
-            sketch.brassDraw(simDelta);
-        }
+        if (sketch$1.brassDraw !== undefined) ;
     }
     function updateSimTiming(realDelta) {
         var simDelta = 0;
@@ -3678,7 +3695,7 @@ var Brass = (function (exports, p5) {
         function P5Lighter(options) {
             if (options === void 0) { options = {}; }
             var _a, _b, _c;
-            this.lightSurface = new P5DrawBuffer();
+            this.lightBuffer = new P5DrawBuffer();
             this.directionalCache = new Map();
             this.viewpoint = null;
             this.resolution = (_a = options.resolution) !== null && _a !== void 0 ? _a : 0.25;
@@ -3688,14 +3705,14 @@ var Brass = (function (exports, p5) {
         P5Lighter.prototype.begin = function (v, d) {
             if (v === void 0) { v = getDefaultViewpoint(); }
             if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
-            var newContext = !this.lightSurface.hasSize();
-            this.lightSurface.sizeMaps(d.getSize(this.resolution));
+            var newContext = !this.lightBuffer.hasSize();
+            this.lightBuffer.sizeMaps(d.getSize(this.resolution));
             if (newContext)
                 this.fill(this.color);
             this.resetLightCanvas();
             var originalScale = v.scale;
             v.scale *= this.resolution;
-            v.view(this.lightSurface);
+            v.view(this.lightBuffer);
             v.scale = originalScale;
             this.viewpoint = v;
             return this;
@@ -3759,9 +3776,9 @@ var Brass = (function (exports, p5) {
             var area = this.viewpoint.getWorldViewArea();
             var areaWidth = area.maxX - area.minX;
             var areaHeight = area.maxY - area.minY;
-            var lightSurfaceSize = this.lightSurface.getSize();
-            var paddingX = areaWidth * ((4 / lightSurfaceSize.x) - vignette) + this._blur * 2;
-            var paddingY = areaHeight * ((4 / lightSurfaceSize.y) - vignette) + this._blur * 2;
+            var lightBufferSize = this.lightBuffer.getSize();
+            var paddingX = areaWidth * ((4 / lightBufferSize.x) - vignette) + this._blur * 2;
+            var paddingY = areaHeight * ((4 / lightBufferSize.y) - vignette) + this._blur * 2;
             lightCanvas.rect(area.minX - paddingX * 0.5, area.minY - paddingY * 0.5, areaWidth + paddingX * 1, areaHeight + paddingY * 1);
             return this;
         };
@@ -3886,15 +3903,15 @@ var Brass = (function (exports, p5) {
             lightCanvas.resetMatrix();
         };
         P5Lighter.prototype.getLightCanvas = function () {
-            if (!this.lightSurface.hasSize())
+            if (!this.lightBuffer.hasSize())
                 this.throwBeginError();
-            return this.lightSurface.getMaps().canvas;
+            return this.lightBuffer.getMaps().canvas;
         };
         Object.defineProperty(P5Lighter.prototype, "lightCanvas", {
             get: function () {
-                if (!this.lightSurface.hasSize())
+                if (!this.lightBuffer.hasSize())
                     return null;
-                return this.lightSurface.getMaps().canvas;
+                return this.lightBuffer.getMaps().canvas;
             },
             enumerable: false,
             configurable: true
@@ -5420,6 +5437,7 @@ var Brass = (function (exports, p5) {
     exports.CanvasDrawTarget = CanvasDrawTarget;
     exports.CircleBody = CircleBody;
     exports.ClassicViewpoint = ClassicViewpoint;
+    exports.DrawBuffer = DrawBuffer;
     exports.DrawTarget = DrawTarget;
     exports.GridBody = GridBody;
     exports.Heap = Heap;
@@ -5429,6 +5447,7 @@ var Brass = (function (exports, p5) {
     exports.MappedMinHeap = MappedMinHeap;
     exports.MaxHeap = MaxHeap;
     exports.MinHeap = MinHeap;
+    exports.P5DrawBuffer = P5DrawBuffer;
     exports.P5DrawTarget = P5DrawTarget;
     exports.P5Lighter = P5Lighter;
     exports.P5Tilemap = P5Tilemap;
@@ -5440,10 +5459,10 @@ var Brass = (function (exports, p5) {
     exports.VelocityParticle = VelocityParticle;
     exports.Viewpoint = Viewpoint;
     exports.disableContextMenu = disableContextMenu;
-    exports.displayRegl = displayRegl;
     exports.drawColliders = drawColliders;
     exports.drawFPS = drawFPS;
     exports.drawLoading = drawLoading;
+    exports.drawNativeToP5 = drawNativeToP5;
     exports.drawParticles = draw;
     exports.emitParticle = emitParticle;
     exports.emitParticles = emitParticles;

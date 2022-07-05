@@ -3,7 +3,7 @@
  * @module
  */
 
-import { getP5DrawTarget } from "../drawSurface";
+import { getP5DrawTarget } from "../layers/p5Layers";
 import { loadFraction, loadProgress } from "../loader";
 import { getTime } from "../time";
 

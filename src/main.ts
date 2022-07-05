@@ -21,7 +21,7 @@ export {
 	timewarp,
 	getTimewarp,
 	getTimewarps
-} from "./core";
+} from "./core/core";
 
 export {
 	InputMapper,
@@ -98,22 +98,34 @@ export {
 } from "./vector/vector2";
 
 export {
-	DrawTarget,
-	P5DrawTarget,
-	CanvasDrawTarget,
-
-	setDrawTarget,
-	hasDrawTarget,
-	getDrawTarget,
-	getP5DrawTarget,
-	getCanvasDrawTarget,
-
 	resize,
+} from "./layers/globalResize";
+export {
 	getRegl,
 	refreshRegl,
 	refreshReglFast,
-	displayRegl
-} from "./drawSurface";
+} from "./layers/handleRegl";
+export {
+	DrawBuffer
+} from "./layers/drawBuffer";
+export {
+	DrawTarget,
+	setDrawTarget,
+	hasDrawTarget,
+	getDrawTarget
+} from "./layers/drawTarget";
+export {
+	P5DrawBuffer,
+	P5DrawTarget,
+	getP5DrawTarget
+} from "./layers/p5Layers";
+export {
+	CanvasDrawTarget,
+	getCanvasDrawTarget
+} from "./layers/canvasLayers";
+export {
+	drawNativeToP5
+} from "./layers/layers";
 
 export {
 	ClassicViewpoint,

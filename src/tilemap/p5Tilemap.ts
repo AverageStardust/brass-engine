@@ -3,7 +3,7 @@
  * @module
  */
 
-import { getP5DrawTarget, P5DrawTarget, P5DrawSurfaceMap } from "../drawSurface";
+import { getP5DrawTarget, P5DrawTarget, P5LayerMap } from "../layers/p5Layers";
 import { getExactTime, getTime } from "../time";
 import { createFastGraphics, Pool, assert } from "../common";
 import { getDefaultViewpoint } from "../viewpoint";
@@ -23,7 +23,7 @@ export interface P5TilemapOptions extends TilemapAbstractOptions {
 	drawCachePaddingTime?: number; // milliseconds used on off-screen chunks rendering
 	drawCachePoolInitalSize?: number; // how many tile caches to create on initialization
 
-	drawTile?: (data: any, x: number, y: number, g: P5DrawSurfaceMap) => void;
+	drawTile?: (data: any, x: number, y: number, g: P5LayerMap) => void;
 	drawOrder?: (data: any) => number;
 	canCacheTile?: (data: any) => boolean;
 }
@@ -43,7 +43,7 @@ export class P5Tilemap extends TilemapAbstract {
 	private readonly drawCachePadding: number;
 	private readonly drawCachePaddingTime: number;
 
-	private readonly drawTile: (data: any, x: number, y: number, g: P5DrawSurfaceMap) => void;
+	private readonly drawTile: (data: any, x: number, y: number, g: P5LayerMap) => void;
 	private readonly drawOrder: ((data: any) => number) | null;
 	private readonly canCacheTile: ((data: any) => boolean) | null;
 
@@ -293,7 +293,7 @@ export class P5Tilemap extends TilemapAbstract {
 		cache.pop();
 	}
 
-	private drawChunk(chunkX: number, chunkY: number, g: P5DrawSurfaceMap) {
+	private drawChunk(chunkX: number, chunkY: number, g: P5LayerMap) {
 		const tileImage = this.maintainChunk(chunkX, chunkY);
 
 		// draw tile cache to screen
@@ -323,7 +323,7 @@ export class P5Tilemap extends TilemapAbstract {
 	}
 
 	// draw tiles when they are not chunked
-	private drawTiles(minX: number, minY: number, maxX: number, maxY: number, g: P5DrawSurfaceMap) {
+	private drawTiles(minX: number, minY: number, maxX: number, maxY: number, g: P5LayerMap) {
 		g.push();
 
 		const drawList: P5TileDrawList = [];
@@ -355,7 +355,7 @@ export class P5Tilemap extends TilemapAbstract {
 		g.pop();
 	}
 
-	private defaultDrawTile(data: any, x: number, y: number, g: P5DrawSurfaceMap) {
+	private defaultDrawTile(data: any, x: number, y: number, g: P5LayerMap) {
 		g.noStroke();
 
 		const brightness = (x + y) % 2 * 255;

@@ -1,5 +1,5 @@
+import { P5LayerMap } from "../layers/p5Layers";
 import { Vector2 } from "../vector/vector2";
-import { P5DrawSurfaceMap } from "../drawSurface";
 
 export abstract class ComponentAbstract {
 	id = Symbol();
@@ -10,7 +10,7 @@ export abstract class ComponentAbstract {
 	abstract changed: boolean;
 	weight = 1;
 
-	abstract draw(g: P5DrawSurfaceMap);
+	abstract draw(g: P5LayerMap);
 
 	abstract findTarget(position: Vector2): ComponentAbstract | null;
 

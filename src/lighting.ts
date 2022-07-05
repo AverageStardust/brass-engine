@@ -5,12 +5,13 @@
  */
 
 import p5 from "p5";
-import { getP5DrawTarget, P5DrawBuffer, P5DrawSurface } from "./drawSurface";
+import { getP5DrawTarget } from "./layers/p5Layers";
 import { ColorArgs, createColor } from "./common";
-import { getDefaultViewpoint, Viewpoint, ViewpointAbstract } from "./viewpoint";
+import { getDefaultViewpoint, ViewpointAbstract } from "./viewpoint";
 import { Vector2 } from "./vector/vector2";
 import { RayBody } from "./physics/rayBody";
 import { getSimTime } from "./time";
+import { P5DrawBuffer, P5Layer } from "./layers/p5Layers";
 
 
 
@@ -36,7 +37,7 @@ interface DirectionalOptions {
 
 
 export class P5Lighter {
-	private lightSurface: P5DrawBuffer = new P5DrawBuffer();
+	private lightBuffer: P5DrawBuffer = new P5DrawBuffer();
 	private resolution: number;
 	private _blur: number;
 	private color: p5.Color;
@@ -51,22 +52,22 @@ export class P5Lighter {
 
 	// light
 	begin(v = getDefaultViewpoint(), d = getP5DrawTarget("defaultP5")) {
-		const newContext = !this.lightSurface.hasSize();
-		this.lightSurface.sizeMaps(d.getSize(this.resolution))
+		const newContext = !this.lightBuffer.hasSize();
+		this.lightBuffer.sizeMaps(d.getSize(this.resolution))
 		if (newContext) this.fill(this.color);
 
 		this.resetLightCanvas();
 
 		const originalScale = v.scale;
 		v.scale *= this.resolution;
-		v.view(this.lightSurface);
+		v.view(this.lightBuffer);
 		v.scale = originalScale;
 		this.viewpoint = v;
 
 		return this;
 	}
 
-	end(d: P5DrawSurface = getP5DrawTarget("defaultP5")) {
+	end(d: P5Layer = getP5DrawTarget("defaultP5")) {
 		const g = d.getMaps().canvas;
 
 		g.push();
@@ -135,9 +136,9 @@ export class P5Lighter {
 		const areaWidth = area.maxX - area.minX;
 		const areaHeight = area.maxY - area.minY;
 
-		const lightSurfaceSize = this.lightSurface.getSize();
-		const paddingX = areaWidth * ((4 / lightSurfaceSize.x) - vignette) + this._blur * 2;
-		const paddingY = areaHeight * ((4 / lightSurfaceSize.y) - vignette) + this._blur * 2;
+		const lightBufferSize = this.lightBuffer.getSize();
+		const paddingX = areaWidth * ((4 / lightBufferSize.x) - vignette) + this._blur * 2;
+		const paddingY = areaHeight * ((4 / lightBufferSize.y) - vignette) + this._blur * 2;
 
 		lightCanvas.rect(
 			area.minX - paddingX * 0.5,
@@ -293,13 +294,13 @@ export class P5Lighter {
 	}
 
 	private getLightCanvas() {
-		if (!this.lightSurface.hasSize()) this.throwBeginError();
-		return this.lightSurface.getMaps().canvas;
+		if (!this.lightBuffer.hasSize()) this.throwBeginError();
+		return this.lightBuffer.getMaps().canvas;
 	}
 
 	get lightCanvas() {
-		if (!this.lightSurface.hasSize()) return null;
-		return this.lightSurface.getMaps().canvas;
+		if (!this.lightBuffer.hasSize()) return null;
+		return this.lightBuffer.getMaps().canvas;
 	}
 
 	private throwBeginError(): never {
