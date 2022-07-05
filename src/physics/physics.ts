@@ -5,7 +5,7 @@
  */
 
 import { assert } from "../common/runtimeChecking";
-import { getP5DrawTarget } from "../layers/p5Layers";
+import { getP5DrawTarget, P5LayerMap } from "../layers/p5Layers";
 import { Vector2 } from "../vector/vector2";
 import { assertMatterWorld, getMatterWorld, getSpaceScale, setMatterWorld, setSpaceScale } from "./bodyAbstract";
 import { InternalMatterBody, MaterialBodyAbstract } from "./materialBodyAbstract";
@@ -27,7 +27,7 @@ export function init(_options: MatterWorldDefinition = {}) {
 	if (typeof Matter !== "object") {
 		throw Error("Matter was not found; Can't initialize Brass physics without Matter.js initialized first");
 	}
-	
+
 	setSpaceScale(_options.spaceScale);
 
 	_options.gravity ??= { scale: 0 };
@@ -80,9 +80,18 @@ export function drawColliders(weight = 0.5, d = getP5DrawTarget("defaultP5")) {
 	const g = d.getMaps().canvas;
 	g.push();
 	g.noFill();
-	g.stroke(0, 255, 0);
 	g.strokeWeight(weight);
 
+	g.stroke(0, 255, 0);
+	drawBodies(g);
+
+	g.stroke(255, 0, 0);
+	drawRays(g);
+
+	g.pop();
+}
+
+function drawBodies(g: P5LayerMap) {
 	const bodyQueue = [...getMatterWorld().bodies];
 	const queuedBodies = new Set(bodyQueue.map((b) => b.id));
 	const spaceScale = getSpaceScale();
@@ -103,7 +112,27 @@ export function drawColliders(weight = 0.5, d = getP5DrawTarget("defaultP5")) {
 		}
 		g.endShape(CLOSE);
 	}
-	g.pop();
+}
 
-	//TODO: draw rays
+function drawRays(g: P5LayerMap) {
+	g.beginShape(LINES);
+	for (const ray of getRays().values()) {
+		const position = ray.position;
+		const endPosition = position.copy().add(ray.velocity);
+
+		const { x: x1, y: y1 } = position;
+		const { x: x2, y: y2 } = endPosition;
+		const { x: x3, y: y3 } = endPosition.copy().add(ray.velocity.copy().rotate(PI * 0.75).norm(1));
+		const { x: x4, y: y4 } = endPosition.copy().add(ray.velocity.copy().rotate(-PI * 0.75).norm(1));
+
+		g.vertex(x1, y1);
+		g.vertex(x2, y2);
+
+		g.vertex(x2, y2);
+		g.vertex(x3, y3);
+
+		g.vertex(x2, y2);
+		g.vertex(x4, y4);
+	}
+	g.endShape();
 }

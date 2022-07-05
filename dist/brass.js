@@ -3847,14 +3847,20 @@ var Brass = (function (exports, p5) {
         }
     }
     function drawColliders(weight, d) {
-        var e_3, _a, e_4, _b;
         if (weight === void 0) { weight = 0.5; }
         if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
         var g = d.getMaps().canvas;
         g.push();
         g.noFill();
-        g.stroke(0, 255, 0);
         g.strokeWeight(weight);
+        g.stroke(0, 255, 0);
+        drawBodies(g);
+        g.stroke(255, 0, 0);
+        drawRays(g);
+        g.pop();
+    }
+    function drawBodies(g) {
+        var e_3, _a, e_4, _b;
         var bodyQueue = __spreadArray([], __read(getMatterWorld().bodies), false);
         var queuedBodies = new Set(bodyQueue.map(function (b) { return b.id; }));
         var spaceScale = getSpaceScale();
@@ -3892,7 +3898,35 @@ var Brass = (function (exports, p5) {
             }
             g.endShape(CLOSE);
         }
-        g.pop();
+    }
+    function drawRays(g) {
+        var e_5, _a;
+        g.beginShape(LINES);
+        try {
+            for (var _b = __values(getRays().values()), _c = _b.next(); !_c.done; _c = _b.next()) {
+                var ray = _c.value;
+                var position = ray.position;
+                var endPosition = position.copy().add(ray.velocity);
+                var x1 = position.x, y1 = position.y;
+                var x2 = endPosition.x, y2 = endPosition.y;
+                var _d = endPosition.copy().add(ray.velocity.copy().rotate(PI * 0.75).norm(1)), x3 = _d.x, y3 = _d.y;
+                var _e = endPosition.copy().add(ray.velocity.copy().rotate(-PI * 0.75).norm(1)), x4 = _e.x, y4 = _e.y;
+                g.vertex(x1, y1);
+                g.vertex(x2, y2);
+                g.vertex(x2, y2);
+                g.vertex(x3, y3);
+                g.vertex(x2, y2);
+                g.vertex(x4, y4);
+            }
+        }
+        catch (e_5_1) { e_5 = { error: e_5_1 }; }
+        finally {
+            try {
+                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+            }
+            finally { if (e_5) throw e_5.error; }
+        }
+        g.endShape();
     }
 
     var arrayConstructors = {
