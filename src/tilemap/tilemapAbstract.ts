@@ -3,10 +3,10 @@
  * @module
  */
 
-import { cloneDynamicArray, createDynamicArray, decodeDynamicTypedArray, DynamicArray, DynamicArrayType, DynamicTypedArray, DynamicTypedArrayType, encodeDynamicTypedArray, safeBind } from "../common";
+import { safeBind } from "../common/runtimeChecking";
+import { cloneDynamicArray, createDynamicArray, decodeDynamicTypedArray, DynamicArray, DynamicArrayType, DynamicTypedArray, DynamicTypedArrayType, encodeDynamicTypedArray } from "../common/dynamicArray";
 import { isPhysicsActive } from "../physics/physics";
 import { GridBody } from "../physics/gridBody";
-import { registerTilemap } from "./tilemap";
 
 
 
@@ -19,7 +19,7 @@ type SparseFieldData = { [name: `${number},${number}`]: any };
 type SparseableDynamicArray = { sparse: true, data: SparseFieldData } | { sparse: false, data: DynamicArray };
 type SolidFieldType = { sparse: false, data: Uint8Array };
 
-interface TilemapWorldFields {
+interface LevelFields {
 	[name: string]: {
 		type: "sparse";
 		data: SparseFieldData
@@ -33,17 +33,17 @@ interface TilemapWorldFields {
 	}))
 }
 
-export interface TilemapWorld {
+export interface Level {
 	width: number;
 	height: number;
 
 	objects: any[];
-	tilesets: { [name: string]: TilemapWorldTileset };
+	tilesets: { [name: string]: LevelTileset };
 
-	fields: TilemapWorldFields;
+	fields: LevelFields;
 }
 
-interface TilemapWorldTileset {
+interface LevelTileset {
 	firstId: number;
 	tiles: {
 		[id: number]: {
@@ -67,6 +67,14 @@ export interface TilemapAbstractOptions {
 }
 
 
+
+const tilemaps: TilemapAbstract[] = [];
+
+
+
+export function getTilemaps() {
+	return tilemaps;
+}
 
 export abstract class TilemapAbstract {
 	readonly width: number;
@@ -156,7 +164,7 @@ export abstract class TilemapAbstract {
 		}
 		this.bodyValid = this.hasBody;
 
-		registerTilemap(this);
+		tilemaps.push(this);
 	}
 
 	bindOptionsFunction(func?: Function) {
@@ -216,8 +224,8 @@ export abstract class TilemapAbstract {
 		return Boolean(solid);
 	}
 
-	export(): TilemapWorld {
-		const fields: TilemapWorldFields = {};
+	export(): Level {
+		const fields: LevelFields = {};
 
 		for (const fieldName in this.fieldIds) {
 			const fieldId = this.fieldIds[fieldName];
@@ -252,9 +260,9 @@ export abstract class TilemapAbstract {
 		}
 	}
 
-	import(world: TilemapWorld) {
+	import(world: Level) {
 		if (world === null) {
-			throw Error("Tried to import (null) as world; Did you pass Brass.getWorld() before the world loaded?")
+			throw Error("Tried to import (null) as world; Did you pass Brass.getLevel() before the world loaded?")
 		}
 
 		if (world.width > this.width ||

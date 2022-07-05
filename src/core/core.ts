@@ -9,10 +9,11 @@ import { init as initInput, update as updateInput } from "../inputMapper";
 import { init as initDrawLayer } from "../layers/layers";
 import { DrawTarget } from "../layers/drawTarget";
 import { init as initLoader, loaded } from "../loader";
-import { init as initViewpoint, updateViewpoints, ViewpointAbstract } from "../viewpoint";
-import { deltaSimTime, update as updateTime } from "../time";
+import { init as initViewpoint, updateViewpoints } from "../camera/camera";
+import { ViewpointAbstract } from "../camera/viewpointAbstract";
+import { deltaSimTime, update as updateTime } from "./time";
 import { drawLoading } from "../ui/legacyUI";
-import { update as updateParticles } from "../particle";
+import { update as updateEffects } from "../effects/effects";
 import { update as updatePathfinders } from "../pathfinder/pathfinder";
 import { init as initPhysics, MatterWorldDefinition, update as updatePhysics } from "../physics/physics";
 import { update as updateTilemaps } from "../tilemap/tilemap";
@@ -197,7 +198,7 @@ function updateLate(delta: number) {
 	updateViewpoints(delta);
 	updateTilemaps();
 	updatePathfinders();
-	updateParticles(delta);
+	updateEffects(delta);
 }
 
 export function timewarp(duration: number, rate = 0) {

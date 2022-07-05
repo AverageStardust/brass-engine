@@ -1,5 +1,5 @@
 import { getP5DrawTarget } from "../layers/p5Layers";
-import { getTime } from "../time";
+import { getTime } from "../core/time";
 import { Vector2 } from "../vector/vector2";
 import { PathfinderAbstract } from "./pathfinderAbstract";
 import { PathSituation } from "./PathSituationType";

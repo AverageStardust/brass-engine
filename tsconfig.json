@@ -1,6 +1,6 @@
 {
     "include": [
-        "./src/main.ts"
+        "src/index.ts"
     ],
     "compilerOptions": {
         "types": [

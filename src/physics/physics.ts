@@ -4,7 +4,7 @@
  * @module
  */
 
-import { Opaque } from "../common";
+import { Opaque } from "../common/types";
 import { getP5DrawTarget } from "../layers/p5Layers";
 import { Vector2 } from "../vector/vector2";
 import { BodyAbstract } from "./bodyAbstract";
@@ -32,6 +32,7 @@ let lastDelta: number | null = null;
 let engine: Matter.Engine;
 let world: Matter.World;
 let spaceScale: number;
+//TODO: fix this mess
 export const rays: Map<symbol, RayBody> = new Map();
 export const bodies: { [index: CollisionFilterIndex]: Map<number, MaterialBodyAbstract> } = Array(32).fill(null).map(() => new Map());
 export const forceUnit = 1e-6;

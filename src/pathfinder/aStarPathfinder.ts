@@ -1,4 +1,5 @@
-import { MappedHeap, Opaque } from "../common";
+import { Opaque } from "../common/types";
+import { MappedHeap } from "../common/heap";
 import { TilemapAbstract } from "../tilemap/tilemapAbstract";
 import { Vector2, Vertex2 } from "../vector/vector2";
 import { PathfinderAbstract, PathfinderAbstractOptions, ComputePathArgs } from "./pathfinderAbstract";
@@ -21,10 +22,10 @@ export class AStarPathfinder extends PathfinderAbstract {
 	tilemap: TilemapAbstract;
 
 	constructor(tilemap: TilemapAbstract, _options: Omit<PathfinderAbstractOptions, "width" | "height"> = {}) {
-		const options  = _options as PathfinderAbstractOptions;
+		const options = _options as PathfinderAbstractOptions;
 		options.width = tilemap.width;
 		options.height = tilemap.height;
-		
+
 		options.scale = tilemap.tileSize;
 
 		super(options);

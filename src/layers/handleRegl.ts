@@ -1,5 +1,5 @@
-import REGL from "../../types/regl";
-import { assert } from "../common";
+import REGL from "../../globalTypes/regl";
+import { assert } from "../common/runtimeChecking";
 import { getCanvasDrawTarget } from "./canvasLayers";
 import { getDrawTarget } from "./drawTarget";
 import { getP5DrawTarget } from "./p5Layers";

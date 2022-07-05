@@ -4,11 +4,10 @@
  * @module
  */
 
-import { expect } from "../common";
-import { getExactTime, getTime } from "../time";
+import { expect } from "../common/runtimeChecking";
+import { getExactTime, getTime } from "../core/time";
 import { Vector2, Vertex2 } from "../vector/vector2";
 import { PathAgent } from "./pathAgent";
-import { registerPathfinder } from "./pathfinder";
 import { PathSituation, PathSituationType } from "./PathSituationType";
 
 
@@ -36,6 +35,14 @@ export interface PathfinderAbstractOptions {
 }
 
 
+
+const pathfinders: PathfinderAbstract[] = [];
+
+
+
+export function getPathfinders() {
+	return pathfinders;
+}
 
 // class that finds paths for a group of agents to one goal
 // this pathfinding system is optimized for groups with one collective goal
@@ -98,7 +105,7 @@ export abstract class PathfinderAbstract {
 		this.agents = [];
 		this.waitingAgent = 0;
 
-		registerPathfinder(this);
+		pathfinders.push(this);
 	}
 
 	createAgent(radius: number, leadership?: number) {

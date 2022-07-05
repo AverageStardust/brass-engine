@@ -33,7 +33,7 @@ const minifyOutput = {
 };
 
 export default {
-    input: "./src/main.ts",
+    input: "./src/index.ts",
     output: (process.env.BUILD === "development") ?
         [rawOutput] :
         [rawOutput, minifyOutput],

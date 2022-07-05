@@ -1,8 +1,12 @@
 import p5 from "p5";
 
+
+
 let sketch: p5;
 
-export function init(_sketch: p5 | undefined) {
+
+
+export function init(_sketch?: p5) {
 	if (_sketch) {
 		sketch = _sketch;
 	} else {

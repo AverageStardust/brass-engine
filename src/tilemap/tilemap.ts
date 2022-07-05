@@ -1,17 +1,7 @@
-import { TilemapAbstract } from "./tilemapAbstract";
-
-
-
-export const tilemaps: TilemapAbstract[] = [];
-
-
+import { getTilemaps } from "./tilemapAbstract";
 
 export function update() {
-	for (const tilemap of tilemaps) {
+	for (const tilemap of getTilemaps()) {
 		tilemap.maintain();
 	}
-}
-
-export function registerTilemap(tilemap: TilemapAbstract) {
-	tilemaps.push(tilemap);
 }

@@ -4,9 +4,11 @@
  */
 
 import { getP5DrawTarget, P5DrawTarget, P5LayerMap } from "../layers/p5Layers";
-import { getExactTime, getTime } from "../time";
-import { createFastGraphics, Pool, assert } from "../common";
-import { getDefaultViewpoint } from "../viewpoint";
+import { getExactTime, getTime } from "../core/time";
+import { assert } from "../common/runtimeChecking";
+import { createFastGraphics } from "../common/fastGraphics";
+import { Pool } from "../common/pool";
+import { getDefaultViewpoint } from "../camera/camera";
 import { TilemapAbstract, TilemapAbstractOptions } from "./tilemapAbstract";
 import p5 from "p5";
 

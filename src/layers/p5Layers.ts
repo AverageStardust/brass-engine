@@ -1,5 +1,5 @@
 import p5 from "p5";
-import { createFastGraphics } from "../common";
+import { createFastGraphics } from "../common/fastGraphics";
 import { getSketch } from "../core/sketch";
 import { Vertex2 } from "../vector/vector2";
 import { DrawBuffer } from "./drawBuffer";

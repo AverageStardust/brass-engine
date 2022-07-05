@@ -6,11 +6,12 @@
 
 import p5 from "p5";
 import { getP5DrawTarget } from "./layers/p5Layers";
-import { ColorArgs, createColor } from "./common";
-import { getDefaultViewpoint, ViewpointAbstract } from "./viewpoint";
+import { ColorArgs, createColor } from "./common/color";
+import { getDefaultViewpoint } from "./camera/camera";
+import { ViewpointAbstract } from "./camera/viewpointAbstract";
 import { Vector2 } from "./vector/vector2";
 import { RayBody } from "./physics/rayBody";
-import { getSimTime } from "./time";
+import { getSimTime } from "./core/time";
 import { P5DrawBuffer, P5Layer } from "./layers/p5Layers";
 
 

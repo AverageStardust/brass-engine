@@ -1,32 +1,17 @@
 /// <reference types="matter-js" />
 import p5 from "p5";
-import REGL from "../../types/regl";
-type Opaque<T, S> = T & {
-    __opaque__: S;
-};
-type ColorArgs = [
-    string
-] | [
-    number
-] | [
-    number,
-    number
-] | [
-    number,
-    number,
-    number
-] | [
-    number,
-    number,
-    number,
-    number
-] | [
-    p5.Color
-];
-type DynamicTypedArrayType = "int8" | "int16" | "int32" | "uint8" | "uint16" | "uint32" | "float32" | "float64";
-type DynamicArrayType = "any" | DynamicTypedArrayType;
-type DynamicTypedArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array | Float32Array | Float64Array;
-type DynamicArray = any[] | DynamicTypedArray;
+import REGL from "../../globalTypes/regl";
+declare function createFastGraphics(width: number, height: number, renderer?: p5.RENDERER, pInst?: p5): p5.Graphics;
+declare class Pool<T> {
+    private readonly pool;
+    readonly limited: boolean;
+    private readonly generator;
+    private readonly cleaner;
+    constructor(initalSize: number, limited: boolean, generator: () => T, cleaner?: (obj: T) => T);
+    get(): T;
+    release(obj: T): void;
+    get size(): number;
+}
 declare abstract class HeapAbstract<HeapType> {
     protected data: HeapType[];
     private readonly compare;
@@ -180,19 +165,11 @@ declare class P5DrawTarget extends DrawTarget<{
 }> {
     constructor(sizer?: (self: P5DrawTarget) => Vertex2, arg?: p5.RENDERER | P5LayerMap);
 }
-interface AbstractViewpointOptions {
+interface ViewpointAbstractOptions {
     integerTranslation?: boolean;
     integerScaling?: boolean;
     shakeSpeed?: number;
 }
-interface ViewpointOptions extends AbstractViewpointOptions {
-    jump?: number;
-    follow?: number;
-    drag?: number;
-    outrun?: number;
-}
-declare function setDefaultViewpoint(viewpoint: ViewpointAbstract): void;
-declare function getDefaultViewpoint(): ViewpointAbstract;
 declare abstract class ViewpointAbstract {
     scale: number;
     translation: Vector2;
@@ -202,7 +179,7 @@ declare abstract class ViewpointAbstract {
     private shakeStrength;
     private shakeDecay;
     protected shakePosition: Vector2;
-    constructor(scale: number, translation: Vector2, options?: AbstractViewpointOptions);
+    constructor(scale: number, translation: Vector2, options?: ViewpointAbstractOptions);
     abstract update(delta: number): void;
     view(d?: P5Layer): void;
     getScreenViewArea(d?: P5Layer): {
@@ -226,25 +203,9 @@ declare abstract class ViewpointAbstract {
     shake(strength: number, duration?: number): void;
     protected updateShake(delta: number): void;
 }
-declare class ClassicViewpoint extends ViewpointAbstract {
-    constructor(scale?: number, translation?: Vector2, options?: ViewpointOptions);
-    update(delta: number): void;
-    protected getViewOrigin(): Vector2;
-}
-declare class Viewpoint extends ViewpointAbstract {
-    private velocity;
-    private _target;
-    private previousTarget;
-    private readonly jump;
-    private readonly follow;
-    private readonly drag;
-    private readonly outrun;
-    constructor(scale?: number, translation?: Vector2, options?: ViewpointOptions);
-    update(delta: number): void;
-    protected getViewOrigin(d: P5DrawTarget): Vector2;
-    set target(value: Vector2);
-    get target(): Vector2;
-}
+type Opaque<T, S> = T & {
+    __opaque__: S;
+};
 declare abstract class BodyAbstract {
     private sensors;
     alive: boolean;
@@ -377,7 +338,7 @@ interface InitOptions {
 }
 declare function setTestStatus(newStatus: boolean | string): void;
 declare function getTestStatus(): string | true | null;
-declare function init$1(options?: InitOptions): void;
+declare function init$0(options?: InitOptions): void;
 declare function update$0(delta?: number): void;
 declare function timewarp(duration: number, rate?: number): void;
 declare function getTimewarp(): Timewarp | undefined;
@@ -433,6 +394,25 @@ declare class InputMapper {
     update(): void;
     has(devicePrefix: string): boolean;
 }
+type ColorArgs = [
+    string
+] | [
+    number
+] | [
+    number,
+    number
+] | [
+    number,
+    number,
+    number
+] | [
+    number,
+    number,
+    number,
+    number
+] | [
+    p5.Color
+];
 interface LighterAbstractOptions {
     resolution?: number;
 }
@@ -474,6 +454,10 @@ declare class P5Lighter {
     get lightCanvas(): p5 | null;
     private throwBeginError;
 }
+type DynamicTypedArrayType = "int8" | "int16" | "int32" | "uint8" | "uint16" | "uint32" | "float32" | "float64";
+type DynamicArrayType = "any" | DynamicTypedArrayType;
+type DynamicTypedArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array | Float32Array | Float64Array;
+type DynamicArray = any[] | DynamicTypedArray;
 declare class GridBody extends MaterialBodyAbstract {
     private readonly x;
     private readonly y;
@@ -500,7 +484,7 @@ type SparseableDynamicArray = {
     sparse: false;
     data: DynamicArray;
 };
-interface TilemapWorldFields {
+interface LevelFields {
     [name: string]: {
         type: "sparse";
         data: SparseFieldData;
@@ -513,16 +497,16 @@ interface TilemapWorldFields {
         encoding: DynamicTypedArrayType;
     }));
 }
-interface TilemapWorld {
+interface Level {
     width: number;
     height: number;
     objects: any[];
     tilesets: {
-        [name: string]: TilemapWorldTileset;
+        [name: string]: LevelTileset;
     };
-    fields: TilemapWorldFields;
+    fields: LevelFields;
 }
-interface TilemapWorldTileset {
+interface LevelTileset {
     firstId: number;
     tiles: {
         [id: number]: {
@@ -562,8 +546,8 @@ declare abstract class TilemapAbstract {
     get(x: number, y: number, fieldId?: number): any;
     set(value: any, x: number, y: number, fieldId?: number): boolean;
     getSolid(x: number, y: number): boolean | undefined;
-    export(): TilemapWorld;
-    import(world: TilemapWorld): void;
+    export(): Level;
+    import(world: Level): void;
     private updateSolidAtTile;
     clearFields(): void;
     private createField;
@@ -572,7 +556,7 @@ declare abstract class TilemapAbstract {
     validateCoord(x: number, y: number): boolean;
     get area(): number;
 }
-type Asset = p5.Image | p5.Graphics | p5.SoundFile | TilemapWorld;
+type Asset = p5.Image | p5.Graphics | p5.SoundFile | Level;
 type AssetDefinitionArgs = [
     string
 ] | [
@@ -588,17 +572,11 @@ declare function getImage(name: string): p5.Image | p5.Graphics;
 declare function loadSoundEarly(...args: AssetDefinitionArgs): Promise<unknown>;
 declare function loadSoundLate(...args: AssetDefinitionArgs): Promise<Asset>;
 declare function getSound(name: string): p5.SoundFile;
-declare function enableUnsafeWorldLoading(): void;
-declare function loadWorldEarly(fields: FieldDeclaration, ...args: AssetDefinitionArgs): Promise<unknown>;
-declare function loadWorldLate(fields: FieldDeclaration, ...args: AssetDefinitionArgs): Promise<Asset>;
-declare function getWorld(name: string): TilemapWorld | null;
+declare function setUnsafeLevelLoading(value?: boolean): void;
+declare function loadLevelEarly(fields: FieldDeclaration, ...args: AssetDefinitionArgs): Promise<unknown>;
+declare function loadLevelLate(fields: FieldDeclaration, ...args: AssetDefinitionArgs): Promise<Asset>;
+declare function getLevel(name: string): Level | null;
 type ParticleClass = new (...rest: any[]) => Particle;
-declare function draw(v?: ViewpointAbstract, d?: P5DrawTarget): void;
-declare function forEachParticle(func: (particle: Particle) => void): void;
-declare function forEachVisableParticle(func: (particle: Particle) => void, v?: ViewpointAbstract, d?: P5DrawTarget): void;
-declare function setParticleLimit(limit: number): void;
-declare function emitParticles(classVar: ParticleClass, amount: number, position: Vertex2, ...data: any[]): void;
-declare function emitParticle(classVar: ParticleClass, position: Vertex2, ...data: any[]): void;
 declare class Particle {
     position: Vector2;
     radius: number;
@@ -617,6 +595,12 @@ declare class Particle {
     kill(): void;
     get age(): number;
 }
+declare function draw(v?: ViewpointAbstract, d?: P5DrawTarget): void;
+declare function forEachParticle(func: (particle: Particle) => void): void;
+declare function forEachVisableParticle(func: (particle: Particle) => void, v?: ViewpointAbstract, d?: P5DrawTarget): void;
+declare function setParticleLimit(limit: number): void;
+declare function emitParticles(classVar: ParticleClass, amount: number, position: Vertex2, ...data: any[]): void;
+declare function emitParticle(classVar: ParticleClass, position: Vertex2, ...data: any[]): void;
 declare class VelocityParticle extends Particle {
     protected velocity: Vector2;
     constructor(velocity?: Vector2);
@@ -811,4 +795,31 @@ declare class CanvasDrawTarget extends DrawTarget<{
     constructor(sizer?: (self: CanvasDrawTarget) => Vertex2);
 }
 declare function drawNativeToP5(p5Target?: P5DrawTarget, canvasTarget?: CanvasDrawTarget): void;
-export { Heap, MaxHeap, MinHeap, MappedHeap, MappedMaxHeap, MappedMinHeap, init$1 as init, update$0 as update, setTestStatus, getTestStatus, timewarp, getTimewarp, getTimewarps, InputMapper, disableContextMenu, P5Lighter, loadImageEarly, loadImageLate, loadImageDynamic, getImage, loadSoundEarly, loadSoundLate, getSound, enableUnsafeWorldLoading, loadWorldEarly, loadWorldLate, getWorld, loaded, loadProgress, setParticleLimit, emitParticles, emitParticle, forEachParticle, forEachVisableParticle, draw as drawParticles, Particle, VelocityParticle, AStarPathfinder, drawColliders, RectBody, CircleBody, PolyBody, GridBody, RayBody, P5Tilemap, getTime, getExactTime, getSimTime, drawFPS, drawLoading, setLoadingTips, Vertex2, Vector2, resize, getRegl, refreshRegl, refreshReglFast, DrawBuffer, DrawTarget, setDrawTarget, hasDrawTarget, getDrawTarget, P5DrawBuffer, P5DrawTarget, getP5DrawTarget, CanvasDrawTarget, getCanvasDrawTarget, drawNativeToP5, ClassicViewpoint, Viewpoint, setDefaultViewpoint, getDefaultViewpoint };
+declare function setDefaultViewpoint(viewpoint: ViewpointAbstract): void;
+declare function getDefaultViewpoint(): ViewpointAbstract;
+declare class ClassicViewpoint extends ViewpointAbstract {
+    constructor(scale?: number, translation?: Vector2, options?: ViewpointAbstractOptions);
+    update(): void;
+    protected getViewOrigin(): Vector2;
+}
+interface ViewpointOptions extends ViewpointAbstractOptions {
+    jump?: number;
+    follow?: number;
+    drag?: number;
+    outrun?: number;
+}
+declare class Viewpoint extends ViewpointAbstract {
+    private velocity;
+    private _target;
+    private previousTarget;
+    private readonly jump;
+    private readonly follow;
+    private readonly drag;
+    private readonly outrun;
+    constructor(scale?: number, translation?: Vector2, options?: ViewpointOptions);
+    update(delta: number): void;
+    protected getViewOrigin(d: P5DrawTarget): Vector2;
+    set target(value: Vector2);
+    get target(): Vector2;
+}
+export { createFastGraphics, Pool, Heap, MaxHeap, MinHeap, MappedHeap, MappedMaxHeap, MappedMinHeap, init$0 as init, update$0 as update, setTestStatus, getTestStatus, timewarp, getTimewarp, getTimewarps, InputMapper, disableContextMenu, P5Lighter, loadImageEarly, loadImageLate, loadImageDynamic, getImage, loadSoundEarly, loadSoundLate, getSound, setUnsafeLevelLoading, loadLevelEarly, loadLevelLate, getLevel, loaded, loadProgress, setParticleLimit, emitParticles, emitParticle, forEachParticle, forEachVisableParticle, draw as drawParticles, Particle, VelocityParticle, AStarPathfinder, drawColliders, RectBody, CircleBody, PolyBody, GridBody, RayBody, P5Tilemap, getTime, getExactTime, getSimTime, drawFPS, drawLoading, setLoadingTips, Vertex2, Vector2, resize, getRegl, refreshRegl, refreshReglFast, DrawBuffer, DrawTarget, setDrawTarget, hasDrawTarget, getDrawTarget, P5DrawBuffer, P5DrawTarget, getP5DrawTarget, CanvasDrawTarget, getCanvasDrawTarget, drawNativeToP5, setDefaultViewpoint, getDefaultViewpoint, ClassicViewpoint, Viewpoint };

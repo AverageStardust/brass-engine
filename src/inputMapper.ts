@@ -4,7 +4,7 @@
  * @module
  */
 
-import { assert } from "./common";
+import { assert } from "./common/runtimeChecking";
 import { Vector2, Vertex2 } from "./vector/vector2";
 
 

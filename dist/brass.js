@@ -119,42 +119,6 @@ var Brass = (function (exports, p5) {
         return to.concat(ar || Array.prototype.slice.call(from));
     }
 
-    var arrayConstructors = {
-        "any": Array,
-        "int8": Int8Array,
-        "int16": Int16Array,
-        "int32": Int32Array,
-        "uint8": Uint8Array,
-        "uint16": Uint16Array,
-        "uint32": Uint32Array,
-        "float32": Float32Array,
-        "float64": Float64Array
-    };
-    function assert(condition, message) {
-        if (message === void 0) { message = "Assertion failed"; }
-        if (!condition)
-            throw Error(message);
-    }
-    function expect(condition, message) {
-        if (message === void 0) { message = "Expectation failed"; }
-        if (!condition)
-            console.error(message);
-    }
-    function safeBind(func, thisArg) {
-        var argArray = [];
-        for (var _i = 2; _i < arguments.length; _i++) {
-            argArray[_i - 2] = arguments[_i];
-        }
-        assert(func.hasOwnProperty("prototype"), "Can't bind context to function (".concat(func.name, "); Use the Function keyword and do not bind before-hand"));
-        return func.bind.apply(func, __spreadArray([thisArg], __read(argArray), false));
-    }
-    function createColor() {
-        var colArgs = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            colArgs[_i] = arguments[_i];
-        }
-        return color.apply(void 0, __spreadArray([], __read(colArgs), false));
-    }
     function createFastGraphics(width, height, renderer, pInst) {
         return new FastGraphics(width, height, renderer, pInst);
     }
@@ -209,6 +173,7 @@ var Brass = (function (exports, p5) {
         p5__default["default"].prototype._initializeInstanceVariables.apply(obj);
         return obj;
     }
+
     var Pool = (function () {
         function Pool(initalSize, limited, generator, cleaner) {
             this.pool = Array(initalSize).fill(null).map(generator);
@@ -237,6 +202,7 @@ var Brass = (function (exports, p5) {
         });
         return Pool;
     }());
+
     var HeapAbstract = (function () {
         function HeapAbstract(data, compare) {
             if (data === void 0) { data = []; }
@@ -451,47 +417,6 @@ var Brass = (function (exports, p5) {
         }
         return MappedMinHeap;
     }(MappedHeap));
-    function createDynamicArray(type, size) {
-        var constructor = getArrayConstructor(type);
-        return new constructor(size);
-    }
-    function cloneDynamicArray(resultType, data) {
-        var _a;
-        var constructor = getArrayConstructor(resultType);
-        if (resultType === "any") {
-            return new ((_a = constructor).bind.apply(_a, __spreadArray([void 0], __read(data), false)))();
-        }
-        else {
-            return new constructor(data);
-        }
-    }
-    function encodeDynamicTypedArray(data) {
-        var raw = new Uint8Array(data.buffer);
-        var binary = [];
-        for (var i = 0; i < raw.byteLength; i++) {
-            binary.push(String.fromCharCode(raw[i]));
-        }
-        return btoa(binary.join(""));
-    }
-    function decodeDynamicTypedArray(type, base64) {
-        var binary = window.atob(base64);
-        var raw = new Uint8Array(binary.length);
-        for (var i = 0; i < raw.byteLength; i++) {
-            raw[i] = binary.charCodeAt(i);
-        }
-        return createDynamicTypedArray(type, raw.buffer);
-    }
-    function createDynamicTypedArray(type, buffer) {
-        var constructor = getArrayConstructor(type);
-        return new constructor(buffer);
-    }
-    function getArrayConstructor(type) {
-        var constructor = arrayConstructors[type];
-        if (constructor === undefined) {
-            throw Error("Can't find type (".concat(type, ") array constructor"));
-        }
-        return constructor;
-    }
 
     var sketch$2;
     function init$8(_sketch) {
@@ -510,6 +435,25 @@ var Brass = (function (exports, p5) {
     }
     function getSketch() {
         return sketch$2;
+    }
+
+    function safeBind(func, thisArg) {
+        var argArray = [];
+        for (var _i = 2; _i < arguments.length; _i++) {
+            argArray[_i - 2] = arguments[_i];
+        }
+        assert(func.hasOwnProperty("prototype"), "Can't bind context to function (".concat(func.name, "); Use the Function keyword and do not bind before-hand"));
+        return func.bind.apply(func, __spreadArray([thisArg], __read(argArray), false));
+    }
+    function assert(condition, message) {
+        if (message === void 0) { message = "Assertion failed"; }
+        if (!condition)
+            throw Error(message);
+    }
+    function expect(condition, message) {
+        if (message === void 0) { message = "Expectation failed"; }
+        if (!condition)
+            console.error(message);
     }
 
     var VectorAbstract = (function () {
@@ -2017,19 +1961,19 @@ var Brass = (function (exports, p5) {
     (function (AssetType) {
         AssetType["Image"] = "image";
         AssetType["Sound"] = "sound";
-        AssetType["World"] = "world";
+        AssetType["Level"] = "level";
     })(AssetType || (AssetType = {}));
     var assetTypeExtensions = (_a = {},
         _a[AssetType.Image] = new Set([".png", ".jpg", ".jpeg", ".gif", ".tif", ".tiff"]),
         _a[AssetType.Sound] = new Set([".mp3", ".wav", ".ogg"]),
-        _a[AssetType.World] = new Set([".json"]),
+        _a[AssetType.Level] = new Set([".json"]),
         _a);
     var assets = {};
     var loadQueue = [];
     var useSound = false;
     var inited$2 = false;
     var soundFormatsConfigured = false;
-    var unsafeWorld = false;
+    var unsafeLevelLoading = false;
     var totalLateAssets = 0;
     var loadingAssets = 0;
     var loadedLateAssets = 0;
@@ -2095,7 +2039,7 @@ var Brass = (function (exports, p5) {
             case AssetType.Sound:
                 loadSound(assetEntry.path, handleAsset.bind(globalThis, assetEntry), handleAssetFail.bind(globalThis, assetEntry));
                 break;
-            case AssetType.World:
+            case AssetType.Level:
                 loadJSON(assetEntry.path, handleAsset.bind(globalThis, assetEntry), handleAssetFail.bind(globalThis, assetEntry));
                 break;
         }
@@ -2107,9 +2051,9 @@ var Brass = (function (exports, p5) {
             loadedLateAssets++;
         }
         loadingAssets--;
-        if (assetEntry.type === AssetType.World) {
+        if (assetEntry.type === AssetType.Level) {
             expect(assetEntry.fields !== undefined);
-            data = parseWorldJson(assetEntry.fields, data);
+            data = parseLevelJson(assetEntry.fields, data);
         }
         try {
             for (var _b = __values(assetEntry.names), _c = _b.next(); !_c.done; _c = _b.next()) {
@@ -2279,31 +2223,32 @@ var Brass = (function (exports, p5) {
         }
         catch (err) { }
     }
-    function enableUnsafeWorldLoading() {
-        unsafeWorld = true;
+    function setUnsafeLevelLoading(value) {
+        if (value === void 0) { value = true; }
+        unsafeLevelLoading = value;
     }
-    function loadWorldEarly(fields) {
+    function loadLevelEarly(fields) {
         var args = [];
         for (var _i = 1; _i < arguments.length; _i++) {
             args[_i - 1] = arguments[_i];
         }
-        var _a = parseAssetDefinition(AssetType.World, args), name = _a.name, fullPath = _a.fullPath;
+        var _a = parseAssetDefinition(AssetType.Level, args), name = _a.name, fullPath = _a.fullPath;
         return new Promise(function (resolve, reject) {
             loadJSON(fullPath, function (data) {
-                var world = parseWorldJson(fields, data);
-                assets[name] = world;
-                resolve(world);
+                var level = parseLevelJson(fields, data);
+                assets[name] = level;
+                resolve(level);
             }, reject);
         });
     }
-    function loadWorldLate(fields) {
+    function loadLevelLate(fields) {
         var args = [];
         for (var _i = 1; _i < arguments.length; _i++) {
             args[_i - 1] = arguments[_i];
         }
-        var _a = parseAssetDefinition(AssetType.World, args), name = _a.name, fullPath = _a.fullPath;
+        var _a = parseAssetDefinition(AssetType.Level, args), name = _a.name, fullPath = _a.fullPath;
         return queueLateAssetWithPromise({
-            type: AssetType.World,
+            type: AssetType.Level,
             path: fullPath,
             names: [name],
             late: true,
@@ -2311,32 +2256,32 @@ var Brass = (function (exports, p5) {
             fields: fields
         });
     }
-    function getWorld(name) {
-        enforceInit$2("getting worlds");
-        var world = assets[name];
-        return world !== null && world !== void 0 ? world : null;
+    function getLevel(name) {
+        var _a;
+        enforceInit$2("getting levels");
+        return (_a = assets[name]) !== null && _a !== void 0 ? _a : null;
     }
-    function parseWorldJson(fields, json) {
+    function parseLevelJson(fields, json) {
         var e_2, _a, e_3, _b, e_4, _c, e_5, _d, e_6, _e;
         if (json.type !== "map") {
-            throw Error("World file was not of type \"map\"");
+            throw Error("Level file was not of type \"map\"");
         }
-        if (!unsafeWorld) {
+        if (!unsafeLevelLoading) {
             if (json.version < 1.4) {
-                throw Error("World file version was not 1.4; Run enableUnsafeWorldLoading() to ignore this");
+                throw Error("Level file version was not 1.4; Run setUnsafeLevelLoading() to ignore this");
             }
             if (json.infinite !== false) {
-                throw Error("World file may be infinite; Run enableUnsafeWorldLoading() to ignore this");
+                throw Error("Level file may be infinite; Run setUnsafeLevelLoading() to ignore this");
             }
             if (json.orientation !== "orthogonal") {
-                throw Error("World file was not orthogonal; Run enableUnsafeWorldLoading() to ignore this");
+                throw Error("Level file was not orthogonal; Run setUnsafeLevelLoading() to ignore this");
             }
             if (json.renderorder !== "right-down") {
-                throw Error("World file was not rendered right down; Run enableUnsafeWorldLoading() to ignore this");
+                throw Error("Level file was not rendered right down; Run setUnsafeLevelLoading() to ignore this");
             }
         }
         var _f = __read(searchTiledObj(json), 2), tileLayers = _f[0], objectLayers = _f[1];
-        var world = {
+        var level = {
             width: json.width,
             height: json.height,
             objects: [],
@@ -2346,30 +2291,30 @@ var Brass = (function (exports, p5) {
         var _loop_1 = function (fieldName) {
             var fieldType = fields[fieldName];
             if (fieldType === "sparse") {
-                throw Error("World file had sparse type in field declaration; This is not supported");
+                throw Error("Level file had sparse type in field declaration; This is not supported");
             }
             var layerIndex = tileLayers.findIndex(function (layer) { return layer.name === fieldName; });
             if (layerIndex === -1) {
-                throw Error("World file did not have layer named (".concat(fieldName, ") like in the field decleration"));
+                throw Error("Level file did not have layer named (".concat(fieldName, ") like in the field decleration"));
             }
             var layer = tileLayers[layerIndex];
-            if (!unsafeWorld) {
+            if (!unsafeLevelLoading) {
                 if (layer.compression !== "" && layer.compression !== undefined) {
-                    throw Error("World file has compression; Run enableUnsafeWorldLoading() to ignore this");
+                    throw Error("Level file has compression; Run setUnsafeLevelLoading() to ignore this");
                 }
                 if (layer.encoding !== "base64" && layer.encoding !== undefined) {
-                    throw Error("World file has unknown encoding (".concat(layer.encoding, "); Run enableUnsafeWorldLoading() to ignore this"));
+                    throw Error("Level file has unknown encoding (".concat(layer.encoding, "); Run setUnsafeLevelLoading() to ignore this"));
                 }
             }
             if (layer.encoding === "base64") {
-                world.fields[fieldName] = {
+                level.fields[fieldName] = {
                     type: fieldType,
                     data: layer.data,
                     encoding: "uint32"
                 };
             }
             else {
-                world.fields[fieldName] = {
+                level.fields[fieldName] = {
                     type: fieldType,
                     data: layer.data
                 };
@@ -2379,8 +2324,8 @@ var Brass = (function (exports, p5) {
             _loop_1(fieldName);
         }
         if (objectLayers.length > 0) {
-            if (objectLayers.length > 1 && !unsafeWorld) {
-                throw Error("World file had multiple object layers; Run enableUnsafeWorldLoading() to combine them");
+            if (objectLayers.length > 1 && !unsafeLevelLoading) {
+                throw Error("Level file had multiple object layers; Run setUnsafeLevelLoading() to combine them");
             }
             try {
                 for (var objectLayers_1 = __values(objectLayers), objectLayers_1_1 = objectLayers_1.next(); !objectLayers_1_1.done; objectLayers_1_1 = objectLayers_1.next()) {
@@ -2388,7 +2333,7 @@ var Brass = (function (exports, p5) {
                     try {
                         for (var _g = (e_3 = void 0, __values(layer.objects)), _h = _g.next(); !_h.done; _h = _g.next()) {
                             var object = _h.value;
-                            world.objects.push(object);
+                            level.objects.push(object);
                         }
                     }
                     catch (e_3_1) { e_3 = { error: e_3_1 }; }
@@ -2412,7 +2357,7 @@ var Brass = (function (exports, p5) {
             for (var _j = __values(json.tilesets), _k = _j.next(); !_k.done; _k = _j.next()) {
                 var tileset = _k.value;
                 var tilesetName = tileset.name;
-                world.tilesets[tilesetName] = {
+                level.tilesets[tilesetName] = {
                     firstId: tileset.firstgid,
                     tiles: {}
                 };
@@ -2422,13 +2367,13 @@ var Brass = (function (exports, p5) {
                     for (var _l = (e_5 = void 0, __values(tileset.tiles)), _m = _l.next(); !_m.done; _m = _l.next()) {
                         var tile = _m.value;
                         var tileId = tile.id;
-                        world.tilesets[tilesetName].tiles[tileId] = {};
+                        level.tilesets[tilesetName].tiles[tileId] = {};
                         if (!Array.isArray(tile.properties))
                             continue;
                         try {
                             for (var _o = (e_6 = void 0, __values(tile.properties)), _p = _o.next(); !_p.done; _p = _o.next()) {
                                 var property = _p.value;
-                                world.tilesets[tilesetName].tiles[tileId][property.name] = property.value;
+                                level.tilesets[tilesetName].tiles[tileId][property.name] = property.value;
                             }
                         }
                         catch (e_6_1) { e_6 = { error: e_6_1 }; }
@@ -2456,7 +2401,7 @@ var Brass = (function (exports, p5) {
             }
             finally { if (e_4) throw e_4.error; }
         }
-        return world;
+        return level;
     }
     function searchTiledObj(obj) {
         var e_7, _a;
@@ -2484,8 +2429,8 @@ var Brass = (function (exports, p5) {
         else if (obj.type === "objectgroup") {
             objectLayers.push(obj);
         }
-        else if (!unsafeWorld) {
-            throw Error("World file has unknown layer type (".concat(obj.type, "); Run enableUnsafeWorldLoading() to ignore this"));
+        else if (!unsafeLevelLoading) {
+            throw Error("Level file has unknown layer type (".concat(obj.type, "); Run setUnsafeLevelLoading() to ignore this"));
         }
         return [tileLayers, objectLayers];
     }
@@ -2543,39 +2488,9 @@ var Brass = (function (exports, p5) {
         simTime += delta;
     }
 
-    var defaultViewpoint;
-    var viewpointList = [];
-    function init$2(viewpoint) {
-        if (viewpoint === undefined) {
-            setDefaultViewpoint(new ClassicViewpoint(1, new Vector2(0, 0)));
-        }
-        else {
-            setDefaultViewpoint(viewpoint);
-        }
-    }
-    function updateViewpoints(delta) {
-        var e_1, _a;
-        try {
-            for (var viewpointList_1 = __values(viewpointList), viewpointList_1_1 = viewpointList_1.next(); !viewpointList_1_1.done; viewpointList_1_1 = viewpointList_1.next()) {
-                var viewpoint = viewpointList_1_1.value;
-                viewpoint.update(delta);
-            }
-        }
-        catch (e_1_1) { e_1 = { error: e_1_1 }; }
-        finally {
-            try {
-                if (viewpointList_1_1 && !viewpointList_1_1.done && (_a = viewpointList_1.return)) _a.call(viewpointList_1);
-            }
-            finally { if (e_1) throw e_1.error; }
-        }
-    }
-    function setDefaultViewpoint(viewpoint) {
-        defaultViewpoint = viewpoint;
-    }
-    function getDefaultViewpoint() {
-        if (defaultViewpoint === undefined)
-            throw Error("Could not find default viewpoint; maybe run Brass.init() first");
-        return defaultViewpoint;
+    var viewpoints = [];
+    function getViewpoints() {
+        return viewpoints;
     }
     var ViewpointAbstract = (function () {
         function ViewpointAbstract(scale, translation, options) {
@@ -2589,7 +2504,7 @@ var Brass = (function (exports, p5) {
             this.integerScaling = (_b = options.integerScaling) !== null && _b !== void 0 ? _b : false;
             this.shakeSpeed = (_c = options.shakeSpeed) !== null && _c !== void 0 ? _c : 0.015;
             this.shakePosition = new Vector2();
-            viewpointList.push(this);
+            viewpoints.push(this);
         }
         ViewpointAbstract.prototype.view = function (d) {
             if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
@@ -2615,7 +2530,6 @@ var Brass = (function (exports, p5) {
         ViewpointAbstract.prototype.getWorldViewArea = function (d) {
             if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
             var g = d.getMaps().canvas;
-            this.effectiveTranslation;
             var _a = this.screenToWorld(new Vector2()), minX = _a.x, minY = _a.y;
             var _b = this.screenToWorld(new Vector2(g.width, g.height)), maxX = _b.x, maxY = _b.y;
             return {
@@ -2631,7 +2545,6 @@ var Brass = (function (exports, p5) {
         };
         ViewpointAbstract.prototype.screenToWorld = function (screenCoord, d) {
             if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
-            d.getMaps().canvas;
             var coord = screenCoord.copy();
             var viewOrigin = this.getViewOrigin(d);
             coord.sub(viewOrigin);
@@ -2643,7 +2556,6 @@ var Brass = (function (exports, p5) {
         };
         ViewpointAbstract.prototype.worldToScreen = function (worldCoord, d) {
             if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
-            d.getMaps().canvas;
             var coord = worldCoord.copy();
             coord.sub(this.shakePosition);
             var translation = this.effectiveTranslation;
@@ -2701,6 +2613,7 @@ var Brass = (function (exports, p5) {
         };
         return ViewpointAbstract;
     }());
+
     var ClassicViewpoint = (function (_super) {
         __extends(ClassicViewpoint, _super);
         function ClassicViewpoint(scale, translation, options) {
@@ -2709,72 +2622,46 @@ var Brass = (function (exports, p5) {
             if (options === void 0) { options = {}; }
             return _super.call(this, scale, translation, options) || this;
         }
-        ClassicViewpoint.prototype.update = function (delta) { };
+        ClassicViewpoint.prototype.update = function () { };
         ClassicViewpoint.prototype.getViewOrigin = function () {
             return new Vector2(0, 0);
         };
         return ClassicViewpoint;
     }(ViewpointAbstract));
-    var Viewpoint = (function (_super) {
-        __extends(Viewpoint, _super);
-        function Viewpoint(scale, translation, options) {
-            if (scale === void 0) { scale = 100; }
-            if (translation === void 0) { translation = new Vector2(); }
-            if (options === void 0) { options = {}; }
-            var _this = this;
-            var _a, _b, _c, _d, _e;
-            _this = _super.call(this, scale, translation, options) || this;
-            _this.velocity = new Vector2();
-            _this._target = _this.translation.copy();
-            _this.previousTarget = _this._target.copy();
-            if ("follow" in options ||
-                "drag" in options ||
-                "outrun" in options) {
-                _this.jump = (_a = options.jump) !== null && _a !== void 0 ? _a : 0;
-                _this.follow = (_b = options.follow) !== null && _b !== void 0 ? _b : 0.001;
-                _this.drag = (_c = options.drag) !== null && _c !== void 0 ? _c : 0.1;
-                _this.outrun = (_d = options.outrun) !== null && _d !== void 0 ? _d : 0;
-            }
-            else {
-                _this.jump = (_e = options.jump) !== null && _e !== void 0 ? _e : 0.1;
-                _this.follow = 0;
-                _this.drag = 0;
-                _this.outrun = 0;
-            }
-            return _this;
+
+    var defaultViewpoint;
+    function init$2(viewpoint) {
+        if (viewpoint === undefined) {
+            setDefaultViewpoint(new ClassicViewpoint(1, new Vector2(0, 0)));
         }
-        Viewpoint.prototype.update = function (delta) {
-            var targetVelocity = this.target.copy().sub(this.previousTarget);
-            this.velocity.multScalar(Math.pow(1 - this.drag, delta));
-            var difference = this.target.copy().sub(this.translation);
-            this.velocity.add(difference.copy().multScalar(this.follow * delta));
-            this.velocity.add(targetVelocity.copy().multScalar(this.outrun * delta));
-            var frameJump = Math.pow(this.jump + 1, Math.pow(delta, this.jump));
-            this.translation.add(this.target.copy().multScalar(frameJump - 1));
-            this.translation.divScalar(frameJump);
-            this.translation.add(this.velocity);
-            this.previousTarget = this.target.copy();
-            this.updateShake(delta);
-        };
-        Viewpoint.prototype.getViewOrigin = function (d) {
-            var g = d.getMaps().canvas;
-            if (this.integerTranslation) {
-                return new Vector2(Math.round(g.width / 2), Math.round(g.height / 2));
+        else {
+            setDefaultViewpoint(viewpoint);
+        }
+    }
+    function updateViewpoints(delta) {
+        var e_1, _a;
+        try {
+            for (var _b = __values(getViewpoints()), _c = _b.next(); !_c.done; _c = _b.next()) {
+                var viewpoint = _c.value;
+                viewpoint.update(delta);
             }
-            return new Vector2(g.width / 2, g.height / 2);
-        };
-        Object.defineProperty(Viewpoint.prototype, "target", {
-            get: function () {
-                return this._target;
-            },
-            set: function (value) {
-                this._target = value;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        return Viewpoint;
-    }(ViewpointAbstract));
+        }
+        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+        finally {
+            try {
+                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+            }
+            finally { if (e_1) throw e_1.error; }
+        }
+    }
+    function setDefaultViewpoint(viewpoint) {
+        defaultViewpoint = viewpoint;
+    }
+    function getDefaultViewpoint() {
+        if (defaultViewpoint === undefined)
+            throw Error("Could not find default viewpoint; maybe run Brass.init() first");
+        return defaultViewpoint;
+    }
 
     var frameRateList = [];
     var loadingScreenHue;
@@ -3015,99 +2902,460 @@ var Brass = (function (exports, p5) {
         particle.position = Vector2.fromObj(position);
         particles.set(Symbol(), particle);
     }
-    var Particle = (function () {
-        function Particle() {
-            this.radius = 1;
-            this.lifetime = 5000;
-            this.spawnTime = getTime();
+
+    var PathAgent = (function () {
+        function PathAgent(pathfinder, radius, leadership) {
+            if (leadership === void 0) { leadership = Math.random(); }
+            this.id = Symbol();
+            this.position = null;
+            this.direction = false;
+            this.newGoal = true;
+            this.processingSituation = null;
+            this.tryedPartCompute = false;
+            this.pathCost = 0;
+            this.pathGarbage = 0;
+            this.path = [];
+            this.waitingNodeComfirmation = 0;
+            this.computeStart = true;
+            this.computeEnd = true;
+            this.pathFailTime = 0;
+            this.pathfinder = pathfinder;
+            this.radius = radius;
+            this.leadership = leadership;
         }
-        Particle.prototype.update = function (delta) { };
-        Particle.prototype.draw = function (g) {
+        PathAgent.prototype.drawPath = function (thickness, fillColor, d) {
+            if (thickness === void 0) { thickness = 0.2; }
+            if (fillColor === void 0) { fillColor = "red"; }
+            if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+            var g = d.getMaps().canvas;
+            if (this.position === null)
+                return;
+            g.push();
             g.noStroke();
-            g.fill(255, 0, 255);
-            g.circle(0, 0, 2);
+            g.fill(fillColor);
+            this.path.unshift(this.position);
+            for (var i = 0; i < this.path.length; i++) {
+                var node = this.path[i].copy().multScalar(this.pathfinder.scale);
+                g.circle(node.x, node.y, thickness);
+                if (i >= this.path.length - 1)
+                    continue;
+                var nextNode = this.path[i + 1].copy().multScalar(this.pathfinder.scale);
+                var offsetForward = nextNode.copy().sub(node).norm(thickness / 2);
+                var offsetA = offsetForward.copy().rotate(-HALF_PI);
+                var offsetB = offsetForward.copy().rotate(HALF_PI);
+                g.triangle(node.x + offsetA.x, node.y + offsetA.y, nextNode.x, nextNode.y, node.x + offsetB.x, node.y + offsetB.y);
+            }
+            this.path.shift();
+            g.pop();
         };
-        Particle.prototype.alive = function () {
-            return this.age < 1;
+        PathAgent.prototype.getDirection = function (position) {
+            if (position &&
+                (this.position === null || !this.position.equal(position))) {
+                var newPosition = position.copy().divScalar(this.pathfinder.scale);
+                if (!this.pathfinder.validatePosition(newPosition)) {
+                    this.position = null;
+                    return false;
+                }
+                this.position = newPosition;
+            }
+            else {
+                if (this.direction)
+                    return this.direction;
+            }
+            if (this.position === null)
+                return false;
+            while (this.path.length > 0) {
+                if (this.position.dist(this.path[0]) < this.pathfinder.pathMinDist) {
+                    var pathNode = this.path.shift().floor();
+                    this.pathfinder.setPheromones(pathNode);
+                }
+                else {
+                    if (this.position.dist(this.path[0]) > this.pathfinder.pathMaxDist) {
+                        if (this.processingSituation) {
+                            this.tryedPartCompute = false;
+                            this.processingSituation = null;
+                        }
+                        this.computeStart = true;
+                    }
+                    break;
+                }
+            }
+            if (this.path.length === 0 || this.computeStart) {
+                if (this.pathfinder.goal === null)
+                    return false;
+                var goalDistance = this.position.dist(this.pathfinder.goal);
+                var atGoal = goalDistance < this.pathfinder.pathMinDist * 2;
+                if (atGoal) {
+                    this.setPath([]);
+                }
+                else {
+                    if (this.path.length === 0) {
+                        this.computeWhole = true;
+                    }
+                }
+                return atGoal;
+            }
+            this.direction = this.path[0].copy()
+                .multScalar(this.pathfinder.scale)
+                .sub(this.position.copy().multScalar(this.pathfinder.scale));
+            if (this.newGoal) {
+                if (this.direction.mag < this.pathfinder.pathMinDist * 3 && random() < 0.2) {
+                    if (this.processingSituation) {
+                        this.tryedPartCompute = false;
+                        this.processingSituation = null;
+                    }
+                    this.computeEnd = true;
+                    this.newGoal = false;
+                }
+            }
+            return this.direction;
         };
-        Particle.prototype.visable = function (viewArea) {
-            return (this.position.x + this.radius > viewArea.minX &&
-                this.position.x - this.radius < viewArea.maxX &&
-                this.position.y + this.radius > viewArea.minY &&
-                this.position.y - this.radius < viewArea.maxY);
+        PathAgent.prototype.reset = function () {
+            this.setPath([]);
+            this.tryedPartCompute = false;
+            this.processingSituation = null;
+            this.computeStart = true;
+            this.computeEnd = true;
+            this.pathFailTime = getTime();
         };
-        Particle.prototype.kill = function () { };
-        Object.defineProperty(Particle.prototype, "age", {
+        PathAgent.prototype.setPath = function (path, cost) {
+            if (cost === void 0) { cost = 0; }
+            this.pathCost = cost;
+            this.pathGarbage = 0;
+            this.path = path;
+        };
+        Object.defineProperty(PathAgent.prototype, "computeWhole", {
             get: function () {
-                return (getTime() - this.spawnTime) / this.lifetime;
+                return this.computeStart && this.computeEnd;
+            },
+            set: function (value) {
+                this.computeStart = value;
+                this.computeEnd = value;
             },
             enumerable: false,
             configurable: true
         });
-        return Particle;
+        return PathAgent;
     }());
-    var VelocityParticle = (function (_super) {
-        __extends(VelocityParticle, _super);
-        function VelocityParticle(velocity) {
-            if (velocity === void 0) { velocity = new Vector2(); }
-            var _this = _super.call(this) || this;
-            _this.velocity = velocity;
-            return _this;
-        }
-        VelocityParticle.prototype.updateKinomatics = function (delta) {
-            this.position.add(this.velocity.copy().multScalar(delta));
-        };
-        VelocityParticle.prototype.collide = function (tilemap) {
-            var _a = this.position.copy().divScalar(tilemap.tileSize), x = _a.x, y = _a.y;
-            var radius = this.radius / tilemap.tileSize;
-            var deltaX = 0, deltaY = 0;
-            if (tilemap.getSolid(Math.floor(x - radius), Math.floor(y)) &&
-                !tilemap.getSolid(Math.floor(x - radius) + 1, Math.floor(y))) {
-                deltaX = Math.ceil(x - radius) + radius - x;
-            }
-            if (tilemap.getSolid(Math.floor(x + radius), Math.floor(y)) &&
-                !tilemap.getSolid(Math.floor(x + radius) - 1, Math.floor(y))) {
-                var newDeltaX = Math.floor(x + radius) - radius - x;
-                if (deltaX === 0 || Math.abs(newDeltaX) < Math.abs(deltaX))
-                    deltaX = newDeltaX;
-            }
-            if (tilemap.getSolid(Math.floor(x), Math.floor(y - radius)) &&
-                !tilemap.getSolid(Math.floor(x), Math.floor(y - radius) + 1)) {
-                deltaY = Math.ceil(y - radius) + radius - y;
-            }
-            if (tilemap.getSolid(Math.floor(x), Math.floor(y + radius)) &&
-                !tilemap.getSolid(Math.floor(x), Math.floor(y + radius) - 1)) {
-                var newDeltaY = Math.floor(y + radius) - radius - y;
-                if (deltaY === 0 || Math.abs(newDeltaY) < Math.abs(deltaY))
-                    deltaY = newDeltaY;
-            }
-            if (deltaX !== 0 && deltaY !== 0) {
-                if (Math.abs(deltaX) < Math.abs(deltaY)) {
-                    this.position.x += deltaX * tilemap.tileSize;
-                    this.velocity.x = 0;
-                }
-                else {
-                    this.position.y += deltaY * tilemap.tileSize;
-                    this.velocity.y = 0;
-                }
-            }
-            else if (deltaX !== 0) {
-                this.position.x += deltaX * tilemap.tileSize;
-                this.velocity.x = 0;
-            }
-            else if (deltaY !== 0) {
-                this.position.y += deltaY * tilemap.tileSize;
-                this.velocity.y = 0;
-            }
-        };
-        return VelocityParticle;
-    }(Particle));
+
+    var PathSituationType;
+    (function (PathSituationType) {
+        PathSituationType[PathSituationType["Inital"] = 0] = "Inital";
+        PathSituationType[PathSituationType["Processing"] = 1] = "Processing";
+        PathSituationType[PathSituationType["Failed"] = 2] = "Failed";
+        PathSituationType[PathSituationType["Succeed"] = 3] = "Succeed";
+    })(PathSituationType || (PathSituationType = {}));
 
     var pathfinders = [];
-    var waitingPathfinder = 0;
+    function getPathfinders() {
+        return pathfinders;
+    }
+    var PathfinderAbstract = (function () {
+        function PathfinderAbstract(options) {
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
+            this.confidence = 0.5;
+            this.width = options.width;
+            this.height = options.height;
+            this.scale = (_a = options.scale) !== null && _a !== void 0 ? _a : 1;
+            this.faliureDelay = (_b = options.faliureDelay) !== null && _b !== void 0 ? _b : 300;
+            this.pathingRuntimeLimit = (_c = options.pathingRuntimeLimit) !== null && _c !== void 0 ? _c : 20000;
+            this.pathingContinuousRuntimeLimit = (_d = options.pathingContinuousRuntimeLimit) !== null && _d !== void 0 ? _d : 2000;
+            this.pathGarbageLimit = (_e = options.pathGarbageLimit) !== null && _e !== void 0 ? _e : 0.15;
+            this.targetDriftLimit = (_f = options.targetDriftLimit) !== null && _f !== void 0 ? _f : 2;
+            this.targetDriftInfluence = (_g = options.targetDriftInfluence) !== null && _g !== void 0 ? _g : 0.12;
+            this.nodeComfirmationRate = (_h = options.nodeComfirmationRate) !== null && _h !== void 0 ? _h : 10;
+            this.pheromoneDecayTime = (_j = options.pheromoneDecayTime) !== null && _j !== void 0 ? _j : 150000;
+            this.pheromoneStrength = (_k = options.pheromoneStrength) !== null && _k !== void 0 ? _k : 0.5;
+            this.pathMinDist = (_l = options.pathMinDist) !== null && _l !== void 0 ? _l : 0.1;
+            this.pathMaxDist = (_m = options.pathMaxDist) !== null && _m !== void 0 ? _m : 0.1;
+            this.pheromoneTime = getTime();
+            if (options.pheromones !== false) {
+                var zeroPheromone = this.pheromoneTime - this.pheromoneDecayTime;
+                this.pheromones = new Int32Array(this.width * this.height).fill(zeroPheromone);
+            }
+            else {
+                this.pheromones = null;
+            }
+            this.goal = null;
+            this.agents = [];
+            this.waitingAgent = 0;
+            pathfinders.push(this);
+        }
+        PathfinderAbstract.prototype.createAgent = function (radius, leadership) {
+            radius /= this.scale;
+            var agent = new PathAgent(this, radius, leadership);
+            this.agents.push(agent);
+            return agent;
+        };
+        PathfinderAbstract.prototype.removeAgent = function (agent) {
+            var index = this.agents.findIndex(function (_a) {
+                var id = _a.id;
+                return id === agent.id;
+            });
+            if (this.waitingAgent > index)
+                this.waitingAgent--;
+            this.agents.splice(index, 1);
+        };
+        PathfinderAbstract.prototype.setGoal = function (goal) {
+            var e_1, _a;
+            if (goal === null) {
+                this.goal = null;
+                return false;
+            }
+            var newGoal = goal.copy().divScalar(this.scale);
+            if (!this.validatePosition(newGoal)) {
+                this.goal = null;
+                return false;
+            }
+            this.goal = newGoal;
+            try {
+                for (var _b = __values(this.agents), _c = _b.next(); !_c.done; _c = _b.next()) {
+                    var agent = _c.value;
+                    if (agent.path.length <= 0)
+                        continue;
+                    var lastNode = agent.path[agent.path.length - 1];
+                    if (lastNode.dist(this.goal) < this.pathMaxDist)
+                        continue;
+                    agent.newGoal = true;
+                }
+            }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
+                try {
+                    if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+                }
+                finally { if (e_1) throw e_1.error; }
+            }
+            return true;
+        };
+        PathfinderAbstract.prototype.confidenceDelta = function (delta) {
+            this.confidence = Math.min(Math.max(this.confidence + delta, 0), 1);
+        };
+        PathfinderAbstract.prototype.update = function (endTime) {
+            if (this.goal === null)
+                return;
+            if (this.confidence < 0.2) {
+                this.confidenceDelta(0.01);
+            }
+            this.pheromoneTime = getTime();
+            var skipFailuresAfter = getTime() - this.faliureDelay;
+            var maxLeadership = Math.max.apply(Math, __spreadArray([], __read(this.agents.map(function (agents) { return agents.leadership; })), false));
+            var effectiveConfidence = Math.max(this.confidence, 1.01 - maxLeadership);
+            var lastAgentIndex = this.waitingAgent + this.agents.length;
+            for (var _i = this.waitingAgent; _i < lastAgentIndex; _i++) {
+                var i = _i % this.agents.length;
+                this.waitingAgent = (_i + 1) % this.agents.length;
+                var agent = this.agents[i];
+                if (agent.pathFailTime > skipFailuresAfter) {
+                    continue;
+                }
+                if (agent.path.length > 0)
+                    this.confirmAgentNodes(agent);
+                if (!(agent.computeStart || agent.computeEnd)) {
+                    this.confidenceDelta(0.001);
+                    continue;
+                }
+                if (agent.position === null)
+                    continue;
+                if (agent.leadership < 1 - effectiveConfidence) {
+                    agent.reset();
+                    continue;
+                }
+                processing: {
+                    if (agent.processingSituation !== null) {
+                        var targetDrift = agent.processingSituation.start.dist(agent.position) +
+                            agent.processingSituation.end.dist(this.goal);
+                        agent.processingSituation.maxRuntime = Math.ceil(agent.processingSituation.maxRuntime / (1 + targetDrift * this.targetDriftInfluence));
+                        var situation = this.computePath(agent.processingSituation);
+                        if (situation.type === PathSituationType.Processing)
+                            break processing;
+                        if (situation.type === PathSituationType.Failed) {
+                            if (targetDrift > this.targetDriftLimit) {
+                                agent.processingSituation = null;
+                                agent.tryedPartCompute = false;
+                            }
+                            else if (agent.tryedPartCompute) {
+                                agent.reset();
+                            }
+                            else {
+                                agent.processingSituation = null;
+                                agent.tryedPartCompute = true;
+                            }
+                            break processing;
+                        }
+                        else {
+                            if (agent.tryedPartCompute) {
+                                this.afterAgentComputeWhole(agent, situation);
+                            }
+                            else {
+                                this.afterAgentComputePart(agent, situation);
+                            }
+                            agent.tryedPartCompute = false;
+                        }
+                    }
+                    else {
+                        if (agent.path.length > 0 && !agent.tryedPartCompute) {
+                            var situation_1 = this.attemptAgentPartCompute(agent);
+                            if (situation_1 !== undefined) {
+                                this.afterAgentComputePart(agent, situation_1);
+                                break processing;
+                            }
+                            if (agent.processingSituation !== null) {
+                                break processing;
+                            }
+                        }
+                        var situation = this.attemptAgentWholeCompute(agent);
+                        if (situation !== undefined) {
+                            this.afterAgentComputeWhole(agent, situation);
+                        }
+                    }
+                }
+                if (getExactTime() > endTime)
+                    return;
+            }
+        };
+        PathfinderAbstract.prototype.confirmAgentNodes = function (agent) {
+            var nodesToComfirm = Math.min(agent.path.length, this.nodeComfirmationRate);
+            for (var i = 0; i < nodesToComfirm; i++) {
+                if (agent.waitingNodeComfirmation >= agent.path.length) {
+                    agent.waitingNodeComfirmation = 0;
+                }
+                var node = agent.path[agent.waitingNodeComfirmation];
+                var radius = agent.radius;
+                if (agent.waitingNodeComfirmation === agent.path.length - 1) {
+                    radius = 0;
+                }
+                if (!this.confirmNode(node, radius)) {
+                    agent.reset();
+                    break;
+                }
+                agent.waitingNodeComfirmation++;
+            }
+        };
+        PathfinderAbstract.prototype.attemptAgentPartCompute = function (agent) {
+            expect(this.goal !== null);
+            expect(agent.position !== null);
+            var minGarbage = 0;
+            var garbageLimit = agent.pathCost * this.pathGarbageLimit;
+            if (agent.computeStart) {
+                minGarbage += agent.position.dist(agent.path[0]) * 100;
+            }
+            if (agent.computeEnd) {
+                minGarbage += agent.path[agent.path.length - 1].dist(this.goal) * 100;
+            }
+            if (agent.pathGarbage + minGarbage > garbageLimit)
+                return;
+            var pathSituation;
+            var runtimeLimit = Math.ceil(this.pathingRuntimeLimit * this.pathGarbageLimit);
+            if (agent.computeStart) {
+                pathSituation = this.computePath(agent.position, agent.path[0], runtimeLimit);
+            }
+            else {
+                pathSituation = this.computePath(agent.path[agent.path.length - 1], this.goal, runtimeLimit);
+            }
+            if (pathSituation.type === PathSituationType.Processing) {
+                agent.processingSituation = pathSituation;
+                return;
+            }
+            else if (pathSituation.type === PathSituationType.Failed) {
+                return;
+            }
+            return pathSituation;
+        };
+        PathfinderAbstract.prototype.afterAgentComputePart = function (agent, pathSituation) {
+            var garbageLimit = agent.pathCost * this.pathGarbageLimit;
+            var partCost = pathSituation.cost;
+            if (agent.pathGarbage + partCost > garbageLimit)
+                return;
+            var pathPart = this.spaceOutPath(pathSituation.path);
+            if (agent.computeStart) {
+                agent.path = pathPart.concat(agent.path);
+                agent.computeStart = false;
+            }
+            else {
+                agent.path = agent.path.concat(pathPart);
+                agent.computeEnd = false;
+            }
+            agent.pathGarbage += partCost;
+        };
+        PathfinderAbstract.prototype.attemptAgentWholeCompute = function (agent) {
+            expect(this.goal !== null);
+            expect(agent.position !== null);
+            var pathSituation = this.computePath(agent.position, this.goal, this.pathingRuntimeLimit);
+            if (pathSituation.type === PathSituationType.Processing) {
+                agent.processingSituation = pathSituation;
+                return;
+            }
+            else if (pathSituation.type === PathSituationType.Failed) {
+                return;
+            }
+            return pathSituation;
+        };
+        PathfinderAbstract.prototype.afterAgentComputeWhole = function (agent, pathSituation) {
+            var path = this.spaceOutPath(pathSituation.path);
+            agent.setPath(path, pathSituation.cost);
+            agent.computeWhole = false;
+        };
+        PathfinderAbstract.prototype.spaceOutPath = function (_path) {
+            var path = _path.map(Vector2.fromObjFast);
+            var newPath = [];
+            for (var i = 0; i < path.length - 1; i++) {
+                var nodeDistance = path[i].dist(path[i + 1]);
+                newPath.push(path[i]);
+                if (nodeDistance > 1.01) {
+                    var interNodeCount = Math.floor(nodeDistance / 1);
+                    var firstInterNode = (nodeDistance - interNodeCount) / nodeDistance / 2;
+                    var interDistance = 1 / nodeDistance;
+                    for (var interProgress = firstInterNode; interProgress < 1; interProgress += interDistance) {
+                        var interNode = path[i].copy().mix(path[i + 1], interProgress);
+                        newPath.push(interNode);
+                    }
+                }
+            }
+            newPath.push(path[path.length - 1]);
+            return newPath;
+        };
+        PathfinderAbstract.prototype.parseComputePathArgs = function (args) {
+            if (args.length === 1) {
+                return args[0];
+            }
+            else {
+                return {
+                    start: args[0],
+                    end: args[1],
+                    maxRuntime: args[2],
+                    runtime: 0,
+                    type: PathSituationType.Inital
+                };
+            }
+        };
+        PathfinderAbstract.prototype.getPheromones = function (_a) {
+            var x = _a.x, y = _a.y;
+            if (this.pheromones === null)
+                return 1;
+            var pheromoneTime = this.pheromones[x + y * this.width];
+            var pheromoneAge = this.pheromoneTime - pheromoneTime;
+            var pheromoneLeft = (this.pheromoneDecayTime - pheromoneAge) / this.pheromoneDecayTime;
+            return Math.max(0, 1 - pheromoneLeft * pheromoneLeft * this.pheromoneStrength);
+        };
+        PathfinderAbstract.prototype.setPheromones = function (_a) {
+            var x = _a.x, y = _a.y;
+            if (this.pheromones === null)
+                return;
+            this.pheromones[x + y * this.width] = this.pheromoneTime;
+        };
+        PathfinderAbstract.prototype.validatePosition = function (position) {
+            return position.x >= 0 && position.y >= 0 &&
+                position.x < this.width && position.y < this.height;
+        };
+        return PathfinderAbstract;
+    }());
+
     var pathfinderUpdateTime = 3;
+    var waitingPathfinder = 0;
     function update$3() {
         var endTime = getExactTime() + pathfinderUpdateTime;
+        var pathfinders = getPathfinders();
         var lastPathfinderIndex = waitingPathfinder + pathfinders.length;
         for (var _i = waitingPathfinder; _i < lastPathfinderIndex; _i++) {
             var i = _i % pathfinders.length;
@@ -3116,9 +3364,6 @@ var Brass = (function (exports, p5) {
             if (getExactTime() > endTime)
                 return;
         }
-    }
-    function registerPathfinder(pathfinder) {
-        pathfinders.push(pathfinder);
     }
 
     var inited$1 = false;
@@ -3315,25 +3560,675 @@ var Brass = (function (exports, p5) {
         return body;
     }
 
+    var arrayConstructors = {
+        "any": Array,
+        "int8": Int8Array,
+        "int16": Int16Array,
+        "int32": Int32Array,
+        "uint8": Uint8Array,
+        "uint16": Uint16Array,
+        "uint32": Uint32Array,
+        "float32": Float32Array,
+        "float64": Float64Array
+    };
+    function createDynamicArray(type, size) {
+        var constructor = getArrayConstructor(type);
+        return new constructor(size);
+    }
+    function cloneDynamicArray(resultType, data) {
+        var _a;
+        var constructor = getArrayConstructor(resultType);
+        if (resultType === "any") {
+            return new ((_a = constructor).bind.apply(_a, __spreadArray([void 0], __read(data), false)))();
+        }
+        else {
+            return new constructor(data);
+        }
+    }
+    function encodeDynamicTypedArray(data) {
+        var raw = new Uint8Array(data.buffer);
+        var binary = [];
+        for (var i = 0; i < raw.byteLength; i++) {
+            binary.push(String.fromCharCode(raw[i]));
+        }
+        return btoa(binary.join(""));
+    }
+    function decodeDynamicTypedArray(type, base64) {
+        var binary = window.atob(base64);
+        var raw = new Uint8Array(binary.length);
+        for (var i = 0; i < raw.byteLength; i++) {
+            raw[i] = binary.charCodeAt(i);
+        }
+        return createDynamicTypedArray(type, raw.buffer);
+    }
+    function createDynamicTypedArray(type, buffer) {
+        var constructor = getArrayConstructor(type);
+        return new constructor(buffer);
+    }
+    function getArrayConstructor(type) {
+        var constructor = arrayConstructors[type];
+        if (constructor === undefined) {
+            throw Error("Can't find type (".concat(type, ") array constructor"));
+        }
+        return constructor;
+    }
+
+    var BodyAbstract = (function () {
+        function BodyAbstract() {
+            this.sensors = [];
+            this.alive = true;
+            this.data = null;
+            enforceInit$1("creating a body");
+        }
+        BodyAbstract.prototype.addSensor = function (callback) {
+            this.sensors.push(callback);
+            return this;
+        };
+        BodyAbstract.prototype.removeSensor = function (callback) {
+            var index = [].findIndex(function (sensor) { return sensor === callback; });
+            this.sensors.splice(index, 1);
+            return this;
+        };
+        BodyAbstract.prototype.triggerSensors = function (collision) {
+            this.sensors.forEach(function (callback) { return callback(collision); });
+            return this;
+        };
+        BodyAbstract.prototype.kill = function () {
+            this.alive = false;
+        };
+        BodyAbstract.prototype.validateCollisionIndex = function (index) {
+            if (typeof index !== "number" ||
+                index !== Math.floor(index))
+                throw Error("Collision category must be an integer");
+            if (index < 0 || index > 31)
+                throw Error("Collision category must be in 0 through 31 inclusive");
+            return index;
+        };
+        BodyAbstract.prototype.validateCollisionMask = function (mask) {
+            if (typeof mask !== "number" ||
+                mask !== Math.floor(mask))
+                throw Error("Collision mask must be an integer");
+            if (mask < 0x00000000 || mask > 0xFFFFFFFF)
+                throw Error("Collision mask must be 32-bit");
+            return mask;
+        };
+        BodyAbstract.prototype.collisionIndexToCategory = function (index) {
+            this.validateCollisionIndex(index);
+            return 1 << index;
+        };
+        BodyAbstract.prototype.collisionCategoryToIndex = function (category) {
+            if (category === 0x8000) {
+                return 31;
+            }
+            else {
+                var index = Math.log2(category);
+                if (index !== Math.floor(index))
+                    throw Error("Internal Matter.js body could not be fit in one collision category");
+                return index;
+            }
+        };
+        return BodyAbstract;
+    }());
+
+    var MaterialBodyAbstract = (function (_super) {
+        __extends(MaterialBodyAbstract, _super);
+        function MaterialBodyAbstract(body) {
+            var _this = _super.call(this) || this;
+            _this.setBody(body);
+            return _this;
+        }
+        MaterialBodyAbstract.prototype.setBody = function (body) {
+            if (this.body !== undefined) {
+                this.remove();
+            }
+            this.body = body;
+            this.body.__brassBody__ = this;
+            this.body.collisionFilter.category = this.collisionIndexToCategory(0);
+            bodies[0].set(this.body.id, this);
+            Matter.World.add(getMatterWorld(), body);
+        };
+        MaterialBodyAbstract.prototype.removeBody = function () {
+        };
+        Object.defineProperty(MaterialBodyAbstract.prototype, "position", {
+            get: function () {
+                var position = Vector2.fromObj(this.body.position).divScalar(getSpaceScale());
+                return position.watch(this.setPosition.bind(this));
+            },
+            set: function (position) {
+                var spaceScale = getSpaceScale();
+                position = Matter.Vector.create(position.x * spaceScale, position.y * spaceScale);
+                Matter.Body.setPosition(this.body, position);
+            },
+            enumerable: false,
+            configurable: true
+        });
+        MaterialBodyAbstract.prototype.setPosition = function (position) {
+            this.position = position;
+        };
+        Object.defineProperty(MaterialBodyAbstract.prototype, "velocity", {
+            get: function () {
+                var velocity = Vector2.fromObj(this.body.velocity).divScalar(getSpaceScale());
+                return velocity.watch(this.setVelocity.bind(this));
+            },
+            set: function (velocity) {
+                var spaceScale = getSpaceScale();
+                velocity = Matter.Vector.create(velocity.x * spaceScale, velocity.y * spaceScale);
+                Matter.Body.setVelocity(this.body, velocity);
+            },
+            enumerable: false,
+            configurable: true
+        });
+        MaterialBodyAbstract.prototype.setVelocity = function (velocity) {
+            this.velocity = velocity;
+        };
+        Object.defineProperty(MaterialBodyAbstract.prototype, "angle", {
+            get: function () {
+                return this.body.angle;
+            },
+            set: function (angle) {
+                Matter.Body.setAngle(this.body, angle);
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(MaterialBodyAbstract.prototype, "angularVelocity", {
+            get: function () {
+                return this.body.angularVelocity;
+            },
+            set: function (angularVelocity) {
+                Matter.Body.setAngularVelocity(this.body, angularVelocity);
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(MaterialBodyAbstract.prototype, "static", {
+            get: function () {
+                return this.body.isStatic;
+            },
+            set: function (isStatic) {
+                Matter.Body.setStatic(this.body, isStatic);
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(MaterialBodyAbstract.prototype, "ghost", {
+            get: function () {
+                return this.body.isSensor;
+            },
+            set: function (isGhost) {
+                this.body.isSensor = isGhost;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(MaterialBodyAbstract.prototype, "collisionCategory", {
+            set: function (categoryIndex) {
+                var oldCategoryIndex = this.collisionCategoryToIndex(this.body.collisionFilter.category);
+                bodies[oldCategoryIndex].delete(this.body.id);
+                this.body.collisionFilter.category = this.collisionIndexToCategory(categoryIndex);
+                bodies[categoryIndex].set(this.body.id, this);
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(MaterialBodyAbstract.prototype, "collidesWith", {
+            set: function (category) {
+                var _this = this;
+                this.body.collisionFilter.mask = 0;
+                if (category === "everything") {
+                    this.body.collisionFilter.mask = 0xFFFFFFFF;
+                }
+                else if (category === "nothing") {
+                    this.body.collisionFilter.mask = 0;
+                }
+                else if (Array.isArray(category)) {
+                    category.map(function (subCategory) { return _this.setCollidesWith(subCategory); });
+                }
+                else {
+                    this.setCollidesWith(category);
+                }
+            },
+            enumerable: false,
+            configurable: true
+        });
+        MaterialBodyAbstract.prototype.setCollidesWith = function (category) {
+            this.validateCollisionIndex(category);
+            if (category >= 0) {
+                this.body.collisionFilter.mask |= 1 << category;
+            }
+            else {
+                this.body.collisionFilter.mask &= ~(1 << -category);
+            }
+            return this;
+        };
+        MaterialBodyAbstract.prototype.rotate = function (rotation) {
+            Matter.Body.rotate(this.body, rotation);
+            return this;
+        };
+        MaterialBodyAbstract.prototype.applyForce = function (force, position) {
+            if (position === void 0) { position = this.position; }
+            var spaceScale = getSpaceScale();
+            var forceScale = spaceScale * spaceScale * spaceScale * forceUnit;
+            var matterForce = Matter.Vector.create(force.x * forceScale, force.y * forceScale);
+            var matterPosition = Matter.Vector.create(position.x * spaceScale, position.y * spaceScale);
+            queueMicrotask(Matter.Body.applyForce.bind(globalThis, this.body, matterPosition, matterForce));
+            return this;
+        };
+        MaterialBodyAbstract.prototype.kill = function () {
+            _super.prototype.kill.call(this);
+            this.remove();
+        };
+        MaterialBodyAbstract.prototype.remove = function () {
+            var categoryIndex = this.collisionCategoryToIndex(this.body.collisionFilter.category);
+            bodies[categoryIndex].delete(this.body.id);
+            Matter.World.remove(getMatterWorld(), this.body);
+        };
+        return MaterialBodyAbstract;
+    }(BodyAbstract));
+
+    var GridBody = (function (_super) {
+        __extends(GridBody, _super);
+        function GridBody(width, height, grid, options, gridScale) {
+            if (options === void 0) { options = {}; }
+            if (gridScale === void 0) { gridScale = 1; }
+            var _this = this;
+            var _a;
+            _this = _super.call(this, Matter.Body.create({})) || this;
+            (_a = options.isStatic) !== null && _a !== void 0 ? _a : (options.isStatic = true);
+            var bodyOffset = { x: 0, y: 0 };
+            if (options.position) {
+                bodyOffset = options.position;
+                options.position = { x: 0, y: 0 };
+            }
+            _this.x = bodyOffset.x;
+            _this.y = bodyOffset.y;
+            _this.width = width;
+            _this.height = height;
+            _this.gridScale = gridScale;
+            _this.options = options;
+            _this.buildBody(grid);
+            return _this;
+        }
+        GridBody.prototype.buildBody = function (grid, minX, minY, maxX, maxY) {
+            var _a;
+            if (minX === void 0) { minX = 0; }
+            if (minY === void 0) { minY = 0; }
+            if (maxX === void 0) { maxX = Infinity; }
+            if (maxY === void 0) { maxY = Infinity; }
+            var spaceScale = getSpaceScale();
+            if (this.static) {
+                this.buildParts(grid, minX, minY, maxX, maxY);
+                Matter.Body.translate(this.body, {
+                    x: (this.body.bounds.min.x + (this.x - minX * this.gridScale) * spaceScale),
+                    y: (this.body.bounds.min.y + (this.y - minY * this.gridScale) * spaceScale)
+                });
+            }
+            else {
+                var angle = (_a = this.options.angle) !== null && _a !== void 0 ? _a : 0;
+                if (this.body !== undefined) {
+                    angle = this.body.angle;
+                    Matter.Body.setAngle(this.body, 0);
+                }
+                this.buildParts(grid, minX, minY, maxX, maxY);
+                Matter.Body.setAngle(this.body, angle);
+                Matter.Body.setPosition(this.body, { x: this.x * spaceScale, y: this.y * spaceScale });
+            }
+        };
+        Object.defineProperty(GridBody.prototype, "static", {
+            get: function () {
+                if (this.body === undefined) {
+                    return this.options.isStatic;
+                }
+                return this.body.isStatic;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        GridBody.prototype.buildParts = function (grid, minX, minY, maxX, maxY) {
+            var e_1, _a, e_2, _b;
+            var startX = Math.max(0, minX), startY = Math.max(0, minY), endX = Math.min(this.width, maxX), endY = Math.min(this.height, maxY);
+            var stripMap = new Map();
+            for (var y = startY; y < endY; y++) {
+                var runStart = undefined;
+                for (var x = startX; x < endX; x++) {
+                    if (!!grid[x + y * this.width]) {
+                        if (runStart === undefined) {
+                            runStart = x;
+                        }
+                    }
+                    else {
+                        if (runStart !== undefined) {
+                            stripMap.set(runStart + y * this.width, { width: x - runStart, height: 1 });
+                            runStart = undefined;
+                        }
+                    }
+                }
+                if (runStart !== undefined) {
+                    stripMap.set(runStart + y * this.width, { width: endX - runStart, height: 1 });
+                }
+            }
+            try {
+                for (var _c = __values(stripMap.entries()), _d = _c.next(); !_d.done; _d = _c.next()) {
+                    var _e = __read(_d.value, 2), key_1 = _e[0], strip = _e[1];
+                    var combineStripKey = key_1;
+                    while (true) {
+                        combineStripKey += this.width;
+                        var combineStrip = stripMap.get(combineStripKey);
+                        if (combineStrip === undefined || combineStrip.width !== strip.width)
+                            break;
+                        strip.height += combineStrip.height;
+                        stripMap.delete(combineStripKey);
+                    }
+                }
+            }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
+                try {
+                    if (_d && !_d.done && (_a = _c.return)) _a.call(_c);
+                }
+                finally { if (e_1) throw e_1.error; }
+            }
+            var parts = [];
+            var scaleProduct = this.gridScale * getSpaceScale();
+            try {
+                for (var _f = __values(stripMap.entries()), _g = _f.next(); !_g.done; _g = _f.next()) {
+                    var _h = __read(_g.value, 2), key_2 = _h[0], strip = _h[1];
+                    var x = key_2 % this.width, y = Math.floor(key_2 / this.width);
+                    var part = createRectBodyFast(x * scaleProduct, y * scaleProduct, strip.width * scaleProduct, strip.height * scaleProduct);
+                    part.__brassBody__ = this;
+                    parts.push(part);
+                }
+            }
+            catch (e_2_1) { e_2 = { error: e_2_1 }; }
+            finally {
+                try {
+                    if (_g && !_g.done && (_b = _f.return)) _b.call(_f);
+                }
+                finally { if (e_2) throw e_2.error; }
+            }
+            var cornerPart = createRectBodyFast(minX * scaleProduct, minY * scaleProduct, 0.01, 0.01);
+            cornerPart.__brassBody__ = this;
+            parts.push(cornerPart);
+            this.options.parts = parts;
+            var body = Matter.Body.create(this.options);
+            this.setBody(body);
+        };
+        return GridBody;
+    }(MaterialBodyAbstract));
+
     var tilemaps = [];
+    function getTilemaps() {
+        return tilemaps;
+    }
+    var TilemapAbstract = (function () {
+        function TilemapAbstract(width, height, options) {
+            if (options === void 0) { options = {}; }
+            var _a, _b, _c, _d, _e, _f;
+            this.width = width;
+            this.height = height;
+            this.tileSize = (_a = options.tileSize) !== null && _a !== void 0 ? _a : 1;
+            this.fields = [];
+            this.fieldTypes = (_b = options.fields) !== null && _b !== void 0 ? _b : {
+                "_DEFAULTFIELD": "uint8"
+            };
+            var solidFieldName = (_c = options.solidField) !== null && _c !== void 0 ? _c : "";
+            if (this.fieldTypes[solidFieldName] === undefined) {
+                this.fieldTypes[solidFieldName] = "uint8";
+            }
+            else if (this.fieldTypes[solidFieldName] !== "uint8") {
+                throw Error("Solid field must be of type uint8");
+            }
+            this.fields = [];
+            this.fieldIds = {};
+            for (var fieldName in this.fieldTypes) {
+                var fieldType = this.fieldTypes[fieldName];
+                var upperFieldName = fieldName.toUpperCase();
+                if (this[upperFieldName] !== undefined) {
+                    throw Error("field name (".concat(upperFieldName, ") collided in tilemap namespace"));
+                }
+                this[upperFieldName] = this.fields.length;
+                this.fieldIds[fieldName] = this.fields.length;
+                this.fields.push(this.createField(fieldType));
+            }
+            this.solidFieldId = this.fieldIds[solidFieldName];
+            if (isPhysicsActive()) {
+                if (options.body === undefined) {
+                    console.warn("Matter physics is active but Tilemap does not have body; If this is intentional pass false for the body option");
+                }
+            }
+            this.hasBody = !!options.body;
+            this.autoMaintainBody = (_d = options.autoMaintainBody) !== null && _d !== void 0 ? _d : true;
+            this.getTileData = (_e = this.bindOptionsFunction(options.getTileData)) !== null && _e !== void 0 ? _e : this.get;
+            this.isTileSolid = (_f = this.bindOptionsFunction(options.isTileSolid)) !== null && _f !== void 0 ? _f : null;
+            var solidField = this.fields[this.solidFieldId];
+            if (this.isTileSolid !== null) {
+                var nullTileSolid = this.isTileSolid(this.getTileData(0, 0)) ? 1 : 0;
+                solidField.data.fill(nullTileSolid);
+            }
+            this.body = null;
+            if (this.hasBody) {
+                var bodyOptions = {};
+                if (typeof options.body === "object") {
+                    bodyOptions = options.body;
+                }
+                this.body = new GridBody(this.width, this.height, solidField.data, bodyOptions, this.tileSize);
+            }
+            this.bodyValid = this.hasBody;
+            tilemaps.push(this);
+        }
+        TilemapAbstract.prototype.bindOptionsFunction = function (func) {
+            if (!func)
+                return func;
+            return safeBind(func, this);
+        };
+        TilemapAbstract.prototype.maintain = function () {
+            if (this.autoMaintainBody)
+                this.maintainBody();
+        };
+        TilemapAbstract.prototype.maintainBody = function (minX, minY, maxX, maxY) {
+            if (this.body === null ||
+                this.bodyValid)
+                return;
+            var solidField = this.fields[this.solidFieldId];
+            this.body.buildBody(solidField.data, minX, minY, maxX, maxY);
+            this.bodyValid = true;
+        };
+        TilemapAbstract.prototype.get = function (x, y, fieldId) {
+            if (fieldId === void 0) { fieldId = 0; }
+            if (!this.validateCoord(x, y))
+                return undefined;
+            var field = this.fields[fieldId];
+            if (field.sparse) {
+                var value = field.data["".concat(x, ",").concat(y)];
+                if (value === undefined)
+                    return null;
+                return value;
+            }
+            return field.data[x + y * this.width];
+        };
+        TilemapAbstract.prototype.set = function (value, x, y, fieldId) {
+            if (fieldId === void 0) { fieldId = 0; }
+            if (!this.validateCoord(x, y))
+                return false;
+            var field = this.fields[fieldId];
+            if (field.sparse) {
+                field.data["".concat(x, ",").concat(y)] = value;
+            }
+            else {
+                field.data[x + y * this.width] = value;
+            }
+            this.clearCacheAtTile(x, y);
+            this.updateSolidAtTile(x, y);
+            return true;
+        };
+        TilemapAbstract.prototype.getSolid = function (x, y) {
+            var solid = this.get(x, y, this.solidFieldId);
+            if (solid === undefined)
+                return undefined;
+            return Boolean(solid);
+        };
+        TilemapAbstract.prototype.export = function () {
+            var fields = {};
+            for (var fieldName in this.fieldIds) {
+                var fieldId = this.fieldIds[fieldName];
+                var fieldType = this.fieldTypes[fieldName];
+                var fieldData = this.fields[fieldId].data;
+                if (fieldType === "sparse") {
+                    fields[fieldName] = {
+                        type: "sparse",
+                        data: fieldData
+                    };
+                }
+                else if (fieldType === "any") {
+                    fields[fieldName] = {
+                        type: "any",
+                        data: fieldData
+                    };
+                }
+                else {
+                    fields[fieldName] = {
+                        type: fieldType,
+                        data: encodeDynamicTypedArray(fieldData),
+                        encoding: fieldType
+                    };
+                }
+            }
+            return {
+                width: this.width,
+                height: this.height,
+                objects: [],
+                tilesets: {},
+                fields: fields
+            };
+        };
+        TilemapAbstract.prototype.import = function (world) {
+            if (world === null) {
+                throw Error("Tried to import (null) as world; Did you pass Brass.getLevel() before the world loaded?");
+            }
+            if (world.width > this.width ||
+                world.height > this.height)
+                throw Error("Can't import world larger than tilemap");
+            this.clearCaches();
+            this.clearFields();
+            for (var fieldName in world.fields) {
+                var feildId = this.fieldIds[fieldName];
+                if (feildId === undefined) {
+                    throw Error("Can't import field (".concat(fieldName, "); field was not declared for the tilemap"));
+                }
+                var feildType = this.fieldTypes[fieldName];
+                var field = world.fields[fieldName];
+                if (feildType === undefined || feildType !== field.type) {
+                    throw Error("Can't import field (".concat(fieldName, "); field type did not match with any fields declared for the tilemap"));
+                }
+                if (field.type === "sparse") {
+                    this.fields[feildId] = {
+                        sparse: true,
+                        data: field.data
+                    };
+                }
+                else {
+                    var data = void 0;
+                    if ("encoding" in field) {
+                        var encodedData = decodeDynamicTypedArray(field.encoding, field.data);
+                        if (field.encoding !== field.type) {
+                            data = cloneDynamicArray(field.type, encodedData);
+                        }
+                        else {
+                            data = encodedData;
+                        }
+                    }
+                    else {
+                        data = field.data;
+                    }
+                    if (this.width === world.width &&
+                        this.height === world.height) {
+                        this.fields[feildId].data = data;
+                    }
+                    else {
+                        for (var x = 0; x < world.width; x++) {
+                            for (var y = 0; y < world.height; y++) {
+                                this.fields[feildId].data[x + y * this.width] = data[x + y * world.width];
+                            }
+                        }
+                    }
+                }
+            }
+            for (var x = 0; x < world.width; x++) {
+                for (var y = 0; y < world.height; y++) {
+                    this.updateSolidAtTile(x, y);
+                }
+            }
+        };
+        TilemapAbstract.prototype.updateSolidAtTile = function (x, y) {
+            if (this.isTileSolid === null)
+                return;
+            var solidField = this.fields[this.solidFieldId];
+            var isSolid = this.isTileSolid(this.getTileData(x, y));
+            var solidIndex = x + y * this.width;
+            if (this.body !== null) {
+                if (!!solidField.data[solidIndex] !== isSolid) {
+                    this.bodyValid = false;
+                }
+            }
+            solidField.data[solidIndex] = isSolid ? 1 : 0;
+        };
+        TilemapAbstract.prototype.clearFields = function () {
+            for (var fieldName in this.fieldIds) {
+                var fieldId = this.fieldIds[fieldName];
+                if (fieldId === this.solidFieldId)
+                    continue;
+                var fieldType = this.fieldTypes[fieldName];
+                this.fields[fieldId] = this.createField(fieldType);
+            }
+            for (var x = 0; x < this.width; x++) {
+                for (var y = 0; y < this.height; y++) {
+                    this.updateSolidAtTile(x, y);
+                }
+            }
+        };
+        TilemapAbstract.prototype.createField = function (type) {
+            if (type === "sparse") {
+                return {
+                    sparse: true,
+                    data: {}
+                };
+            }
+            else {
+                var data = createDynamicArray(type, this.area);
+                return {
+                    sparse: false,
+                    data: data
+                };
+            }
+        };
+        TilemapAbstract.prototype.validateCoord = function (x, y) {
+            return x >= 0 && x < this.width && y >= 0 && y < this.height;
+        };
+        Object.defineProperty(TilemapAbstract.prototype, "area", {
+            get: function () {
+                return this.width * this.height;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        return TilemapAbstract;
+    }());
+
     function update$1() {
         var e_1, _a;
         try {
-            for (var tilemaps_1 = __values(tilemaps), tilemaps_1_1 = tilemaps_1.next(); !tilemaps_1_1.done; tilemaps_1_1 = tilemaps_1.next()) {
-                var tilemap = tilemaps_1_1.value;
+            for (var _b = __values(getTilemaps()), _c = _b.next(); !_c.done; _c = _b.next()) {
+                var tilemap = _c.value;
                 tilemap.maintain();
             }
         }
         catch (e_1_1) { e_1 = { error: e_1_1 }; }
         finally {
             try {
-                if (tilemaps_1_1 && !tilemaps_1_1.done && (_a = tilemaps_1.return)) _a.call(tilemaps_1);
+                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
             }
             finally { if (e_1) throw e_1.error; }
         }
-    }
-    function registerTilemap(tilemap) {
-        tilemaps.push(tilemap);
     }
 
     var inited = false;
@@ -3463,62 +4358,13 @@ var Brass = (function (exports, p5) {
         return timewarpList;
     }
 
-    var BodyAbstract = (function () {
-        function BodyAbstract() {
-            this.sensors = [];
-            this.alive = true;
-            this.data = null;
-            enforceInit$1("creating a body");
+    function createColor() {
+        var colArgs = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            colArgs[_i] = arguments[_i];
         }
-        BodyAbstract.prototype.addSensor = function (callback) {
-            this.sensors.push(callback);
-            return this;
-        };
-        BodyAbstract.prototype.removeSensor = function (callback) {
-            var index = [].findIndex(function (sensor) { return sensor === callback; });
-            this.sensors.splice(index, 1);
-            return this;
-        };
-        BodyAbstract.prototype.triggerSensors = function (collision) {
-            this.sensors.forEach(function (callback) { return callback(collision); });
-            return this;
-        };
-        BodyAbstract.prototype.kill = function () {
-            this.alive = false;
-        };
-        BodyAbstract.prototype.validateCollisionIndex = function (index) {
-            if (typeof index !== "number" ||
-                index !== Math.floor(index))
-                throw Error("Collision category must be an integer");
-            if (index < 0 || index > 31)
-                throw Error("Collision category must be in 0 through 31 inclusive");
-            return index;
-        };
-        BodyAbstract.prototype.validateCollisionMask = function (mask) {
-            if (typeof mask !== "number" ||
-                mask !== Math.floor(mask))
-                throw Error("Collision mask must be an integer");
-            if (mask < 0x00000000 || mask > 0xFFFFFFFF)
-                throw Error("Collision mask must be 32-bit");
-            return mask;
-        };
-        BodyAbstract.prototype.collisionIndexToCategory = function (index) {
-            this.validateCollisionIndex(index);
-            return 1 << index;
-        };
-        BodyAbstract.prototype.collisionCategoryToIndex = function (category) {
-            if (category === 0x8000) {
-                return 31;
-            }
-            else {
-                var index = Math.log2(category);
-                if (index !== Math.floor(index))
-                    throw Error("Internal Matter.js body could not be fit in one collision category");
-                return index;
-            }
-        };
-        return BodyAbstract;
-    }());
+        return color.apply(void 0, __spreadArray([], __read(colArgs), false));
+    }
 
     var RayBody = (function (_super) {
         __extends(RayBody, _super);
@@ -3922,449 +4768,94 @@ var Brass = (function (exports, p5) {
         return P5Lighter;
     }());
 
-    var PathAgent = (function () {
-        function PathAgent(pathfinder, radius, leadership) {
-            if (leadership === void 0) { leadership = Math.random(); }
-            this.id = Symbol();
-            this.position = null;
-            this.direction = false;
-            this.newGoal = true;
-            this.processingSituation = null;
-            this.tryedPartCompute = false;
-            this.pathCost = 0;
-            this.pathGarbage = 0;
-            this.path = [];
-            this.waitingNodeComfirmation = 0;
-            this.computeStart = true;
-            this.computeEnd = true;
-            this.pathFailTime = 0;
-            this.pathfinder = pathfinder;
-            this.radius = radius;
-            this.leadership = leadership;
+    var Particle = (function () {
+        function Particle() {
+            this.radius = 1;
+            this.lifetime = 5000;
+            this.spawnTime = getTime();
         }
-        PathAgent.prototype.drawPath = function (thickness, fillColor, d) {
-            if (thickness === void 0) { thickness = 0.2; }
-            if (fillColor === void 0) { fillColor = "red"; }
-            if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
-            var g = d.getMaps().canvas;
-            if (this.position === null)
-                return;
-            g.push();
+        Particle.prototype.update = function (delta) { };
+        Particle.prototype.draw = function (g) {
             g.noStroke();
-            g.fill(fillColor);
-            this.path.unshift(this.position);
-            for (var i = 0; i < this.path.length; i++) {
-                var node = this.path[i].copy().multScalar(this.pathfinder.scale);
-                g.circle(node.x, node.y, thickness);
-                if (i >= this.path.length - 1)
-                    continue;
-                var nextNode = this.path[i + 1].copy().multScalar(this.pathfinder.scale);
-                var offsetForward = nextNode.copy().sub(node).norm(thickness / 2);
-                var offsetA = offsetForward.copy().rotate(-HALF_PI);
-                var offsetB = offsetForward.copy().rotate(HALF_PI);
-                g.triangle(node.x + offsetA.x, node.y + offsetA.y, nextNode.x, nextNode.y, node.x + offsetB.x, node.y + offsetB.y);
-            }
-            this.path.shift();
-            g.pop();
+            g.fill(255, 0, 255);
+            g.circle(0, 0, 2);
         };
-        PathAgent.prototype.getDirection = function (position) {
-            if (position &&
-                (this.position === null || !this.position.equal(position))) {
-                var newPosition = position.copy().divScalar(this.pathfinder.scale);
-                if (!this.pathfinder.validatePosition(newPosition)) {
-                    this.position = null;
-                    return false;
-                }
-                this.position = newPosition;
-            }
-            else {
-                if (this.direction)
-                    return this.direction;
-            }
-            if (this.position === null)
-                return false;
-            while (this.path.length > 0) {
-                if (this.position.dist(this.path[0]) < this.pathfinder.pathMinDist) {
-                    var pathNode = this.path.shift().floor();
-                    this.pathfinder.setPheromones(pathNode);
-                }
-                else {
-                    if (this.position.dist(this.path[0]) > this.pathfinder.pathMaxDist) {
-                        if (this.processingSituation) {
-                            this.tryedPartCompute = false;
-                            this.processingSituation = null;
-                        }
-                        this.computeStart = true;
-                    }
-                    break;
-                }
-            }
-            if (this.path.length === 0 || this.computeStart) {
-                if (this.pathfinder.goal === null)
-                    return false;
-                var goalDistance = this.position.dist(this.pathfinder.goal);
-                var atGoal = goalDistance < this.pathfinder.pathMinDist * 2;
-                if (atGoal) {
-                    this.setPath([]);
-                }
-                else {
-                    if (this.path.length === 0) {
-                        this.computeWhole = true;
-                    }
-                }
-                return atGoal;
-            }
-            this.direction = this.path[0].copy()
-                .multScalar(this.pathfinder.scale)
-                .sub(this.position.copy().multScalar(this.pathfinder.scale));
-            if (this.newGoal) {
-                if (this.direction.mag < this.pathfinder.pathMinDist * 3 && random() < 0.2) {
-                    if (this.processingSituation) {
-                        this.tryedPartCompute = false;
-                        this.processingSituation = null;
-                    }
-                    this.computeEnd = true;
-                    this.newGoal = false;
-                }
-            }
-            return this.direction;
+        Particle.prototype.alive = function () {
+            return this.age < 1;
         };
-        PathAgent.prototype.reset = function () {
-            this.setPath([]);
-            this.tryedPartCompute = false;
-            this.processingSituation = null;
-            this.computeStart = true;
-            this.computeEnd = true;
-            this.pathFailTime = getTime();
+        Particle.prototype.visable = function (viewArea) {
+            return (this.position.x + this.radius > viewArea.minX &&
+                this.position.x - this.radius < viewArea.maxX &&
+                this.position.y + this.radius > viewArea.minY &&
+                this.position.y - this.radius < viewArea.maxY);
         };
-        PathAgent.prototype.setPath = function (path, cost) {
-            if (cost === void 0) { cost = 0; }
-            this.pathCost = cost;
-            this.pathGarbage = 0;
-            this.path = path;
-        };
-        Object.defineProperty(PathAgent.prototype, "computeWhole", {
+        Particle.prototype.kill = function () { };
+        Object.defineProperty(Particle.prototype, "age", {
             get: function () {
-                return this.computeStart && this.computeEnd;
-            },
-            set: function (value) {
-                this.computeStart = value;
-                this.computeEnd = value;
+                return (getTime() - this.spawnTime) / this.lifetime;
             },
             enumerable: false,
             configurable: true
         });
-        return PathAgent;
+        return Particle;
     }());
 
-    var PathSituationType;
-    (function (PathSituationType) {
-        PathSituationType[PathSituationType["Inital"] = 0] = "Inital";
-        PathSituationType[PathSituationType["Processing"] = 1] = "Processing";
-        PathSituationType[PathSituationType["Failed"] = 2] = "Failed";
-        PathSituationType[PathSituationType["Succeed"] = 3] = "Succeed";
-    })(PathSituationType || (PathSituationType = {}));
-
-    var PathfinderAbstract = (function () {
-        function PathfinderAbstract(options) {
-            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
-            this.confidence = 0.5;
-            this.width = options.width;
-            this.height = options.height;
-            this.scale = (_a = options.scale) !== null && _a !== void 0 ? _a : 1;
-            this.faliureDelay = (_b = options.faliureDelay) !== null && _b !== void 0 ? _b : 300;
-            this.pathingRuntimeLimit = (_c = options.pathingRuntimeLimit) !== null && _c !== void 0 ? _c : 20000;
-            this.pathingContinuousRuntimeLimit = (_d = options.pathingContinuousRuntimeLimit) !== null && _d !== void 0 ? _d : 2000;
-            this.pathGarbageLimit = (_e = options.pathGarbageLimit) !== null && _e !== void 0 ? _e : 0.15;
-            this.targetDriftLimit = (_f = options.targetDriftLimit) !== null && _f !== void 0 ? _f : 2;
-            this.targetDriftInfluence = (_g = options.targetDriftInfluence) !== null && _g !== void 0 ? _g : 0.12;
-            this.nodeComfirmationRate = (_h = options.nodeComfirmationRate) !== null && _h !== void 0 ? _h : 10;
-            this.pheromoneDecayTime = (_j = options.pheromoneDecayTime) !== null && _j !== void 0 ? _j : 150000;
-            this.pheromoneStrength = (_k = options.pheromoneStrength) !== null && _k !== void 0 ? _k : 0.5;
-            this.pathMinDist = (_l = options.pathMinDist) !== null && _l !== void 0 ? _l : 0.1;
-            this.pathMaxDist = (_m = options.pathMaxDist) !== null && _m !== void 0 ? _m : 0.1;
-            this.pheromoneTime = getTime();
-            if (options.pheromones !== false) {
-                var zeroPheromone = this.pheromoneTime - this.pheromoneDecayTime;
-                this.pheromones = new Int32Array(this.width * this.height).fill(zeroPheromone);
-            }
-            else {
-                this.pheromones = null;
-            }
-            this.goal = null;
-            this.agents = [];
-            this.waitingAgent = 0;
-            registerPathfinder(this);
+    var VelocityParticle = (function (_super) {
+        __extends(VelocityParticle, _super);
+        function VelocityParticle(velocity) {
+            if (velocity === void 0) { velocity = new Vector2(); }
+            var _this = _super.call(this) || this;
+            _this.velocity = velocity;
+            return _this;
         }
-        PathfinderAbstract.prototype.createAgent = function (radius, leadership) {
-            radius /= this.scale;
-            var agent = new PathAgent(this, radius, leadership);
-            this.agents.push(agent);
-            return agent;
+        VelocityParticle.prototype.updateKinomatics = function (delta) {
+            this.position.add(this.velocity.copy().multScalar(delta));
         };
-        PathfinderAbstract.prototype.removeAgent = function (agent) {
-            var index = this.agents.findIndex(function (_a) {
-                var id = _a.id;
-                return id === agent.id;
-            });
-            if (this.waitingAgent > index)
-                this.waitingAgent--;
-            this.agents.splice(index, 1);
-        };
-        PathfinderAbstract.prototype.setGoal = function (goal) {
-            var e_1, _a;
-            if (goal === null) {
-                this.goal = null;
-                return false;
+        VelocityParticle.prototype.collide = function (tilemap) {
+            var _a = this.position.copy().divScalar(tilemap.tileSize), x = _a.x, y = _a.y;
+            var radius = this.radius / tilemap.tileSize;
+            var deltaX = 0, deltaY = 0;
+            if (tilemap.getSolid(Math.floor(x - radius), Math.floor(y)) &&
+                !tilemap.getSolid(Math.floor(x - radius) + 1, Math.floor(y))) {
+                deltaX = Math.ceil(x - radius) + radius - x;
             }
-            var newGoal = goal.copy().divScalar(this.scale);
-            if (!this.validatePosition(newGoal)) {
-                this.goal = null;
-                return false;
+            if (tilemap.getSolid(Math.floor(x + radius), Math.floor(y)) &&
+                !tilemap.getSolid(Math.floor(x + radius) - 1, Math.floor(y))) {
+                var newDeltaX = Math.floor(x + radius) - radius - x;
+                if (deltaX === 0 || Math.abs(newDeltaX) < Math.abs(deltaX))
+                    deltaX = newDeltaX;
             }
-            this.goal = newGoal;
-            try {
-                for (var _b = __values(this.agents), _c = _b.next(); !_c.done; _c = _b.next()) {
-                    var agent = _c.value;
-                    if (agent.path.length <= 0)
-                        continue;
-                    var lastNode = agent.path[agent.path.length - 1];
-                    if (lastNode.dist(this.goal) < this.pathMaxDist)
-                        continue;
-                    agent.newGoal = true;
+            if (tilemap.getSolid(Math.floor(x), Math.floor(y - radius)) &&
+                !tilemap.getSolid(Math.floor(x), Math.floor(y - radius) + 1)) {
+                deltaY = Math.ceil(y - radius) + radius - y;
+            }
+            if (tilemap.getSolid(Math.floor(x), Math.floor(y + radius)) &&
+                !tilemap.getSolid(Math.floor(x), Math.floor(y + radius) - 1)) {
+                var newDeltaY = Math.floor(y + radius) - radius - y;
+                if (deltaY === 0 || Math.abs(newDeltaY) < Math.abs(deltaY))
+                    deltaY = newDeltaY;
+            }
+            if (deltaX !== 0 && deltaY !== 0) {
+                if (Math.abs(deltaX) < Math.abs(deltaY)) {
+                    this.position.x += deltaX * tilemap.tileSize;
+                    this.velocity.x = 0;
+                }
+                else {
+                    this.position.y += deltaY * tilemap.tileSize;
+                    this.velocity.y = 0;
                 }
             }
-            catch (e_1_1) { e_1 = { error: e_1_1 }; }
-            finally {
-                try {
-                    if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
-                }
-                finally { if (e_1) throw e_1.error; }
+            else if (deltaX !== 0) {
+                this.position.x += deltaX * tilemap.tileSize;
+                this.velocity.x = 0;
             }
-            return true;
-        };
-        PathfinderAbstract.prototype.confidenceDelta = function (delta) {
-            this.confidence = Math.min(Math.max(this.confidence + delta, 0), 1);
-        };
-        PathfinderAbstract.prototype.update = function (endTime) {
-            if (this.goal === null)
-                return;
-            if (this.confidence < 0.2) {
-                this.confidenceDelta(0.01);
-            }
-            this.pheromoneTime = getTime();
-            var skipFailuresAfter = getTime() - this.faliureDelay;
-            var maxLeadership = Math.max.apply(Math, __spreadArray([], __read(this.agents.map(function (agents) { return agents.leadership; })), false));
-            var effectiveConfidence = Math.max(this.confidence, 1.01 - maxLeadership);
-            var lastAgentIndex = this.waitingAgent + this.agents.length;
-            for (var _i = this.waitingAgent; _i < lastAgentIndex; _i++) {
-                var i = _i % this.agents.length;
-                this.waitingAgent = (_i + 1) % this.agents.length;
-                var agent = this.agents[i];
-                if (agent.pathFailTime > skipFailuresAfter) {
-                    continue;
-                }
-                if (agent.path.length > 0)
-                    this.confirmAgentNodes(agent);
-                if (!(agent.computeStart || agent.computeEnd)) {
-                    this.confidenceDelta(0.001);
-                    continue;
-                }
-                if (agent.position === null)
-                    continue;
-                if (agent.leadership < 1 - effectiveConfidence) {
-                    agent.reset();
-                    continue;
-                }
-                processing: {
-                    if (agent.processingSituation !== null) {
-                        var targetDrift = agent.processingSituation.start.dist(agent.position) +
-                            agent.processingSituation.end.dist(this.goal);
-                        agent.processingSituation.maxRuntime = Math.ceil(agent.processingSituation.maxRuntime / (1 + targetDrift * this.targetDriftInfluence));
-                        var situation = this.computePath(agent.processingSituation);
-                        if (situation.type === PathSituationType.Processing)
-                            break processing;
-                        if (situation.type === PathSituationType.Failed) {
-                            if (targetDrift > this.targetDriftLimit) {
-                                agent.processingSituation = null;
-                                agent.tryedPartCompute = false;
-                            }
-                            else if (agent.tryedPartCompute) {
-                                agent.reset();
-                            }
-                            else {
-                                agent.processingSituation = null;
-                                agent.tryedPartCompute = true;
-                            }
-                            break processing;
-                        }
-                        else {
-                            if (agent.tryedPartCompute) {
-                                this.afterAgentComputeWhole(agent, situation);
-                            }
-                            else {
-                                this.afterAgentComputePart(agent, situation);
-                            }
-                            agent.tryedPartCompute = false;
-                        }
-                    }
-                    else {
-                        if (agent.path.length > 0 && !agent.tryedPartCompute) {
-                            var situation_1 = this.attemptAgentPartCompute(agent);
-                            if (situation_1 !== undefined) {
-                                this.afterAgentComputePart(agent, situation_1);
-                                break processing;
-                            }
-                            if (agent.processingSituation !== null) {
-                                break processing;
-                            }
-                        }
-                        var situation = this.attemptAgentWholeCompute(agent);
-                        if (situation !== undefined) {
-                            this.afterAgentComputeWhole(agent, situation);
-                        }
-                    }
-                }
-                if (getExactTime() > endTime)
-                    return;
+            else if (deltaY !== 0) {
+                this.position.y += deltaY * tilemap.tileSize;
+                this.velocity.y = 0;
             }
         };
-        PathfinderAbstract.prototype.confirmAgentNodes = function (agent) {
-            var nodesToComfirm = Math.min(agent.path.length, this.nodeComfirmationRate);
-            for (var i = 0; i < nodesToComfirm; i++) {
-                if (agent.waitingNodeComfirmation >= agent.path.length) {
-                    agent.waitingNodeComfirmation = 0;
-                }
-                var node = agent.path[agent.waitingNodeComfirmation];
-                var radius = agent.radius;
-                if (agent.waitingNodeComfirmation === agent.path.length - 1) {
-                    radius = 0;
-                }
-                if (!this.confirmNode(node, radius)) {
-                    agent.reset();
-                    break;
-                }
-                agent.waitingNodeComfirmation++;
-            }
-        };
-        PathfinderAbstract.prototype.attemptAgentPartCompute = function (agent) {
-            expect(this.goal !== null);
-            expect(agent.position !== null);
-            var minGarbage = 0;
-            var garbageLimit = agent.pathCost * this.pathGarbageLimit;
-            if (agent.computeStart) {
-                minGarbage += agent.position.dist(agent.path[0]) * 100;
-            }
-            if (agent.computeEnd) {
-                minGarbage += agent.path[agent.path.length - 1].dist(this.goal) * 100;
-            }
-            if (agent.pathGarbage + minGarbage > garbageLimit)
-                return;
-            var pathSituation;
-            var runtimeLimit = Math.ceil(this.pathingRuntimeLimit * this.pathGarbageLimit);
-            if (agent.computeStart) {
-                pathSituation = this.computePath(agent.position, agent.path[0], runtimeLimit);
-            }
-            else {
-                pathSituation = this.computePath(agent.path[agent.path.length - 1], this.goal, runtimeLimit);
-            }
-            if (pathSituation.type === PathSituationType.Processing) {
-                agent.processingSituation = pathSituation;
-                return;
-            }
-            else if (pathSituation.type === PathSituationType.Failed) {
-                return;
-            }
-            return pathSituation;
-        };
-        PathfinderAbstract.prototype.afterAgentComputePart = function (agent, pathSituation) {
-            var garbageLimit = agent.pathCost * this.pathGarbageLimit;
-            var partCost = pathSituation.cost;
-            if (agent.pathGarbage + partCost > garbageLimit)
-                return;
-            var pathPart = this.spaceOutPath(pathSituation.path);
-            if (agent.computeStart) {
-                agent.path = pathPart.concat(agent.path);
-                agent.computeStart = false;
-            }
-            else {
-                agent.path = agent.path.concat(pathPart);
-                agent.computeEnd = false;
-            }
-            agent.pathGarbage += partCost;
-        };
-        PathfinderAbstract.prototype.attemptAgentWholeCompute = function (agent) {
-            expect(this.goal !== null);
-            expect(agent.position !== null);
-            var pathSituation = this.computePath(agent.position, this.goal, this.pathingRuntimeLimit);
-            if (pathSituation.type === PathSituationType.Processing) {
-                agent.processingSituation = pathSituation;
-                return;
-            }
-            else if (pathSituation.type === PathSituationType.Failed) {
-                return;
-            }
-            return pathSituation;
-        };
-        PathfinderAbstract.prototype.afterAgentComputeWhole = function (agent, pathSituation) {
-            var path = this.spaceOutPath(pathSituation.path);
-            agent.setPath(path, pathSituation.cost);
-            agent.computeWhole = false;
-        };
-        PathfinderAbstract.prototype.spaceOutPath = function (_path) {
-            var path = _path.map(Vector2.fromObjFast);
-            var newPath = [];
-            for (var i = 0; i < path.length - 1; i++) {
-                var nodeDistance = path[i].dist(path[i + 1]);
-                newPath.push(path[i]);
-                if (nodeDistance > 1.01) {
-                    var interNodeCount = Math.floor(nodeDistance / 1);
-                    var firstInterNode = (nodeDistance - interNodeCount) / nodeDistance / 2;
-                    var interDistance = 1 / nodeDistance;
-                    for (var interProgress = firstInterNode; interProgress < 1; interProgress += interDistance) {
-                        var interNode = path[i].copy().mix(path[i + 1], interProgress);
-                        newPath.push(interNode);
-                    }
-                }
-            }
-            newPath.push(path[path.length - 1]);
-            return newPath;
-        };
-        PathfinderAbstract.prototype.parseComputePathArgs = function (args) {
-            if (args.length === 1) {
-                return args[0];
-            }
-            else {
-                return {
-                    start: args[0],
-                    end: args[1],
-                    maxRuntime: args[2],
-                    runtime: 0,
-                    type: PathSituationType.Inital
-                };
-            }
-        };
-        PathfinderAbstract.prototype.getPheromones = function (_a) {
-            var x = _a.x, y = _a.y;
-            if (this.pheromones === null)
-                return 1;
-            var pheromoneTime = this.pheromones[x + y * this.width];
-            var pheromoneAge = this.pheromoneTime - pheromoneTime;
-            var pheromoneLeft = (this.pheromoneDecayTime - pheromoneAge) / this.pheromoneDecayTime;
-            return Math.max(0, 1 - pheromoneLeft * pheromoneLeft * this.pheromoneStrength);
-        };
-        PathfinderAbstract.prototype.setPheromones = function (_a) {
-            var x = _a.x, y = _a.y;
-            if (this.pheromones === null)
-                return;
-            this.pheromones[x + y * this.width] = this.pheromoneTime;
-        };
-        PathfinderAbstract.prototype.validatePosition = function (position) {
-            return position.x >= 0 && position.y >= 0 &&
-                position.x < this.width && position.y < this.height;
-        };
-        return PathfinderAbstract;
-    }());
+        return VelocityParticle;
+    }(Particle));
 
     var AStarPathfinder = (function (_super) {
         __extends(AStarPathfinder, _super);
@@ -4566,162 +5057,6 @@ var Brass = (function (exports, p5) {
         return AStarPathfinder;
     }(PathfinderAbstract));
 
-    var MaterialBodyAbstract = (function (_super) {
-        __extends(MaterialBodyAbstract, _super);
-        function MaterialBodyAbstract(body) {
-            var _this = _super.call(this) || this;
-            _this.setBody(body);
-            return _this;
-        }
-        MaterialBodyAbstract.prototype.setBody = function (body) {
-            if (this.body !== undefined) {
-                this.remove();
-            }
-            this.body = body;
-            this.body.__brassBody__ = this;
-            this.body.collisionFilter.category = this.collisionIndexToCategory(0);
-            bodies[0].set(this.body.id, this);
-            Matter.World.add(getMatterWorld(), body);
-        };
-        MaterialBodyAbstract.prototype.removeBody = function () {
-        };
-        Object.defineProperty(MaterialBodyAbstract.prototype, "position", {
-            get: function () {
-                var position = Vector2.fromObj(this.body.position).divScalar(getSpaceScale());
-                return position.watch(this.setPosition.bind(this));
-            },
-            set: function (position) {
-                var spaceScale = getSpaceScale();
-                position = Matter.Vector.create(position.x * spaceScale, position.y * spaceScale);
-                Matter.Body.setPosition(this.body, position);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        MaterialBodyAbstract.prototype.setPosition = function (position) {
-            this.position = position;
-        };
-        Object.defineProperty(MaterialBodyAbstract.prototype, "velocity", {
-            get: function () {
-                var velocity = Vector2.fromObj(this.body.velocity).divScalar(getSpaceScale());
-                return velocity.watch(this.setVelocity.bind(this));
-            },
-            set: function (velocity) {
-                var spaceScale = getSpaceScale();
-                velocity = Matter.Vector.create(velocity.x * spaceScale, velocity.y * spaceScale);
-                Matter.Body.setVelocity(this.body, velocity);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        MaterialBodyAbstract.prototype.setVelocity = function (velocity) {
-            this.velocity = velocity;
-        };
-        Object.defineProperty(MaterialBodyAbstract.prototype, "angle", {
-            get: function () {
-                return this.body.angle;
-            },
-            set: function (angle) {
-                Matter.Body.setAngle(this.body, angle);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(MaterialBodyAbstract.prototype, "angularVelocity", {
-            get: function () {
-                return this.body.angularVelocity;
-            },
-            set: function (angularVelocity) {
-                Matter.Body.setAngularVelocity(this.body, angularVelocity);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(MaterialBodyAbstract.prototype, "static", {
-            get: function () {
-                return this.body.isStatic;
-            },
-            set: function (isStatic) {
-                Matter.Body.setStatic(this.body, isStatic);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(MaterialBodyAbstract.prototype, "ghost", {
-            get: function () {
-                return this.body.isSensor;
-            },
-            set: function (isGhost) {
-                this.body.isSensor = isGhost;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(MaterialBodyAbstract.prototype, "collisionCategory", {
-            set: function (categoryIndex) {
-                var oldCategoryIndex = this.collisionCategoryToIndex(this.body.collisionFilter.category);
-                bodies[oldCategoryIndex].delete(this.body.id);
-                this.body.collisionFilter.category = this.collisionIndexToCategory(categoryIndex);
-                bodies[categoryIndex].set(this.body.id, this);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(MaterialBodyAbstract.prototype, "collidesWith", {
-            set: function (category) {
-                var _this = this;
-                this.body.collisionFilter.mask = 0;
-                if (category === "everything") {
-                    this.body.collisionFilter.mask = 0xFFFFFFFF;
-                }
-                else if (category === "nothing") {
-                    this.body.collisionFilter.mask = 0;
-                }
-                else if (Array.isArray(category)) {
-                    category.map(function (subCategory) { return _this.setCollidesWith(subCategory); });
-                }
-                else {
-                    this.setCollidesWith(category);
-                }
-            },
-            enumerable: false,
-            configurable: true
-        });
-        MaterialBodyAbstract.prototype.setCollidesWith = function (category) {
-            this.validateCollisionIndex(category);
-            if (category >= 0) {
-                this.body.collisionFilter.mask |= 1 << category;
-            }
-            else {
-                this.body.collisionFilter.mask &= ~(1 << -category);
-            }
-            return this;
-        };
-        MaterialBodyAbstract.prototype.rotate = function (rotation) {
-            Matter.Body.rotate(this.body, rotation);
-            return this;
-        };
-        MaterialBodyAbstract.prototype.applyForce = function (force, position) {
-            if (position === void 0) { position = this.position; }
-            var spaceScale = getSpaceScale();
-            var forceScale = spaceScale * spaceScale * spaceScale * forceUnit;
-            var matterForce = Matter.Vector.create(force.x * forceScale, force.y * forceScale);
-            var matterPosition = Matter.Vector.create(position.x * spaceScale, position.y * spaceScale);
-            queueMicrotask(Matter.Body.applyForce.bind(globalThis, this.body, matterPosition, matterForce));
-            return this;
-        };
-        MaterialBodyAbstract.prototype.kill = function () {
-            _super.prototype.kill.call(this);
-            this.remove();
-        };
-        MaterialBodyAbstract.prototype.remove = function () {
-            var categoryIndex = this.collisionCategoryToIndex(this.body.collisionFilter.category);
-            bodies[categoryIndex].delete(this.body.id);
-            Matter.World.remove(getMatterWorld(), this.body);
-        };
-        return MaterialBodyAbstract;
-    }(BodyAbstract));
-
     var RectBody = (function (_super) {
         __extends(RectBody, _super);
         function RectBody(x, y, width, height, options) {
@@ -4752,390 +5087,6 @@ var Brass = (function (exports, p5) {
         }
         return PolyBody;
     }(MaterialBodyAbstract));
-
-    var GridBody = (function (_super) {
-        __extends(GridBody, _super);
-        function GridBody(width, height, grid, options, gridScale) {
-            if (options === void 0) { options = {}; }
-            if (gridScale === void 0) { gridScale = 1; }
-            var _this = this;
-            var _a;
-            _this = _super.call(this, Matter.Body.create({})) || this;
-            (_a = options.isStatic) !== null && _a !== void 0 ? _a : (options.isStatic = true);
-            var bodyOffset = { x: 0, y: 0 };
-            if (options.position) {
-                bodyOffset = options.position;
-                options.position = { x: 0, y: 0 };
-            }
-            _this.x = bodyOffset.x;
-            _this.y = bodyOffset.y;
-            _this.width = width;
-            _this.height = height;
-            _this.gridScale = gridScale;
-            _this.options = options;
-            _this.buildBody(grid);
-            return _this;
-        }
-        GridBody.prototype.buildBody = function (grid, minX, minY, maxX, maxY) {
-            var _a;
-            if (minX === void 0) { minX = 0; }
-            if (minY === void 0) { minY = 0; }
-            if (maxX === void 0) { maxX = Infinity; }
-            if (maxY === void 0) { maxY = Infinity; }
-            var spaceScale = getSpaceScale();
-            if (this.static) {
-                this.buildParts(grid, minX, minY, maxX, maxY);
-                Matter.Body.translate(this.body, {
-                    x: (this.body.bounds.min.x + (this.x - minX * this.gridScale) * spaceScale),
-                    y: (this.body.bounds.min.y + (this.y - minY * this.gridScale) * spaceScale)
-                });
-            }
-            else {
-                var angle = (_a = this.options.angle) !== null && _a !== void 0 ? _a : 0;
-                if (this.body !== undefined) {
-                    angle = this.body.angle;
-                    Matter.Body.setAngle(this.body, 0);
-                }
-                this.buildParts(grid, minX, minY, maxX, maxY);
-                Matter.Body.setAngle(this.body, angle);
-                Matter.Body.setPosition(this.body, { x: this.x * spaceScale, y: this.y * spaceScale });
-            }
-        };
-        Object.defineProperty(GridBody.prototype, "static", {
-            get: function () {
-                if (this.body === undefined) {
-                    return this.options.isStatic;
-                }
-                return this.body.isStatic;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        GridBody.prototype.buildParts = function (grid, minX, minY, maxX, maxY) {
-            var e_1, _a, e_2, _b;
-            var startX = Math.max(0, minX), startY = Math.max(0, minY), endX = Math.min(this.width, maxX), endY = Math.min(this.height, maxY);
-            var stripMap = new Map();
-            for (var y = startY; y < endY; y++) {
-                var runStart = undefined;
-                for (var x = startX; x < endX; x++) {
-                    if (!!grid[x + y * this.width]) {
-                        if (runStart === undefined) {
-                            runStart = x;
-                        }
-                    }
-                    else {
-                        if (runStart !== undefined) {
-                            stripMap.set(runStart + y * this.width, { width: x - runStart, height: 1 });
-                            runStart = undefined;
-                        }
-                    }
-                }
-                if (runStart !== undefined) {
-                    stripMap.set(runStart + y * this.width, { width: endX - runStart, height: 1 });
-                }
-            }
-            try {
-                for (var _c = __values(stripMap.entries()), _d = _c.next(); !_d.done; _d = _c.next()) {
-                    var _e = __read(_d.value, 2), key_1 = _e[0], strip = _e[1];
-                    var combineStripKey = key_1;
-                    while (true) {
-                        combineStripKey += this.width;
-                        var combineStrip = stripMap.get(combineStripKey);
-                        if (combineStrip === undefined || combineStrip.width !== strip.width)
-                            break;
-                        strip.height += combineStrip.height;
-                        stripMap.delete(combineStripKey);
-                    }
-                }
-            }
-            catch (e_1_1) { e_1 = { error: e_1_1 }; }
-            finally {
-                try {
-                    if (_d && !_d.done && (_a = _c.return)) _a.call(_c);
-                }
-                finally { if (e_1) throw e_1.error; }
-            }
-            var parts = [];
-            var scaleProduct = this.gridScale * getSpaceScale();
-            try {
-                for (var _f = __values(stripMap.entries()), _g = _f.next(); !_g.done; _g = _f.next()) {
-                    var _h = __read(_g.value, 2), key_2 = _h[0], strip = _h[1];
-                    var x = key_2 % this.width, y = Math.floor(key_2 / this.width);
-                    var part = createRectBodyFast(x * scaleProduct, y * scaleProduct, strip.width * scaleProduct, strip.height * scaleProduct);
-                    part.__brassBody__ = this;
-                    parts.push(part);
-                }
-            }
-            catch (e_2_1) { e_2 = { error: e_2_1 }; }
-            finally {
-                try {
-                    if (_g && !_g.done && (_b = _f.return)) _b.call(_f);
-                }
-                finally { if (e_2) throw e_2.error; }
-            }
-            var cornerPart = createRectBodyFast(minX * scaleProduct, minY * scaleProduct, 0.01, 0.01);
-            cornerPart.__brassBody__ = this;
-            parts.push(cornerPart);
-            this.options.parts = parts;
-            var body = Matter.Body.create(this.options);
-            this.setBody(body);
-        };
-        return GridBody;
-    }(MaterialBodyAbstract));
-
-    var TilemapAbstract = (function () {
-        function TilemapAbstract(width, height, options) {
-            if (options === void 0) { options = {}; }
-            var _a, _b, _c, _d, _e, _f;
-            this.width = width;
-            this.height = height;
-            this.tileSize = (_a = options.tileSize) !== null && _a !== void 0 ? _a : 1;
-            this.fields = [];
-            this.fieldTypes = (_b = options.fields) !== null && _b !== void 0 ? _b : {
-                "_DEFAULTFIELD": "uint8"
-            };
-            var solidFieldName = (_c = options.solidField) !== null && _c !== void 0 ? _c : "";
-            if (this.fieldTypes[solidFieldName] === undefined) {
-                this.fieldTypes[solidFieldName] = "uint8";
-            }
-            else if (this.fieldTypes[solidFieldName] !== "uint8") {
-                throw Error("Solid field must be of type uint8");
-            }
-            this.fields = [];
-            this.fieldIds = {};
-            for (var fieldName in this.fieldTypes) {
-                var fieldType = this.fieldTypes[fieldName];
-                var upperFieldName = fieldName.toUpperCase();
-                if (this[upperFieldName] !== undefined) {
-                    throw Error("field name (".concat(upperFieldName, ") collided in tilemap namespace"));
-                }
-                this[upperFieldName] = this.fields.length;
-                this.fieldIds[fieldName] = this.fields.length;
-                this.fields.push(this.createField(fieldType));
-            }
-            this.solidFieldId = this.fieldIds[solidFieldName];
-            if (isPhysicsActive()) {
-                if (options.body === undefined) {
-                    console.warn("Matter physics is active but Tilemap does not have body; If this is intentional pass false for the body option");
-                }
-            }
-            this.hasBody = !!options.body;
-            this.autoMaintainBody = (_d = options.autoMaintainBody) !== null && _d !== void 0 ? _d : true;
-            this.getTileData = (_e = this.bindOptionsFunction(options.getTileData)) !== null && _e !== void 0 ? _e : this.get;
-            this.isTileSolid = (_f = this.bindOptionsFunction(options.isTileSolid)) !== null && _f !== void 0 ? _f : null;
-            var solidField = this.fields[this.solidFieldId];
-            if (this.isTileSolid !== null) {
-                var nullTileSolid = this.isTileSolid(this.getTileData(0, 0)) ? 1 : 0;
-                solidField.data.fill(nullTileSolid);
-            }
-            this.body = null;
-            if (this.hasBody) {
-                var bodyOptions = {};
-                if (typeof options.body === "object") {
-                    bodyOptions = options.body;
-                }
-                this.body = new GridBody(this.width, this.height, solidField.data, bodyOptions, this.tileSize);
-            }
-            this.bodyValid = this.hasBody;
-            registerTilemap(this);
-        }
-        TilemapAbstract.prototype.bindOptionsFunction = function (func) {
-            if (!func)
-                return func;
-            return safeBind(func, this);
-        };
-        TilemapAbstract.prototype.maintain = function () {
-            if (this.autoMaintainBody)
-                this.maintainBody();
-        };
-        TilemapAbstract.prototype.maintainBody = function (minX, minY, maxX, maxY) {
-            if (this.body === null ||
-                this.bodyValid)
-                return;
-            var solidField = this.fields[this.solidFieldId];
-            this.body.buildBody(solidField.data, minX, minY, maxX, maxY);
-            this.bodyValid = true;
-        };
-        TilemapAbstract.prototype.get = function (x, y, fieldId) {
-            if (fieldId === void 0) { fieldId = 0; }
-            if (!this.validateCoord(x, y))
-                return undefined;
-            var field = this.fields[fieldId];
-            if (field.sparse) {
-                var value = field.data["".concat(x, ",").concat(y)];
-                if (value === undefined)
-                    return null;
-                return value;
-            }
-            return field.data[x + y * this.width];
-        };
-        TilemapAbstract.prototype.set = function (value, x, y, fieldId) {
-            if (fieldId === void 0) { fieldId = 0; }
-            if (!this.validateCoord(x, y))
-                return false;
-            var field = this.fields[fieldId];
-            if (field.sparse) {
-                field.data["".concat(x, ",").concat(y)] = value;
-            }
-            else {
-                field.data[x + y * this.width] = value;
-            }
-            this.clearCacheAtTile(x, y);
-            this.updateSolidAtTile(x, y);
-            return true;
-        };
-        TilemapAbstract.prototype.getSolid = function (x, y) {
-            var solid = this.get(x, y, this.solidFieldId);
-            if (solid === undefined)
-                return undefined;
-            return Boolean(solid);
-        };
-        TilemapAbstract.prototype.export = function () {
-            var fields = {};
-            for (var fieldName in this.fieldIds) {
-                var fieldId = this.fieldIds[fieldName];
-                var fieldType = this.fieldTypes[fieldName];
-                var fieldData = this.fields[fieldId].data;
-                if (fieldType === "sparse") {
-                    fields[fieldName] = {
-                        type: "sparse",
-                        data: fieldData
-                    };
-                }
-                else if (fieldType === "any") {
-                    fields[fieldName] = {
-                        type: "any",
-                        data: fieldData
-                    };
-                }
-                else {
-                    fields[fieldName] = {
-                        type: fieldType,
-                        data: encodeDynamicTypedArray(fieldData),
-                        encoding: fieldType
-                    };
-                }
-            }
-            return {
-                width: this.width,
-                height: this.height,
-                objects: [],
-                tilesets: {},
-                fields: fields
-            };
-        };
-        TilemapAbstract.prototype.import = function (world) {
-            if (world === null) {
-                throw Error("Tried to import (null) as world; Did you pass Brass.getWorld() before the world loaded?");
-            }
-            if (world.width > this.width ||
-                world.height > this.height)
-                throw Error("Can't import world larger than tilemap");
-            this.clearCaches();
-            this.clearFields();
-            for (var fieldName in world.fields) {
-                var feildId = this.fieldIds[fieldName];
-                if (feildId === undefined) {
-                    throw Error("Can't import field (".concat(fieldName, "); field was not declared for the tilemap"));
-                }
-                var feildType = this.fieldTypes[fieldName];
-                var field = world.fields[fieldName];
-                if (feildType === undefined || feildType !== field.type) {
-                    throw Error("Can't import field (".concat(fieldName, "); field type did not match with any fields declared for the tilemap"));
-                }
-                if (field.type === "sparse") {
-                    this.fields[feildId] = {
-                        sparse: true,
-                        data: field.data
-                    };
-                }
-                else {
-                    var data = void 0;
-                    if ("encoding" in field) {
-                        var encodedData = decodeDynamicTypedArray(field.encoding, field.data);
-                        if (field.encoding !== field.type) {
-                            data = cloneDynamicArray(field.type, encodedData);
-                        }
-                        else {
-                            data = encodedData;
-                        }
-                    }
-                    else {
-                        data = field.data;
-                    }
-                    if (this.width === world.width &&
-                        this.height === world.height) {
-                        this.fields[feildId].data = data;
-                    }
-                    else {
-                        for (var x = 0; x < world.width; x++) {
-                            for (var y = 0; y < world.height; y++) {
-                                this.fields[feildId].data[x + y * this.width] = data[x + y * world.width];
-                            }
-                        }
-                    }
-                }
-            }
-            for (var x = 0; x < world.width; x++) {
-                for (var y = 0; y < world.height; y++) {
-                    this.updateSolidAtTile(x, y);
-                }
-            }
-        };
-        TilemapAbstract.prototype.updateSolidAtTile = function (x, y) {
-            if (this.isTileSolid === null)
-                return;
-            var solidField = this.fields[this.solidFieldId];
-            var isSolid = this.isTileSolid(this.getTileData(x, y));
-            var solidIndex = x + y * this.width;
-            if (this.body !== null) {
-                if (!!solidField.data[solidIndex] !== isSolid) {
-                    this.bodyValid = false;
-                }
-            }
-            solidField.data[solidIndex] = isSolid ? 1 : 0;
-        };
-        TilemapAbstract.prototype.clearFields = function () {
-            for (var fieldName in this.fieldIds) {
-                var fieldId = this.fieldIds[fieldName];
-                if (fieldId === this.solidFieldId)
-                    continue;
-                var fieldType = this.fieldTypes[fieldName];
-                this.fields[fieldId] = this.createField(fieldType);
-            }
-            for (var x = 0; x < this.width; x++) {
-                for (var y = 0; y < this.height; y++) {
-                    this.updateSolidAtTile(x, y);
-                }
-            }
-        };
-        TilemapAbstract.prototype.createField = function (type) {
-            if (type === "sparse") {
-                return {
-                    sparse: true,
-                    data: {}
-                };
-            }
-            else {
-                var data = createDynamicArray(type, this.area);
-                return {
-                    sparse: false,
-                    data: data
-                };
-            }
-        };
-        TilemapAbstract.prototype.validateCoord = function (x, y) {
-            return x >= 0 && x < this.width && y >= 0 && y < this.height;
-        };
-        Object.defineProperty(TilemapAbstract.prototype, "area", {
-            get: function () {
-                return this.width * this.height;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        return TilemapAbstract;
-    }());
 
     var P5Tilemap = (function (_super) {
         __extends(P5Tilemap, _super);
@@ -5433,6 +5384,67 @@ var Brass = (function (exports, p5) {
         return P5Tilemap;
     }(TilemapAbstract));
 
+    var Viewpoint = (function (_super) {
+        __extends(Viewpoint, _super);
+        function Viewpoint(scale, translation, options) {
+            if (scale === void 0) { scale = 100; }
+            if (translation === void 0) { translation = new Vector2(); }
+            if (options === void 0) { options = {}; }
+            var _this = this;
+            var _a, _b, _c, _d, _e;
+            _this = _super.call(this, scale, translation, options) || this;
+            _this.velocity = new Vector2();
+            _this._target = _this.translation.copy();
+            _this.previousTarget = _this._target.copy();
+            if ("follow" in options ||
+                "drag" in options ||
+                "outrun" in options) {
+                _this.jump = (_a = options.jump) !== null && _a !== void 0 ? _a : 0;
+                _this.follow = (_b = options.follow) !== null && _b !== void 0 ? _b : 0.001;
+                _this.drag = (_c = options.drag) !== null && _c !== void 0 ? _c : 0.1;
+                _this.outrun = (_d = options.outrun) !== null && _d !== void 0 ? _d : 0;
+            }
+            else {
+                _this.jump = (_e = options.jump) !== null && _e !== void 0 ? _e : 0.1;
+                _this.follow = 0;
+                _this.drag = 0;
+                _this.outrun = 0;
+            }
+            return _this;
+        }
+        Viewpoint.prototype.update = function (delta) {
+            var targetVelocity = this.target.copy().sub(this.previousTarget);
+            this.velocity.multScalar(Math.pow(1 - this.drag, delta));
+            var difference = this.target.copy().sub(this.translation);
+            this.velocity.add(difference.copy().multScalar(this.follow * delta));
+            this.velocity.add(targetVelocity.copy().multScalar(this.outrun * delta));
+            var frameJump = Math.pow(this.jump + 1, Math.pow(delta, this.jump));
+            this.translation.add(this.target.copy().multScalar(frameJump - 1));
+            this.translation.divScalar(frameJump);
+            this.translation.add(this.velocity);
+            this.previousTarget = this.target.copy();
+            this.updateShake(delta);
+        };
+        Viewpoint.prototype.getViewOrigin = function (d) {
+            var g = d.getMaps().canvas;
+            if (this.integerTranslation) {
+                return new Vector2(Math.round(g.width / 2), Math.round(g.height / 2));
+            }
+            return new Vector2(g.width / 2, g.height / 2);
+        };
+        Object.defineProperty(Viewpoint.prototype, "target", {
+            get: function () {
+                return this._target;
+            },
+            set: function (value) {
+                this._target = value;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        return Viewpoint;
+    }(ViewpointAbstract));
+
     exports.AStarPathfinder = AStarPathfinder;
     exports.CanvasDrawTarget = CanvasDrawTarget;
     exports.CircleBody = CircleBody;
@@ -5453,11 +5465,13 @@ var Brass = (function (exports, p5) {
     exports.P5Tilemap = P5Tilemap;
     exports.Particle = Particle;
     exports.PolyBody = PolyBody;
+    exports.Pool = Pool;
     exports.RayBody = RayBody;
     exports.RectBody = RectBody;
     exports.Vector2 = Vector2;
     exports.VelocityParticle = VelocityParticle;
     exports.Viewpoint = Viewpoint;
+    exports.createFastGraphics = createFastGraphics;
     exports.disableContextMenu = disableContextMenu;
     exports.drawColliders = drawColliders;
     exports.drawFPS = drawFPS;
@@ -5466,7 +5480,6 @@ var Brass = (function (exports, p5) {
     exports.drawParticles = draw;
     exports.emitParticle = emitParticle;
     exports.emitParticles = emitParticles;
-    exports.enableUnsafeWorldLoading = enableUnsafeWorldLoading;
     exports.forEachParticle = forEachParticle;
     exports.forEachVisableParticle = forEachVisableParticle;
     exports.getCanvasDrawTarget = getCanvasDrawTarget;
@@ -5474,6 +5487,7 @@ var Brass = (function (exports, p5) {
     exports.getDrawTarget = getDrawTarget;
     exports.getExactTime = getExactTime;
     exports.getImage = getImage;
+    exports.getLevel = getLevel;
     exports.getP5DrawTarget = getP5DrawTarget;
     exports.getRegl = getRegl;
     exports.getSimTime = getSimTime;
@@ -5482,17 +5496,16 @@ var Brass = (function (exports, p5) {
     exports.getTime = getTime;
     exports.getTimewarp = getTimewarp;
     exports.getTimewarps = getTimewarps;
-    exports.getWorld = getWorld;
     exports.hasDrawTarget = hasDrawTarget;
     exports.init = init;
     exports.loadImageDynamic = loadImageDynamic;
     exports.loadImageEarly = loadImageEarly;
     exports.loadImageLate = loadImageLate;
+    exports.loadLevelEarly = loadLevelEarly;
+    exports.loadLevelLate = loadLevelLate;
     exports.loadProgress = loadProgress;
     exports.loadSoundEarly = loadSoundEarly;
     exports.loadSoundLate = loadSoundLate;
-    exports.loadWorldEarly = loadWorldEarly;
-    exports.loadWorldLate = loadWorldLate;
     exports.loaded = loaded;
     exports.refreshRegl = refreshRegl;
     exports.refreshReglFast = refreshReglFast;
@@ -5502,6 +5515,7 @@ var Brass = (function (exports, p5) {
     exports.setLoadingTips = setLoadingTips;
     exports.setParticleLimit = setParticleLimit;
     exports.setTestStatus = setTestStatus;
+    exports.setUnsafeLevelLoading = setUnsafeLevelLoading;
     exports.timewarp = timewarp;
     exports.update = update;
 
