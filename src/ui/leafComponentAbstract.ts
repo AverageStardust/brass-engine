@@ -4,7 +4,7 @@ import { ComponentAbstract } from "./componentAbstract";
 
 export abstract class LeafComponentAbstract extends ComponentAbstract {
 	size: Vector2 = new Vector2();
-	changed: boolean;
+	changed: boolean = true;
 
 	findTarget() {
 		return this;

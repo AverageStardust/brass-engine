@@ -116,7 +116,7 @@ export class RayBody extends BodyAbstract {
 	castOverTime(delta: number, steps?: number): {
 		point: Vector2;
 		dist: Number;
-		body: null | MaterialBodyAbstract;
+		body: MaterialBodyAbstract | null;
 	} {
 		const timeSteps = (delta / 1000 * 60);
 		const displacement = this.velocity.copy().multScalar(timeSteps);
@@ -170,7 +170,7 @@ export class RayBody extends BodyAbstract {
 			hits = hits.sort((a, b) => start.distSq(a.bodyA.position) - start.distSq(b.bodyA.position));
 		}
 
-		let hitBody: null | MaterialBodyAbstract;
+		let hitBody: MaterialBodyAbstract | null;
 		if (hits.length === 0) {
 			hitBody = null;
 		} else {

@@ -513,6 +513,10 @@ var Brass = (function (exports, p5) {
         Vector2.prototype.equal = function (vec) {
             return this.x === vec.x && this.y === vec.y;
         };
+        Vector2.prototype.equalScalar = function (x, y) {
+            if (y === void 0) { y = x; }
+            return this.x === x && this.y === y;
+        };
         Vector2.prototype.set = function (vec) {
             this.x = vec.x;
             this.y = vec.y;
@@ -648,6 +652,28 @@ var Brass = (function (exports, p5) {
                 this.norm(limit);
             return this;
         };
+        Vector2.prototype.min = function (vec) {
+            this.x = Math.min(this.x, vec.x);
+            this.y = Math.min(this.y, vec.y);
+            return this;
+        };
+        Vector2.prototype.minScalar = function (x, y) {
+            if (y === void 0) { y = x; }
+            this.x = Math.min(this.x, x);
+            this.y = Math.min(this.y, y);
+            return this;
+        };
+        Vector2.prototype.max = function (vec) {
+            this.x = Math.max(this.x, vec.x);
+            this.y = Math.max(this.y, vec.y);
+            return this;
+        };
+        Vector2.prototype.maxScalar = function (x, y) {
+            if (y === void 0) { y = x; }
+            this.x = Math.max(this.x, x);
+            this.y = Math.max(this.y, y);
+            return this;
+        };
         Vector2.prototype.setAngle = function (angle) {
             var mag = this.mag;
             this.x = Math.cos(angle) * mag;
@@ -686,6 +712,28 @@ var Brass = (function (exports, p5) {
             var distX = this.x - vec.x, distY = this.y - vec.y;
             return distX * distX + distY * distY;
         };
+        Object.defineProperty(Vector2.prototype, "xy", {
+            get: function () {
+                return new Vector2(this.x, this.y);
+            },
+            set: function (vec) {
+                var _a;
+                _a = __read(vec.array, 2), this.x = _a[0], this.y = _a[1];
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(Vector2.prototype, "yx", {
+            get: function () {
+                return new Vector2(this.y, this.x);
+            },
+            set: function (vec) {
+                var _a;
+                _a = __read(vec.array, 2), this.y = _a[0], this.x = _a[1];
+            },
+            enumerable: false,
+            configurable: true
+        });
         Object.defineProperty(Vector2.prototype, "mag", {
             get: function () {
                 return Math.hypot(this.x, this.y);
@@ -5442,6 +5490,387 @@ var Brass = (function (exports, p5) {
         return P5Tilemap;
     }(TilemapAbstract));
 
+    var ComponentAbstract = (function () {
+        function ComponentAbstract(style) {
+            if (style === void 0) { style = {}; }
+            this.id = Symbol();
+            this.cache = new Map();
+            this.position = new Vector2();
+            this.weight = 1;
+            this._style = style;
+        }
+        Object.defineProperty(ComponentAbstract.prototype, "style", {
+            get: function () {
+                return this.getStyle(this, "_style");
+            },
+            set: function (value) {
+                this.setStyle(this, "_style", value);
+            },
+            enumerable: false,
+            configurable: true
+        });
+        ComponentAbstract.prototype.cacheProperty = function (name, getValue) {
+            if (this.cache.has(name)) {
+                return this.cache.get(name);
+            }
+            var value = getValue();
+            this.cache.set(name, value);
+            return value;
+        };
+        ComponentAbstract.prototype.displayChange = function () {
+            this.changed = true;
+            this.cache.clear();
+        };
+        ComponentAbstract.prototype.getStyle = function (object, prop) {
+            if (object.hasOwnProperty(prop)) {
+                var value = Reflect.get(object, prop);
+                if (typeof value !== "object") {
+                    return value;
+                }
+                else {
+                    return new Proxy(value, {
+                        get: this.getStyle.bind(this),
+                        set: this.setStyle.bind(this)
+                    });
+                }
+            }
+            else {
+                return Reflect.get(object, prop);
+            }
+        };
+        ComponentAbstract.prototype.setStyle = function (object, prop, value) {
+            var e_1, _a;
+            if (object.hasOwnProperty(prop)) {
+                if (typeof value === "object" && value !== null) {
+                    var succuss = true;
+                    try {
+                        for (var _b = __values(Object.keys(value)), _c = _b.next(); !_c.done; _c = _b.next()) {
+                            var key_1 = _c.value;
+                            succuss && (succuss = this.setStyle(Reflect.get(object, prop), key_1, Reflect.get(value, prop)));
+                        }
+                    }
+                    catch (e_1_1) { e_1 = { error: e_1_1 }; }
+                    finally {
+                        try {
+                            if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+                        }
+                        finally { if (e_1) throw e_1.error; }
+                    }
+                    return succuss;
+                }
+                else {
+                    var succuss = Reflect.set(object, prop, value);
+                    if (succuss)
+                        this.displayChange();
+                    return succuss;
+                }
+            }
+            throw Error("Can't set none-existent style property (".concat(prop, ")"));
+        };
+        return ComponentAbstract;
+    }());
+
+    var BranchComponentAbstract = (function (_super) {
+        __extends(BranchComponentAbstract, _super);
+        function BranchComponentAbstract(style) {
+            if (style === void 0) { style = {}; }
+            var _this = this;
+            var _a;
+            (_a = style.bufferDisplay) !== null && _a !== void 0 ? _a : (style.bufferDisplay = true);
+            _this = _super.call(this, style) || this;
+            _this.children = [];
+            _this._size = new Vector2();
+            _this._changed = true;
+            _this.drawBuffer = new P5DrawBuffer();
+            return _this;
+        }
+        Object.defineProperty(BranchComponentAbstract.prototype, "size", {
+            set: function (size) {
+                size = size.copy().floor();
+                this.distributeSize(size, this._size);
+                this._size = size.copy().floor();
+                this.changed = true;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(BranchComponentAbstract.prototype, "targetSize", {
+            get: function () {
+                return this.cacheProperty("targetSize", this.collectTargetSize);
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(BranchComponentAbstract.prototype, "changed", {
+            get: function () {
+                if (this._changed)
+                    return true;
+                return this.children
+                    .map(function (child) { return child.changed; })
+                    .reduce(function (a, b) { return a || b; });
+            },
+            set: function (value) {
+                this._changed = value;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        BranchComponentAbstract.prototype.addChild = function (child, location) {
+            var index = this.evaluateChildLocation(location);
+            this.children.splice(index, 0, child);
+            this.displayChange();
+            return this;
+        };
+        BranchComponentAbstract.prototype.removeChild = function (location) {
+            var index = this.evaluateChildLocation(location);
+            this.children.splice(index, 1);
+            this.displayChange();
+            return this;
+        };
+        BranchComponentAbstract.prototype.evaluateChildLocation = function (location) {
+            if (location === void 0) { location = this.children.length; }
+            if (typeof location !== "number") {
+                location = this.findChildIndex(location);
+                if (location === -1) {
+                    throw Error("Could not locate child, not in parent");
+                }
+            }
+            return Math.max(0, location);
+        };
+        BranchComponentAbstract.prototype.findChildIndex = function (component) {
+            for (var i = 0; i < this.children.length; i++) {
+                if (component.id === this.children[i].id) {
+                    return i;
+                }
+            }
+            return -1;
+        };
+        BranchComponentAbstract.prototype.findTarget = function (position) {
+            var _a;
+            return (_a = this.findChildAt(position)) !== null && _a !== void 0 ? _a : this;
+        };
+        BranchComponentAbstract.prototype.findChildAt = function (position) {
+            var e_1, _a;
+            try {
+                for (var _b = __values(this.children), _c = _b.next(); !_c.done; _c = _b.next()) {
+                    var child = _c.value;
+                    if (position.x >= child.position.x &&
+                        position.x >= child.position.x + child.size.x &&
+                        position.y >= child.position.y &&
+                        position.y >= child.position.y + child.size.y) {
+                        return child;
+                    }
+                }
+            }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
+                try {
+                    if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+                }
+                finally { if (e_1) throw e_1.error; }
+            }
+            return null;
+        };
+        BranchComponentAbstract.prototype.draw = function (g) {
+            if (this._style.bufferDisplay) {
+                var buffer = this.drawBuffer.getMaps(this.size).canvas;
+                if (this._changed) {
+                    this._draw(buffer);
+                }
+                g.image(buffer, 0, 0);
+                return;
+            }
+            this._draw(g);
+            this._changed = false;
+        };
+        BranchComponentAbstract.prototype._draw = function (g) {
+            this.children.map(function (child) {
+                g.push();
+                var _a = child.position, x = _a.x, y = _a.y;
+                g.translate(x, y);
+                child.draw(g);
+                g.pop();
+            });
+        };
+        return BranchComponentAbstract;
+    }(ComponentAbstract));
+
+    var DivDirection;
+    (function (DivDirection) {
+        DivDirection["Vertical"] = "vertical";
+        DivDirection["Horizontal"] = "horizontal";
+        DivDirection["VerticalReversed"] = "verticalReversed";
+        DivDirection["HorizontalReversed"] = "horizontalReversed";
+    })(DivDirection || (DivDirection = {}));
+    var DivComponent = (function (_super) {
+        __extends(DivComponent, _super);
+        function DivComponent(style) {
+            if (style === void 0) { style = {}; }
+            var _a, _b, _c;
+            (_a = style.direction) !== null && _a !== void 0 ? _a : (style.direction = DivDirection.Vertical);
+            (_b = style.stretchAcross) !== null && _b !== void 0 ? _b : (style.stretchAcross = false);
+            (_c = style.stretchAlong) !== null && _c !== void 0 ? _c : (style.stretchAlong = false);
+            return _super.call(this, style) || this;
+        }
+        DivComponent.prototype.distributeSize = function (size) {
+            var _this = this;
+            var weightSum = this.children
+                .map(function (child) { return child.weight; })
+                .reduce(function (a, b) { return a + b; });
+            if (this._style.direction === DivDirection.Horizontal) {
+                var x_1 = 0, unusedWidth_1 = size.x;
+                this.children.map(function (child) {
+                    var width = Math.ceil(unusedWidth_1 * child.weight / weightSum);
+                    unusedWidth_1 -= width;
+                    child.position = new Vector2(x_1, _this._style.stretch ? 0 : Math.floor((size.y - child.size.y) / 2));
+                    child.size = new Vector2(width, _this._style.stretch ? size.y : Math.min(size.y, child.targetSize.y));
+                    x_1 += width;
+                });
+            }
+            else {
+                var y_1 = 0, unusedHeight_1 = size.y;
+                this.children.map(function (child) {
+                    var height = Math.ceil(unusedHeight_1 * child.weight / weightSum);
+                    unusedHeight_1 -= height;
+                    child.position = new Vector2(_this._style.stretch ? 0 : Math.floor((size.x - child.size.x) / 2), y_1);
+                    child.size = new Vector2(_this._style.stretch ? size.x : Math.min(size.x, child.targetSize.x), height);
+                    y_1 += height;
+                });
+            }
+        };
+        DivComponent.prototype.collectTargetSize = function () {
+            var size = new Vector2();
+            if (this.children.length === 0)
+                return size;
+            var direction = this._style.direction;
+            var sizes = this.children
+                .map(function (child) { return child.size; });
+            if (direction === DivDirection.Vertical) {
+                size = sizes.reduce(function (a, b) { return new Vector2(Math.max(a.x, b.x), a.y + b.y); });
+            }
+            else if (direction === DivDirection.Horizontal) {
+                size = sizes.reduce(function (a, b) { return new Vector2(a.x + b.x, Math.max(a.y, b.y)); });
+            }
+            return size;
+        };
+        return DivComponent;
+    }(BranchComponentAbstract));
+
+    var SpreadComponent = (function (_super) {
+        __extends(SpreadComponent, _super);
+        function SpreadComponent() {
+            return _super !== null && _super.apply(this, arguments) || this;
+        }
+        SpreadComponent.prototype.distributeSize = function (size) {
+            var e_1, _a;
+            try {
+                for (var _b = __values(this.children), _c = _b.next(); !_c.done; _c = _b.next()) {
+                    var child = _c.value;
+                    child.position = new Vector2();
+                    child.size = size;
+                }
+            }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
+                try {
+                    if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+                }
+                finally { if (e_1) throw e_1.error; }
+            }
+        };
+        SpreadComponent.prototype.collectTargetSize = function () {
+            return new Vector2(Infinity, Infinity);
+        };
+        return SpreadComponent;
+    }(BranchComponentAbstract));
+
+    var LeafComponentAbstract = (function (_super) {
+        __extends(LeafComponentAbstract, _super);
+        function LeafComponentAbstract() {
+            var _this = _super !== null && _super.apply(this, arguments) || this;
+            _this.size = new Vector2();
+            _this.changed = true;
+            return _this;
+        }
+        LeafComponentAbstract.prototype.findTarget = function () {
+            return this;
+        };
+        return LeafComponentAbstract;
+    }(ComponentAbstract));
+
+    var ButtonComponent = (function (_super) {
+        __extends(ButtonComponent, _super);
+        function ButtonComponent() {
+            var _this = _super !== null && _super.apply(this, arguments) || this;
+            _this.targetSize = new Vector2(32, 32);
+            return _this;
+        }
+        ButtonComponent.prototype.draw = function (g) {
+            g.stroke(0);
+            g.fill(240);
+            g.rect(1, 1, this.size.x - 2, this.size.y - 2);
+        };
+        return ButtonComponent;
+    }(LeafComponentAbstract));
+
+    var EmptyComponent = (function (_super) {
+        __extends(EmptyComponent, _super);
+        function EmptyComponent() {
+            var _this = _super !== null && _super.apply(this, arguments) || this;
+            _this.targetSize = new Vector2(0, 0);
+            return _this;
+        }
+        EmptyComponent.prototype.draw = function () { };
+        return EmptyComponent;
+    }(LeafComponentAbstract));
+
+    var openScreenName = null;
+    var screens = new Map();
+    var fragments = new Map();
+    function setFragment(name, fragment) {
+        fragments.set(name, fragment);
+    }
+    function getFragment(name) {
+        var fragment = fragments.get(name);
+        if (fragment === undefined || fragment instanceof EmptyComponent) {
+            console.warn("Found empty fragment (".concat(name, ")"));
+            fragment = new EmptyComponent();
+        }
+        return fragment;
+    }
+    function setScreen(screenName, fragment) {
+        if (fragment === void 0) { fragment = screenName; }
+        if (typeof fragment === "string") {
+            screens.set(screenName, { fragmentName: fragment, component: null });
+        }
+        else {
+            screens.set(screenName, { fragmentName: null, component: fragment });
+        }
+    }
+    function getScreen(screenName) {
+        var screen = screens.get(screenName);
+        if (screen === undefined)
+            throw Error("Could not find screen (".concat(screenName, ")"));
+        if (screen.component === null) {
+            assert(screen.fragmentName !== null);
+            screen.component = getFragment(screen.fragmentName);
+            screens.set(screenName, screen);
+        }
+        return screen.component;
+    }
+    function openScreen(screenName) {
+        openScreenName = screenName;
+    }
+    function drawUI(d) {
+        if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+        if (openScreenName === null)
+            return;
+        var g = d.getMaps().canvas;
+        var component = getScreen(openScreenName);
+        component.size = component.targetSize.copy().minScalar(g.width, g.height);
+        component.draw(g);
+    }
+
     var Viewpoint = (function (_super) {
         __extends(Viewpoint, _super);
         function Viewpoint(scale, translation, options) {
@@ -5504,9 +5933,11 @@ var Brass = (function (exports, p5) {
     }(ViewpointAbstract));
 
     exports.AStarPathfinder = AStarPathfinder;
+    exports.ButtonComponent = ButtonComponent;
     exports.CanvasDrawTarget = CanvasDrawTarget;
     exports.CircleBody = CircleBody;
     exports.ClassicViewpoint = ClassicViewpoint;
+    exports.DivComponent = DivComponent;
     exports.DrawBuffer = DrawBuffer;
     exports.DrawTarget = DrawTarget;
     exports.GridBody = GridBody;
@@ -5526,6 +5957,7 @@ var Brass = (function (exports, p5) {
     exports.Pool = Pool;
     exports.RayBody = RayBody;
     exports.RectBody = RectBody;
+    exports.SpreadComponent = SpreadComponent;
     exports.Vector2 = Vector2;
     exports.VelocityParticle = VelocityParticle;
     exports.Viewpoint = Viewpoint;
@@ -5536,6 +5968,7 @@ var Brass = (function (exports, p5) {
     exports.drawFPS = drawFPS;
     exports.drawLoading = drawLoading;
     exports.drawParticles = draw;
+    exports.drawUI = drawUI;
     exports.emitParticle = emitParticle;
     exports.emitParticles = emitParticles;
     exports.forEachParticle = forEachParticle;
@@ -5544,10 +5977,12 @@ var Brass = (function (exports, p5) {
     exports.getDefaultViewpoint = getDefaultViewpoint;
     exports.getDrawTarget = getDrawTarget;
     exports.getExactTime = getExactTime;
+    exports.getFragment = getFragment;
     exports.getImage = getImage;
     exports.getLevel = getLevel;
     exports.getP5DrawTarget = getP5DrawTarget;
     exports.getRegl = getRegl;
+    exports.getScreen = getScreen;
     exports.getSimTime = getSimTime;
     exports.getSound = getSound;
     exports.getTestStatus = getTestStatus;
@@ -5565,13 +6000,16 @@ var Brass = (function (exports, p5) {
     exports.loadSoundEarly = loadSoundEarly;
     exports.loadSoundLate = loadSoundLate;
     exports.loaded = loaded;
+    exports.openScreen = openScreen;
     exports.refreshRegl = refreshRegl;
     exports.refreshReglFast = refreshReglFast;
     exports.resize = resize;
     exports.setDefaultViewpoint = setDefaultViewpoint;
     exports.setDrawTarget = setDrawTarget;
+    exports.setFragment = setFragment;
     exports.setLoadingTips = setLoadingTips;
     exports.setParticleLimit = setParticleLimit;
+    exports.setScreen = setScreen;
     exports.setTestStatus = setTestStatus;
     exports.setUnsafeLevelLoading = setUnsafeLevelLoading;
     exports.timewarp = timewarp;

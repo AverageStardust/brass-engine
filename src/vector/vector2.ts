@@ -1,7 +1,3 @@
-// author WD_STEVE
-// version 3.3.3
-// JS only
-
 import { VectorAbstract } from "./vectorAbstract";
 
 
@@ -46,6 +42,10 @@ export class Vector2 extends VectorAbstract {
 
 	equal(vec: Vertex2) {
 		return this.x === vec.x && this.y === vec.y;
+	}
+
+	equalScalar(x: number, y = x) {
+		return this.x === x && this.y === y;
 	}
 
 	set(vec: Vertex2) {
@@ -192,6 +192,30 @@ export class Vector2 extends VectorAbstract {
 		return this;
 	}
 
+	min(vec: Vector2) {
+		this.x = Math.min(this.x, vec.x);
+		this.y = Math.min(this.y, vec.y);
+		return this;
+	}
+
+	minScalar(x: number, y = x) {
+		this.x = Math.min(this.x, x);
+		this.y = Math.min(this.y, y);
+		return this;
+	}
+
+	max(vec: Vector2) {
+		this.x = Math.max(this.x, vec.x);
+		this.y = Math.max(this.y, vec.y);
+		return this;
+	}
+
+	maxScalar(x: number, y = x) {
+		this.x = Math.max(this.x, x);
+		this.y = Math.max(this.y, y);
+		return this;
+	}
+
 	setAngle(angle: number) {
 		const mag = this.mag;
 		this.x = Math.cos(angle) * mag;
@@ -239,16 +263,32 @@ export class Vector2 extends VectorAbstract {
 		return distX * distX + distY * distY;
 	}
 
+	get xy() {
+		return new Vector2(this.x, this.y);
+	}
+
+	set xy(vec: Vector2) {
+		[this.x, this.y] = vec.array;
+	}
+
+	get yx() {
+		return new Vector2(this.y, this.x);
+	}
+
+	set yx(vec: Vector2) {
+		[this.y, this.x] = vec.array;
+	}
+
 	get mag() {
 		return Math.hypot(this.x, this.y);
 	}
 
-	get magSq() {
-		return this.x * this.x + this.y * this.y;
-	}
-
 	set mag(magnitude) {
 		this.norm(magnitude);
+	}
+
+	get magSq() {
+		return this.x * this.x + this.y * this.y;
 	}
 
 	get area() {
@@ -263,11 +303,11 @@ export class Vector2 extends VectorAbstract {
 		this.setAngle(angle);
 	}
 
-	get array() {
+	get array(): [number, number] {
 		return [this.x, this.y];
 	}
 
-	set array([x, y]) {
+	set array([x, y]: [number, number]) {
 		this.x = x;
 		this.y = y;
 	}

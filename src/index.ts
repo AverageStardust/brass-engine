@@ -19,6 +19,8 @@ export {
 	MappedMinHeap
 } from "./common/heap";
 
+
+
 export {
 	init,
 	update,
@@ -28,15 +30,26 @@ export {
 	getTimewarp,
 	getTimewarps
 } from "./core/core";
+export {
+	getTime,
+	getExactTime,
+	getSimTime
+} from "./core/time";
+
+
 
 export {
 	InputMapper,
 	disableContextMenu
 } from "./inputMapper";
 
+
+
 export {
 	P5Lighter
 } from "./lighting";
+
+
 
 export {
 	loadImageEarly,
@@ -57,6 +70,8 @@ export {
 	loadProgress
 } from "./loader";
 
+
+
 export {
 	setParticleLimit,
 	emitParticles,
@@ -72,9 +87,13 @@ export {
 	VelocityParticle
 } from "./effects/velocityParticle";
 
+
+
 export {
 	AStarPathfinder
 } from "./pathfinder/aStarPathfinder";
+
+
 
 export {
 	drawColliders
@@ -85,26 +104,45 @@ export { PolyBody } from "./physics/polyBody";
 export { GridBody } from "./physics/gridBody";
 export { RayBody } from "./physics/rayBody";
 
+
+
 export {
 	P5Tilemap
 } from "./tilemap/p5Tilemap";
 
-export {
-	getTime,
-	getExactTime,
-	getSimTime
-} from "./core/time";
+
 
 export {
 	drawFPS,
 	drawLoading,
 	setLoadingTips
 } from "./ui/legacyUI";
+export {
+	DivComponent
+} from "./ui/divComponent";
+export {
+	SpreadComponent
+} from "./ui/spreadComponent";
+export {
+	ButtonComponent
+} from "./ui/buttonComponent";
+export {
+	setFragment,
+	getFragment,
+	setScreen,
+	getScreen,
+	openScreen,
+	drawUI
+} from "./ui/ui";
+
+
 
 export {
 	Vertex2,
 	Vector2
 } from "./vector/vector2";
+
+
 
 export {
 	getRegl,
@@ -133,6 +171,8 @@ export {
 export {
 	drawCanvasToP5
 } from "./layers/layers";
+
+
 
 export {
 	setDefaultViewpoint,

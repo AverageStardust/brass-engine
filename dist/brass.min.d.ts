@@ -75,6 +75,7 @@ declare class Vector2 extends VectorAbstract {
     constructor(x?: number, y?: number);
     copy(): Vector2;
     equal(vec: Vertex2): boolean;
+    equalScalar(x: number, y?: number): boolean;
     set(vec: Vertex2): this;
     setScalar(x?: number, y?: number): this;
     add(vec: Vertex2): this;
@@ -97,6 +98,10 @@ declare class Vector2 extends VectorAbstract {
     norm(magnitude?: number): this;
     normArea(targetArea?: number): this;
     limit(limit?: number): this;
+    min(vec: Vector2): this;
+    minScalar(x: number, y?: number): this;
+    max(vec: Vector2): this;
+    maxScalar(x: number, y?: number): this;
     setAngle(angle: number): this;
     angleTo(vec: Vertex2): number;
     angleBetween(vec: Vertex2): number;
@@ -105,14 +110,24 @@ declare class Vector2 extends VectorAbstract {
     cross(vec: Vertex2): void;
     dist(vec: Vertex2): number;
     distSq(vec: Vertex2): number;
+    get xy(): Vector2;
+    set xy(vec: Vector2);
+    get yx(): Vector2;
+    set yx(vec: Vector2);
     get mag(): number;
-    get magSq(): number;
     set mag(magnitude: number);
+    get magSq(): number;
     get area(): number;
     get angle(): number;
     set angle(angle: number);
-    get array(): number[];
-    set array([x, y]: number[]);
+    get array(): [
+        number,
+        number
+    ];
+    set array([x, y]: [
+        number,
+        number
+    ]);
 }
 declare abstract class LayerAbstract<T extends {
     [key: string]: any;
@@ -234,6 +249,9 @@ declare function update$0(delta?: number): void;
 declare function timewarp(duration: number, rate?: number): void;
 declare function getTimewarp(): Timewarp | undefined;
 declare function getTimewarps(): Timewarp[];
+declare function getTime(): number;
+declare function getExactTime(): number;
+declare function getSimTime(): number;
 declare function disableContextMenu(): void;
 declare abstract class InputDeviceAbstract {
     private readonly buttonStateChanges;
@@ -655,7 +673,7 @@ declare abstract class PathfinderAbstract {
     readonly pathMaxDist: number;
     protected pheromoneTime: number;
     protected readonly pheromones: Int32Array | null;
-    goal: null | Vector2;
+    goal: Vector2 | null;
     protected confidence: number;
     protected agents: PathAgent[];
     protected waitingAgent: number;
@@ -735,7 +753,7 @@ declare class RayBody extends BodyAbstract {
     castOverTime(delta: number, steps?: number): {
         point: Vector2;
         dist: Number;
-        body: null | MaterialBodyAbstract;
+        body: MaterialBodyAbstract | null;
     };
     cast(_displacement: Vector2, steps?: number): {
         point: Vector2;
@@ -780,12 +798,73 @@ declare class P5Tilemap extends TilemapAbstract {
     clearCaches(): void;
     clearCacheAtTile(tileX: number, tileY: number): void;
 }
-declare function getTime(): number;
-declare function getExactTime(): number;
-declare function getSimTime(): number;
 declare function setLoadingTips(tips: string[]): void;
 declare function drawFPS(d?: P5DrawTarget): void;
 declare function drawLoading(d?: P5DrawTarget): void;
+declare abstract class ComponentAbstract {
+    id: symbol;
+    private cache;
+    protected _style: any;
+    position: Vector2;
+    abstract size: Vector2;
+    abstract targetSize: Vector2;
+    abstract changed: boolean;
+    weight: number;
+    constructor(style?: any);
+    get style(): {};
+    set style(value: any);
+    abstract draw(g: P5LayerMap): void;
+    abstract findTarget(position: Vector2): ComponentAbstract | null;
+    protected cacheProperty<T>(name: string, getValue: () => T): T;
+    protected displayChange(): void;
+    private getStyle;
+    private setStyle;
+}
+declare abstract class BranchComponentAbstract extends ComponentAbstract {
+    protected children: ComponentAbstract[];
+    private _size;
+    private _changed;
+    drawBuffer: P5DrawBuffer;
+    constructor(style?: any);
+    set size(size: Vector2);
+    get targetSize(): Vector2;
+    set changed(value: boolean);
+    get changed(): boolean;
+    addChild(child: ComponentAbstract, location?: number | ComponentAbstract): this;
+    removeChild(location?: number | ComponentAbstract): this;
+    protected evaluateChildLocation(location?: number | ComponentAbstract): number;
+    findChildIndex(component: ComponentAbstract): number;
+    findTarget(position: Vector2): ComponentAbstract | this;
+    findChildAt(position: Vector2): ComponentAbstract | null;
+    abstract distributeSize(size: Vector2, oldSize: Vector2): void;
+    abstract collectTargetSize(): Vector2;
+    draw(g: P5LayerMap): void;
+    _draw(g: P5LayerMap): void;
+}
+declare class DivComponent extends BranchComponentAbstract {
+    constructor(style?: any);
+    distributeSize(size: Vector2): void;
+    collectTargetSize(): Vector2;
+}
+declare class SpreadComponent extends BranchComponentAbstract {
+    distributeSize(size: Vector2): void;
+    collectTargetSize(): Vector2;
+}
+declare abstract class LeafComponentAbstract extends ComponentAbstract {
+    size: Vector2;
+    changed: boolean;
+    findTarget(): this;
+}
+declare class ButtonComponent extends LeafComponentAbstract {
+    targetSize: Vector2;
+    draw(g: P5LayerMap): void;
+}
+declare function setFragment(name: string, fragment: ComponentAbstract): void;
+declare function getFragment(name: string): ComponentAbstract;
+declare function setScreen(screenName: string, fragment?: string | ComponentAbstract): void;
+declare function getScreen(screenName: string): ComponentAbstract;
+declare function openScreen(screenName: string | null): void;
+declare function drawUI(d?: P5Layer): void;
 declare function getRegl(): REGL.Regl;
 declare function refreshRegl(): void;
 declare function refreshReglFast(): void;
@@ -823,4 +902,4 @@ declare class Viewpoint extends ViewpointAbstract {
     set target(value: Vector2);
     get target(): Vector2;
 }
-export { createFastGraphics, Pool, Heap, MaxHeap, MinHeap, MappedHeap, MappedMaxHeap, MappedMinHeap, init$0 as init, update$0 as update, setTestStatus, getTestStatus, timewarp, getTimewarp, getTimewarps, InputMapper, disableContextMenu, P5Lighter, loadImageEarly, loadImageLate, loadImageDynamic, getImage, loadSoundEarly, loadSoundLate, getSound, setUnsafeLevelLoading, loadLevelEarly, loadLevelLate, getLevel, loaded, loadProgress, setParticleLimit, emitParticles, emitParticle, forEachParticle, forEachVisableParticle, draw as drawParticles, Particle, VelocityParticle, AStarPathfinder, drawColliders, RectBody, CircleBody, PolyBody, GridBody, RayBody, P5Tilemap, getTime, getExactTime, getSimTime, drawFPS, drawLoading, setLoadingTips, Vertex2, Vector2, getRegl, refreshRegl, refreshReglFast, DrawBuffer, resize, DrawTarget, setDrawTarget, hasDrawTarget, getDrawTarget, P5DrawBuffer, P5DrawTarget, getP5DrawTarget, CanvasDrawTarget, getCanvasDrawTarget, drawCanvasToP5, setDefaultViewpoint, getDefaultViewpoint, ClassicViewpoint, Viewpoint };
+export { createFastGraphics, Pool, Heap, MaxHeap, MinHeap, MappedHeap, MappedMaxHeap, MappedMinHeap, init$0 as init, update$0 as update, setTestStatus, getTestStatus, timewarp, getTimewarp, getTimewarps, getTime, getExactTime, getSimTime, InputMapper, disableContextMenu, P5Lighter, loadImageEarly, loadImageLate, loadImageDynamic, getImage, loadSoundEarly, loadSoundLate, getSound, setUnsafeLevelLoading, loadLevelEarly, loadLevelLate, getLevel, loaded, loadProgress, setParticleLimit, emitParticles, emitParticle, forEachParticle, forEachVisableParticle, draw as drawParticles, Particle, VelocityParticle, AStarPathfinder, drawColliders, RectBody, CircleBody, PolyBody, GridBody, RayBody, P5Tilemap, drawFPS, drawLoading, setLoadingTips, DivComponent, SpreadComponent, ButtonComponent, setFragment, getFragment, setScreen, getScreen, openScreen, drawUI, Vertex2, Vector2, getRegl, refreshRegl, refreshReglFast, DrawBuffer, resize, DrawTarget, setDrawTarget, hasDrawTarget, getDrawTarget, P5DrawBuffer, P5DrawTarget, getP5DrawTarget, CanvasDrawTarget, getCanvasDrawTarget, drawCanvasToP5, setDefaultViewpoint, getDefaultViewpoint, ClassicViewpoint, Viewpoint };

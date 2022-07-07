@@ -3,12 +3,11 @@ import { BranchComponentAbstract } from "./branchComponentAbstract";
 
 
 
-export class StrechComponent extends BranchComponentAbstract {
-	distributeSize(size: Vector2, oldSize: Vector2) {
-		const scaleRatio = size.copy().div(oldSize);
+export class SpreadComponent extends BranchComponentAbstract {
+	distributeSize(size: Vector2) {
 		for (const child of this.children) {
-			child.position.mult(scaleRatio);
-			child.position.mult(scaleRatio);
+			child.position = new Vector2();
+			child.size = size;
 		}
 	}
 

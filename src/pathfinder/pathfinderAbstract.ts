@@ -67,7 +67,7 @@ export abstract class PathfinderAbstract {
 	protected pheromoneTime: number;
 	protected readonly pheromones: Int32Array | null;
 
-	goal: null | Vector2;
+	goal: Vector2 | null;
 	// confidence controls if only leaders or the whole hard tries to make paths
 	// when the pathfinder is struggling this causes a few leaders to try harder and show others the way 
 	protected confidence = 0.5;

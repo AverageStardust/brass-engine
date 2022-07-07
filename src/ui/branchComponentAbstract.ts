@@ -8,8 +8,12 @@ export abstract class BranchComponentAbstract extends ComponentAbstract {
 	protected children: ComponentAbstract[] = [];
 	private _size: Vector2 = new Vector2();
 	private _changed = true;
-	bufferDisplay = false;
 	drawBuffer = new P5DrawBuffer();
+
+	constructor(style: any = {}) {
+		style.bufferDisplay ??= true;
+		super(style);
+	}
 
 	set size(size: Vector2) {
 		size = size.copy().floor();
@@ -34,11 +38,44 @@ export abstract class BranchComponentAbstract extends ComponentAbstract {
 			.reduce((a, b) => a || b);
 	}
 
-	findTarget(position) {
+	addChild(child: ComponentAbstract, location?: number | ComponentAbstract) {
+		const index = this.evaluateChildLocation(location);
+		this.children.splice(index, 0, child);
+		this.displayChange();
+		return this;
+	}
+
+	removeChild(location?: number | ComponentAbstract) {
+		const index = this.evaluateChildLocation(location);
+		this.children.splice(index, 1);
+		this.displayChange();
+		return this;
+	}
+
+	protected evaluateChildLocation(location: number | ComponentAbstract = this.children.length) {
+		if (typeof location !== "number") {
+			location = this.findChildIndex(location);
+			if (location === -1) {
+				throw Error("Could not locate child, not in parent");
+			}
+		}
+		return Math.max(0, location);
+	}
+
+	findChildIndex(component: ComponentAbstract) {
+		for (let i = 0; i < this.children.length; i++) {
+			if (component.id === this.children[i].id) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	findTarget(position: Vector2) {
 		return this.findChildAt(position) ?? this;
 	}
 
-	findChildAt(position) {
+	findChildAt(position: Vector2) {
 		for (const child of this.children) {
 			if (position.x >= child.position.x &&
 				position.x >= child.position.x + child.size.x &&
@@ -50,17 +87,20 @@ export abstract class BranchComponentAbstract extends ComponentAbstract {
 		return null;
 	}
 
-	abstract distributeSize(size: Vector2, oldSize: Vector2);
+	abstract distributeSize(size: Vector2, oldSize: Vector2): void;
 	abstract collectTargetSize(): Vector2;
 
 	draw(g: P5LayerMap) {
-		if (this.bufferDisplay) {
+		if (this._style.bufferDisplay) {
 			const buffer = this.drawBuffer.getMaps(this.size).canvas;
-			this._draw(buffer);
+			if (this._changed) {
+				this._draw(buffer);
+			}
 			g.image(buffer as unknown as p5.Image, 0, 0);
 			return;
 		}
 		this._draw(g);
+		this._changed = false;
 	}
 
 	_draw(g: P5LayerMap) {

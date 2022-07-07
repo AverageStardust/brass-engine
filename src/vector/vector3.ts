@@ -1,6 +1,6 @@
 import { Vector2 } from "./vector2";
 import { VectorAbstract } from "./vectorAbstract";
-
+import { Nullish } from "../common/types";
 
 
 
@@ -38,6 +38,10 @@ export class Vector3 extends VectorAbstract {
 
 	equal(vec: Vertex3) {
 		return this.x === vec.x && this.y === vec.y && this.z === vec.z;
+	}
+
+	equalScalar(x: number, y = x, z = y) {
+		return this.x === x && this.y === y && this.z === z;
 	}
 
 	set(vec: Vertex3) {
@@ -193,6 +197,34 @@ export class Vector3 extends VectorAbstract {
 		return this;
 	}
 
+	min(vec: Vector3) {
+		this.x = Math.min(this.x, vec.x);
+		this.y = Math.min(this.y, vec.y);
+		this.z = Math.min(this.z, vec.z);
+		return this;
+	}
+
+	minScalar(x: number, y = x, z = y) {
+		this.x = Math.min(this.x, x);
+		this.y = Math.min(this.y, y);
+		this.z = Math.min(this.z, z);
+		return this;
+	}
+
+	max(vec: Vector3) {
+		this.x = Math.max(this.x, vec.x);
+		this.y = Math.max(this.y, vec.y);
+		this.z = Math.max(this.z, vec.z);
+		return this;
+	}
+
+	maxScalar(x: number, y = x, z = y) {
+		this.x = Math.max(this.x, x);
+		this.y = Math.max(this.y, y);
+		this.z = Math.max(this.z, z);
+		return this;
+	}
+
 	dot(vec: Vertex3) {
 		return this.x * vec.x + this.y * vec.y + this.z * vec.z;
 	}
@@ -219,67 +251,115 @@ export class Vector3 extends VectorAbstract {
 		return new Vector2(this.x, this.y);
 	}
 
-	get yx() {
-		return new Vector2(this.y, this.x);
-	}
-
-	get yz() {
-		return new Vector2(this.y, this.z);
-	}
-
-	get zy() {
-		return new Vector2(this.z, this.y);
+	set xy(vec: Vector2) {
+		[this.x, this.y] = vec.array;
 	}
 
 	get xz() {
 		return new Vector2(this.x, this.z);
 	}
 
+	set xz(vec: Vector2) {
+		[this.y, this.z] = vec.array;
+	}
+
+	get yx() {
+		return new Vector2(this.y, this.x);
+	}
+
+	set yx(vec: Vector2) {
+		[this.y, this.x] = vec.array;
+	}
+
+	get yz() {
+		return new Vector2(this.y, this.z);
+	}
+
+	set yz(vec: Vector2) {
+		[this.y, this.z] = vec.array;
+	}
+
+	get zy() {
+		return new Vector2(this.z, this.y);
+	}
+	
+	set zy(vec: Vector2) {
+		[this.z, this.y] = vec.array;
+	}
+
 	get zx() {
 		return new Vector2(this.z, this.x);
+	}
+	
+	set zx(vec: Vector2) {
+		[this.z, this.x] = vec.array;
 	}
 
 	get xyz() {
 		return new Vector3(this.x, this.y, this.z);
 	}
+	
+	set xyz(vec: Vector3) {
+		[this.x, this.y, this.z] = vec.array;
+	}
+
+	get xzy() {
+		return new Vector3(this.x, this.z, this.y);
+	}
+	
+	set xzy(vec: Vector3) {
+		[this.x, this.z, this.y] = vec.array;
+	}
 
 	get yxz() {
 		return new Vector3(this.y, this.x, this.z);
+	}
+	
+	set yxz(vec: Vector3) {
+		[this.y, this.x, this.z] = vec.array;
 	}
 
 	get yzx() {
 		return new Vector3(this.y, this.z, this.x);
 	}
+	
+	set yzx(vec: Vector3) {
+		[this.y, this.z, this.x] = vec.array;
+	}
 
 	get zyx() {
 		return new Vector3(this.z, this.y, this.x);
 	}
-
-	get xzy() {
-		return new Vector3(this.x, this.z, this.y);
+	
+	set zyx(vec: Vector3) {
+		[this.z, this.y, this.x] = vec.array;
 	}
 
 	get zxy() {
 		return new Vector3(this.z, this.x, this.y);
 	}
 
-	get mag() {
-		return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
+	set zxy(vec: Vector3) {
+		[this.z, this.x, this.y] = vec.array;
 	}
 
-	get magSq() {
-		return this.x * this.x + this.y * this.y + this.z * this.z;
+	get mag() {
+		return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
 	}
 
 	set mag(magnitude) {
 		this.norm(magnitude);
 	}
 
-	get array() {
+	get magSq() {
+		return this.x * this.x + this.y * this.y + this.z * this.z;
+	}
+
+	get array(): [number, number, number] {
 		return [this.x, this.y, this.z];
 	}
 
-	set array([x, y, z]) {
+	set array([x, y, z]: [number, number, number]) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
