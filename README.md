@@ -1,7 +1,7 @@
 # Brass Engine
 
 Make games with the flexibility of p5.js, the features of Matter.js, and the speed
-of REGL.
+of WEBGL.
 ___
 **Brass is still in alpha, the API will break often.** <br> 
 Write p5 style code with the power of a game engine. After running
@@ -18,7 +18,7 @@ ___
 [Particle and time-warping](https://wdsteve.github.io/brass-engine/examples/particleWarp)<br>
 [P5Lighter example](https://wdsteve.github.io/brass-engine/examples/darkCatacombs)<br>
 [Old tilemap example](https://wdsteve.github.io/brass-engine/examples/tilemapBullets)<br>
-[WIP REGL.js stuff](https://wdsteve.github.io/brass-engine/examples/shaderTest)<br>
+[WIP WEBGL stuff](https://wdsteve.github.io/brass-engine/examples/shaderTest)<br>
 ___
 ## Future ideas, no promises!
 ### 0.17.0
@@ -34,7 +34,7 @@ ___
 * animation loading/handling
 ### Will probably never happen
 * post-processing system
-* raytraced lighting with REGL
+* raytraced lighting with WEBGL2
 * behaviour trees
 * p5 asset / ui editor / in-game level editor
 * multiplayer support
