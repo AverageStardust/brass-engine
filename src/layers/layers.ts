@@ -6,27 +6,24 @@
 
 import p5 from "p5";
 import { getSketch } from "../core/sketch";
-import { CanvasDrawTarget, getCanvasDrawTarget } from "./canvasLayers";
-import { DrawTarget, getDrawTarget, hasDrawTarget, resize, setDrawTarget, syncDefaultP5DrawTarget } from "./drawTarget";
+import { CanvasDrawTarget, getDefaultCanvasDrawTarget } from "./canvasLayers";
+import { DrawTarget, getDrawTarget, resize, setDrawTarget, syncDefaultDrawTargetWithSketch } from "./drawTarget";
 import { init as initRegl } from "./handleRegl";
-import { getP5DrawTarget, P5DrawTarget } from "./p5Layers";
+import { P5DrawTarget, P5Layer, getDefaultP5DrawTarget } from "./p5Layers";
 
 
 
-export function init(doRegl: boolean, drawTarget?: p5.Graphics | DrawTarget<any>) {
+export function init(doRegl: boolean, drawTarget?: p5.Graphics | DrawTarget<{ [key: string]: unknown }>) {
 	initDefaultDrawTarget(doRegl, drawTarget);
 
 	const defaultDrawTarget = getDrawTarget("default");
 
 	addDrawTargetElement(defaultDrawTarget);
 
-	if (doRegl) {
-		const drawTarget = getCanvasDrawTarget("defaultCanvas");
-		initRegl(drawTarget);
-	}
+	if (doRegl) initRegl(getDefaultCanvasDrawTarget());
 }
 
-function initDefaultDrawTarget(doRegl: boolean, drawTarget?: p5.Graphics | DrawTarget<any>) {
+function initDefaultDrawTarget(doRegl: boolean, drawTarget?: p5.Graphics | DrawTarget<{ [key: string]: unknown; }>) {
 	if (drawTarget === undefined) {
 		const sketch = getSketch();
 
@@ -43,7 +40,7 @@ function initDefaultDrawTarget(doRegl: boolean, drawTarget?: p5.Graphics | DrawT
 				setDrawTarget("defaultP5", drawTarget);
 			}
 			if (drawTarget instanceof CanvasDrawTarget) {
-				setDrawTarget("defaultRegl", drawTarget);
+				setDrawTarget("defaultCanvas", drawTarget);
 			}
 			// @ts-ignore because p5.Graphics is typed wrong
 		} else if (drawTarget instanceof p5.Graphics) {
@@ -57,21 +54,20 @@ function initDefaultDrawTarget(doRegl: boolean, drawTarget?: p5.Graphics | DrawT
 
 	if (doRegl) {
 		const drawTarget = new CanvasDrawTarget();
-		setDrawTarget("defaultRegl", drawTarget);
+		setDrawTarget("defaultCanvas", drawTarget);
 	}
 
 	resize();
 
-	if (hasDrawTarget("defaultP5")) {
-		syncDefaultP5DrawTarget();
-	}
+	syncDefaultDrawTargetWithSketch();
 }
 
-function addDrawTargetElement(drawTarget: DrawTarget<any>) {
+function addDrawTargetElement(drawTarget: P5DrawTarget | CanvasDrawTarget) {
 	let htmlCanvas: HTMLCanvasElement | undefined;
 	if (drawTarget instanceof P5DrawTarget) {
-		// @ts-ignore
-		htmlCanvas = drawTarget.getMaps().canvas.canvas;
+		htmlCanvas = drawTarget.getMaps().canvas
+			// @ts-ignore
+			.canvas;
 	}
 	if (drawTarget instanceof CanvasDrawTarget) {
 		htmlCanvas = drawTarget.getMaps().canvas;
@@ -100,7 +96,7 @@ function addDrawTargetElement(drawTarget: DrawTarget<any>) {
 	}
 }
 
-export function drawCanvasToP5(p5Target = getP5DrawTarget("defaultP5"), canvasTarget = getCanvasDrawTarget("defaultRegl")) {
+export function drawCanvasToP5(p5Target: P5Layer = getDefaultP5DrawTarget(), canvasTarget = getDefaultCanvasDrawTarget()) {
 	const p5Canvas = p5Target.getMaps().canvas;
 	const canvasCanvas = canvasTarget.getMaps().canvas;
 	p5Canvas.drawingContext.drawImage(canvasCanvas, 0, 0, p5Canvas.width, p5Canvas.height);

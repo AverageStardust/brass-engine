@@ -2,7 +2,7 @@ import { Vertex2 } from "../vector/vector2";
 import { LayerAbstract } from "./LayerAbstract";
 
 
-export class DrawBuffer<T> extends LayerAbstract<T> {
+export class DrawBuffer<T extends { [key: string]: unknown }> extends LayerAbstract<T> {
 	protected size: Vertex2 | null = null;
 
 	constructor(

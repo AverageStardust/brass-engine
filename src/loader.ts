@@ -14,7 +14,7 @@ import { FieldDeclaration, Level } from "./tilemap/tilemapAbstract";
 type Asset = p5.Image | p5.Graphics | p5.SoundFile | Level;
 type AssetDefinitionArgs = [string] | [string, string];
 // like loadImage() or loadSound()
-type P5LoaderFuction = (path: string, successCallback: (data: Asset) => void, failureCallback: (event: Event) => any) => Asset;
+type P5LoaderFuction = (path: string, successCallback: (data: Asset) => void, failureCallback: (event: Event) => unknown) => Asset;
 
 enum AssetType {
 	Image = "image",
@@ -85,6 +85,7 @@ export function init(_useSound: boolean) {
 		// @ts-ignore because hacks are needed to generate sound in code
 		errorSound = new p5.SoundFile();
 
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const audioCtx: any = getAudioContext();
 
 		// 2.5 kHz sin wave for 0.25 seconds
@@ -160,7 +161,7 @@ function loadQueuedAssets() {
 	queueMicrotask(loadQueuedAssets);
 }
 
-function handleAsset(assetEntry: QueuedAsset, data: any) {
+function handleAsset(assetEntry: QueuedAsset, data: unknown) {
 	if (assetEntry.late) {
 		loadedLateAssets++;
 	}
@@ -273,7 +274,7 @@ function loadImageDynamicStep(qualitySteps: string[], assetDefinition: AssetDefi
 		],
 		late: isRoot,
 		children: []
-	}
+	};
 
 	if (isRoot) totalLateAssets++;
 
@@ -343,7 +344,9 @@ function insureSoundFormatsConfigured() {
 				.map((extension) => extension.replace(".", ""));
 		soundFormats(...soundExtensions);
 		soundFormatsConfigured = true;
-	} catch (err) { }
+	} catch (err) {
+		console.error(err);
+	}
 }
 
 
@@ -356,7 +359,7 @@ export function loadLevelEarly(fields: FieldDeclaration, ...args: AssetDefinitio
 	const { name, fullPath } = parseAssetDefinition(AssetType.Level, args);
 
 	return new Promise((resolve, reject) => {
-		loadJSON(fullPath, (data: any) => {
+		loadJSON(fullPath, (data: unknown) => {
 			const level = parseLevelJson(fields, data);
 			assets[name] = level;
 			resolve(level);
@@ -383,6 +386,7 @@ export function getLevel(name: string): Level | null {
 	return assets[name] as Level ?? null;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseLevelJson(fields: FieldDeclaration, json: any): Level {
 	if (json.type !== "map") {
 		throw Error("Level file was not of type \"map\"");
@@ -437,12 +441,12 @@ function parseLevelJson(fields: FieldDeclaration, json: any): Level {
 				type: fieldType,
 				data: layer.data,
 				encoding: "uint32"
-			}
+			};
 		} else {
 			level.fields[fieldName] = {
 				type: fieldType,
 				data: layer.data
-			}
+			};
 		}
 	}
 
@@ -479,6 +483,7 @@ function parseLevelJson(fields: FieldDeclaration, json: any): Level {
 	return level;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function searchTiledObj(obj: any): [any[], any[]] {
 	const tileLayers = [], objectLayers = [];
 
@@ -520,7 +525,8 @@ function queueLateAssetWithPromise(assetEntry: QueuedAsset): Promise<Asset> {
 }
 
 function parseAssetDefinition(type: AssetType, args: AssetDefinitionArgs): AssetDefinition {
-	let [fullPath, name] = args;
+	const [fullPath, _name] = args;
+	let name = _name;
 
 	if (fullPath === undefined) throw Error("Can't load asset without an path");
 	if (name === undefined) name = fullPath;

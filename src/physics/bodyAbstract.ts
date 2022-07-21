@@ -45,7 +45,7 @@ export function getSpaceScale() {
 export abstract class BodyAbstract {
 	private sensors: CollisionCallback[] = [];
 	alive = true;
-	data: any = null;
+	data: unknown = null;
 
 	constructor() {
 		assertMatterWorld("creating a physics body");

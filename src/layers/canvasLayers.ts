@@ -1,15 +1,11 @@
 import { Vertex2 } from "../vector/vector2";
 import { refreshReglFast } from "./handleRegl";
-import { DrawTarget, getDrawTarget } from "./drawTarget";
+import { DrawTarget, getDrawTargetOf } from "./drawTarget";
 
 
 
-export function getCanvasDrawTarget(name: string): CanvasDrawTarget {
-	const drawTarget = getDrawTarget(name);
-	if (!(drawTarget instanceof CanvasDrawTarget)) {
-		throw Error(`Could not find (${name}) CanvasDrawTarget; DrawTarget under that name is not of subclass CanvasDrawTarget`);
-	}
-	return drawTarget;
+export function getDefaultCanvasDrawTarget() {
+	return getDrawTargetOf("defaultCanvas", CanvasDrawTarget);
 }
 
 

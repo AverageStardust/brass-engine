@@ -1,5 +1,5 @@
-import { getP5DrawTarget } from "../layers/p5Layers";
 import { getTime } from "../core/time";
+import { getDefaultP5DrawTarget } from "../layers/p5Layers";
 import { Vector2 } from "../vector/vector2";
 import { PathfinderAbstract } from "./pathfinderAbstract";
 import { PathSituation } from "./PathSituationType";
@@ -11,7 +11,7 @@ export class PathAgent {
 	readonly radius: number;
 	position: Vector2 | null = null;
 	direction: Vector2 | false = false;
-	newGoal: boolean = true;
+	newGoal = true;
 	leadership: number;
 
 	processingSituation: PathSituation<unknown> | null = null;
@@ -32,7 +32,7 @@ export class PathAgent {
 		this.leadership = leadership;
 	}
 
-	drawPath(thickness = 0.2, fillColor = "red", d = getP5DrawTarget("defaultP5")) {
+	drawPath(thickness = 0.2, fillColor = "red", d = getDefaultP5DrawTarget()) {
 		const g = d.getMaps().canvas;
 		if (this.position === null)
 			return;

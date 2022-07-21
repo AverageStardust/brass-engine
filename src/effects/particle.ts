@@ -4,7 +4,7 @@ import { Vector2 } from "../vector/vector2";
 
 
 
-export type ParticleClass = new (...rest: any[]) => Particle;
+export type ParticleClass = new (...rest: unknown[]) => Particle;
 
 
 
@@ -19,7 +19,10 @@ export class Particle {
 		this.spawnTime = getTime();
 	}
 
-	update(delta: number) { }
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	update(delta: number) {
+		// do nothing
+	}
 
 	draw(g: P5LayerMap) {
 		g.noStroke();
@@ -41,8 +44,10 @@ export class Particle {
 			this.position.y - this.radius < viewArea.maxY);
 	}
 
-	// what to do when particle dies, nothing by default
-	kill() { }
+	// removes particle
+	kill() {
+		// do nothing
+	}
 
 	get age() {
 		return (getTime() - this.spawnTime) / this.lifetime;

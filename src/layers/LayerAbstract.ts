@@ -2,7 +2,7 @@ import { Vertex2 } from "../vector/vector2";
 
 
 
-export abstract class LayerAbstract<T extends { [key: string]: any; }> {
+export abstract class LayerAbstract<T extends { [key: string]: unknown }> {
 	id = Symbol();
 	protected abstract size: Vertex2 | null;
 	protected readonly creator: (size: Vertex2) => T;
@@ -57,7 +57,7 @@ export abstract class LayerAbstract<T extends { [key: string]: any; }> {
 	}
 
 	private getMap(maps: T, mapName: string) {
-		if (!maps.hasOwnProperty(mapName)) {
+		if (!Object.hasOwn(maps, mapName)) {
 			throw Error(`Can't get (${mapName}) map in DrawTarget`);
 		}
 		return maps[mapName];

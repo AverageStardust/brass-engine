@@ -423,18 +423,20 @@ var Brass = (function (exports, p5) {
         for (var _i = 2; _i < arguments.length; _i++) {
             argArray[_i - 2] = arguments[_i];
         }
-        assert(func.hasOwnProperty("prototype"), "Can't bind context to function (".concat(func.name, "); Use the Function keyword and do not bind before-hand"));
+        assert(Object.hasOwn(func, "prototype"), "Can't bind context to function (".concat(func.name, "); Use the Function keyword and do not bind before-hand"));
         return func.bind.apply(func, __spreadArray([thisArg], __read(argArray), false));
     }
     function assert(condition, message) {
         if (message === void 0) { message = "Assertion failed"; }
-        if (!condition)
+        if (!condition) {
             throw Error(message);
+        }
     }
     function expect(condition, message) {
         if (message === void 0) { message = "Expectation failed"; }
-        if (!condition)
+        if (!condition) {
             console.error(message);
+        }
     }
 
     var VectorAbstract = (function () {
@@ -449,7 +451,7 @@ var Brass = (function (exports, p5) {
         VectorAbstract.prototype.getWatchedValue = function (watcher, _, prop) {
             var value = Reflect.get(this, prop);
             if (typeof value === "function") {
-                return this.watchedVectorMethod.bind(this, watcher, value);
+                return this.watchedVectorMethodWrapper.bind(this, watcher, value);
             }
             return value;
         };
@@ -463,7 +465,7 @@ var Brass = (function (exports, p5) {
             watcher(this);
             return true;
         };
-        VectorAbstract.prototype.watchedVectorMethod = function (watcher, method) {
+        VectorAbstract.prototype.watchedVectorMethodWrapper = function (watcher, method) {
             var args = [];
             for (var _i = 2; _i < arguments.length; _i++) {
                 args[_i - 2] = arguments[_i];
@@ -1236,7 +1238,8 @@ var Brass = (function (exports, p5) {
             window.addEventListener("keyup", _this.handleKeyListener.bind(_this, false));
             return _this;
         }
-        KeyboardInputDevice.prototype.update = function () { };
+        KeyboardInputDevice.prototype.update = function () {
+        };
         KeyboardInputDevice.prototype.handleKeyListener = function (state, _a) {
             var code = _a.code;
             if (code.startsWith("Key"))
@@ -1253,7 +1256,8 @@ var Brass = (function (exports, p5) {
             window.addEventListener("mouseup", _this.handleKeyListener.bind(_this, false));
             return _this;
         }
-        MouseInputDevice.prototype.update = function () { };
+        MouseInputDevice.prototype.update = function () {
+        };
         MouseInputDevice.prototype.handleKeyListener = function (state, event) {
             switch (event.button) {
                 case 0:
@@ -1482,7 +1486,7 @@ var Brass = (function (exports, p5) {
                 finally { if (e_22) throw e_22.error; }
             }
             this.unions.set(unionName, names);
-            this.add(unionName, undefined);
+            this.add(unionName, false);
             this.updateUnion(unionName);
         };
         return ButtonInputState;
@@ -1869,7 +1873,9 @@ var Brass = (function (exports, p5) {
             soundFormats.apply(void 0, __spreadArray([], __read(soundExtensions), false));
             soundFormatsConfigured = true;
         }
-        catch (err) { }
+        catch (err) {
+            console.error(err);
+        }
     }
     function setUnsafeLevelLoading(value) {
         if (value === void 0) { value = true; }
@@ -2099,7 +2105,8 @@ var Brass = (function (exports, p5) {
         });
     }
     function parseAssetDefinition(type, args) {
-        var _a = __read(args, 2), fullPath = _a[0], name = _a[1];
+        var _a = __read(args, 2), fullPath = _a[0], _name = _a[1];
+        var name = _name;
         if (fullPath === undefined)
             throw Error("Can't load asset without an path");
         if (name === undefined)
@@ -2115,6 +2122,25 @@ var Brass = (function (exports, p5) {
             throw Error("Can't load (".concat(extension, ") file as a ").concat(type, " file, try ").concat(Array.from(validExtensions).join(" ")));
         }
         return { name: name, basePath: basePath, fullPath: fullPath, extension: extension };
+    }
+
+    var lastUpdateTime = 0;
+    var simTime = 0;
+    update$5();
+    function update$5() {
+        lastUpdateTime = Math.round(getExactTime());
+    }
+    function getTime() {
+        return lastUpdateTime;
+    }
+    function getExactTime() {
+        return window.performance.now();
+    }
+    function getSimTime() {
+        return simTime;
+    }
+    function deltaSimTime(delta) {
+        simTime += delta;
     }
 
     var LayerAbstract = (function () {
@@ -2158,7 +2184,7 @@ var Brass = (function (exports, p5) {
             }
         };
         LayerAbstract.prototype.getMap = function (maps, mapName) {
-            if (!maps.hasOwnProperty(mapName)) {
+            if (!Object.hasOwn(maps, mapName)) {
                 throw Error("Can't get (".concat(mapName, ") map in DrawTarget"));
             }
             return maps[mapName];
@@ -2249,16 +2275,14 @@ var Brass = (function (exports, p5) {
         globalWidth = _width;
         globalHeight = _height;
         getDrawTarget("default").refresh();
-        syncDefaultP5DrawTarget();
+        syncDefaultDrawTargetWithSketch();
         honorReglRefresh();
     }
-    function syncDefaultP5DrawTarget() {
-        if (hasDrawTarget("defaultP5")) {
-            var canvas = getDrawTarget("defaultP5").getMaps().canvas;
-            var sketch = getSketch();
-            sketch.width = canvas.width;
-            sketch.height = canvas.height;
-        }
+    function syncDefaultDrawTargetWithSketch() {
+        var _a = getDrawTarget("default").getSize(), x = _a.x, y = _a.y;
+        var sketch = getSketch();
+        sketch.width = x;
+        sketch.height = y;
     }
     function setDrawTarget(name, drawTarget) {
         if (hasDrawTarget(name)) {
@@ -2270,6 +2294,13 @@ var Brass = (function (exports, p5) {
         var drawTarget = drawTargets.get(name);
         if (drawTarget === undefined) {
             throw Error("Could not find (".concat(name, ") DrawTarget; Maybe create one or run Brass.init() with drawTarget enabled"));
+        }
+        return drawTarget;
+    }
+    function getDrawTargetOf(name, classConstructor) {
+        var drawTarget = getDrawTarget(name);
+        if (!(drawTarget instanceof classConstructor)) {
+            throw Error("Could not find (".concat(name, ") P5DrawTarget; DrawTarget under that name is not of subclass P5DrawTarget"));
         }
         return drawTarget;
     }
@@ -2363,12 +2394,8 @@ var Brass = (function (exports, p5) {
         return DrawTarget;
     }(LayerAbstract));
 
-    function getP5DrawTarget(name) {
-        var drawTarget = getDrawTarget(name);
-        if (!(drawTarget instanceof P5DrawTarget)) {
-            throw Error("Could not find (".concat(name, ") P5DrawTarget; DrawTarget under that name is not of subclass P5DrawTarget"));
-        }
-        return drawTarget;
+    function getDefaultP5DrawTarget() {
+        return getDrawTargetOf("defaultP5", P5DrawTarget);
     }
     var P5DrawBuffer = (function (_super) {
         __extends(P5DrawBuffer, _super);
@@ -2419,25 +2446,6 @@ var Brass = (function (exports, p5) {
         return P5DrawTarget;
     }(DrawTarget));
 
-    var lastUpdateTime = 0;
-    var simTime = 0;
-    update$5();
-    function update$5() {
-        lastUpdateTime = Math.round(getExactTime());
-    }
-    function getTime() {
-        return lastUpdateTime;
-    }
-    function getExactTime() {
-        return window.performance.now();
-    }
-    function getSimTime() {
-        return simTime;
-    }
-    function deltaSimTime(delta) {
-        simTime += delta;
-    }
-
     var viewpoints = [];
     function getViewpoints() {
         return viewpoints;
@@ -2457,7 +2465,7 @@ var Brass = (function (exports, p5) {
             viewpoints.push(this);
         }
         ViewpointAbstract.prototype.view = function (d) {
-            if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+            if (d === void 0) { d = getDefaultP5DrawTarget(); }
             var g = d.getMaps().canvas;
             var viewOrigin = this.getViewOrigin(d);
             g.translate(viewOrigin.x, viewOrigin.y);
@@ -2467,7 +2475,7 @@ var Brass = (function (exports, p5) {
             g.translate(-this.shakePosition.x, -this.shakePosition.y);
         };
         ViewpointAbstract.prototype.getScreenViewArea = function (d) {
-            if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+            if (d === void 0) { d = getDefaultP5DrawTarget(); }
             var g = d.getMaps().canvas;
             var viewOrigin = this.getViewOrigin(d);
             return {
@@ -2478,7 +2486,7 @@ var Brass = (function (exports, p5) {
             };
         };
         ViewpointAbstract.prototype.getWorldViewArea = function (d) {
-            if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+            if (d === void 0) { d = getDefaultP5DrawTarget(); }
             var g = d.getMaps().canvas;
             var _a = this.screenToWorld(new Vector2()), minX = _a.x, minY = _a.y;
             var _b = this.screenToWorld(new Vector2(g.width, g.height)), maxX = _b.x, maxY = _b.y;
@@ -2494,7 +2502,7 @@ var Brass = (function (exports, p5) {
             this.translation.add(worldTraslation);
         };
         ViewpointAbstract.prototype.screenToWorld = function (screenCoord, d) {
-            if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+            if (d === void 0) { d = getDefaultP5DrawTarget(); }
             var coord = screenCoord.copy();
             var viewOrigin = this.getViewOrigin(d);
             coord.sub(viewOrigin);
@@ -2505,7 +2513,7 @@ var Brass = (function (exports, p5) {
             return coord;
         };
         ViewpointAbstract.prototype.worldToScreen = function (worldCoord, d) {
-            if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+            if (d === void 0) { d = getDefaultP5DrawTarget(); }
             var coord = worldCoord.copy();
             coord.sub(this.shakePosition);
             var translation = this.effectiveTranslation;
@@ -2572,7 +2580,8 @@ var Brass = (function (exports, p5) {
             if (options === void 0) { options = {}; }
             return _super.call(this, scale, translation, options) || this;
         }
-        ClassicViewpoint.prototype.update = function () { };
+        ClassicViewpoint.prototype.update = function () {
+        };
         ClassicViewpoint.prototype.getViewOrigin = function () {
             return new Vector2(0, 0);
         };
@@ -2613,12 +2622,8 @@ var Brass = (function (exports, p5) {
         return defaultViewpoint;
     }
 
-    function getCanvasDrawTarget(name) {
-        var drawTarget = getDrawTarget(name);
-        if (!(drawTarget instanceof CanvasDrawTarget)) {
-            throw Error("Could not find (".concat(name, ") CanvasDrawTarget; DrawTarget under that name is not of subclass CanvasDrawTarget"));
-        }
-        return drawTarget;
+    function getDefaultCanvasDrawTarget() {
+        return getDrawTargetOf("defaultCanvas", CanvasDrawTarget);
     }
     var CanvasDrawTarget = (function (_super) {
         __extends(CanvasDrawTarget, _super);
@@ -2645,18 +2650,16 @@ var Brass = (function (exports, p5) {
         initDefaultDrawTarget(doRegl, drawTarget);
         var defaultDrawTarget = getDrawTarget("default");
         addDrawTargetElement(defaultDrawTarget);
-        if (doRegl) {
-            var drawTarget_1 = getCanvasDrawTarget("defaultCanvas");
-            init$4(drawTarget_1);
-        }
+        if (doRegl)
+            init$4(getDefaultCanvasDrawTarget());
     }
     function initDefaultDrawTarget(doRegl, drawTarget) {
         if (drawTarget === undefined) {
             var sketch = getSketch();
             sketch.createCanvas(windowWidth, windowHeight);
-            var drawTarget_2 = new P5DrawTarget(undefined, sketch);
-            setDrawTarget("default", drawTarget_2);
-            setDrawTarget("defaultP5", drawTarget_2);
+            var drawTarget_1 = new P5DrawTarget(undefined, sketch);
+            setDrawTarget("default", drawTarget_1);
+            setDrawTarget("defaultP5", drawTarget_1);
         }
         else {
             noCanvas();
@@ -2666,7 +2669,7 @@ var Brass = (function (exports, p5) {
                     setDrawTarget("defaultP5", drawTarget);
                 }
                 if (drawTarget instanceof CanvasDrawTarget) {
-                    setDrawTarget("defaultRegl", drawTarget);
+                    setDrawTarget("defaultCanvas", drawTarget);
                 }
             }
             else if (drawTarget instanceof p5__default["default"].Graphics) {
@@ -2679,18 +2682,17 @@ var Brass = (function (exports, p5) {
             }
         }
         if (doRegl) {
-            var drawTarget_3 = new CanvasDrawTarget();
-            setDrawTarget("defaultRegl", drawTarget_3);
+            var drawTarget_2 = new CanvasDrawTarget();
+            setDrawTarget("defaultCanvas", drawTarget_2);
         }
         resize();
-        if (hasDrawTarget("defaultP5")) {
-            syncDefaultP5DrawTarget();
-        }
+        syncDefaultDrawTargetWithSketch();
     }
     function addDrawTargetElement(drawTarget) {
         var htmlCanvas;
         if (drawTarget instanceof P5DrawTarget) {
-            htmlCanvas = drawTarget.getMaps().canvas.canvas;
+            htmlCanvas = drawTarget.getMaps().canvas
+                .canvas;
         }
         if (drawTarget instanceof CanvasDrawTarget) {
             htmlCanvas = drawTarget.getMaps().canvas;
@@ -2715,8 +2717,8 @@ var Brass = (function (exports, p5) {
         }
     }
     function drawCanvasToP5(p5Target, canvasTarget) {
-        if (p5Target === void 0) { p5Target = getP5DrawTarget("defaultP5"); }
-        if (canvasTarget === void 0) { canvasTarget = getCanvasDrawTarget("defaultRegl"); }
+        if (p5Target === void 0) { p5Target = getDefaultP5DrawTarget(); }
+        if (canvasTarget === void 0) { canvasTarget = getDefaultCanvasDrawTarget(); }
         var p5Canvas = p5Target.getMaps().canvas;
         var canvasCanvas = canvasTarget.getMaps().canvas;
         p5Canvas.drawingContext.drawImage(canvasCanvas, 0, 0, p5Canvas.width, p5Canvas.height);
@@ -2819,12 +2821,10 @@ var Brass = (function (exports, p5) {
             bodies[0].set(this.body.id, this);
             Matter.World.add(getMatterWorld(), body);
         };
-        MaterialBodyAbstract.prototype.removeBody = function () {
-        };
         Object.defineProperty(MaterialBodyAbstract.prototype, "position", {
             get: function () {
                 var position = Vector2.fromObj(this.body.position).divScalar(getSpaceScale());
-                return position.watch(this.setPosition.bind(this));
+                return position.watch(this.positionWatcherMethod.bind(this));
             },
             set: function (position) {
                 var spaceScale = getSpaceScale();
@@ -2834,13 +2834,13 @@ var Brass = (function (exports, p5) {
             enumerable: false,
             configurable: true
         });
-        MaterialBodyAbstract.prototype.setPosition = function (position) {
+        MaterialBodyAbstract.prototype.positionWatcherMethod = function (position) {
             this.position = position;
         };
         Object.defineProperty(MaterialBodyAbstract.prototype, "velocity", {
             get: function () {
                 var velocity = Vector2.fromObj(this.body.velocity).divScalar(getSpaceScale());
-                return velocity.watch(this.setVelocity.bind(this));
+                return velocity.watch(this.velocityWatcherMethod.bind(this));
             },
             set: function (velocity) {
                 var spaceScale = getSpaceScale();
@@ -2850,7 +2850,7 @@ var Brass = (function (exports, p5) {
             enumerable: false,
             configurable: true
         });
-        MaterialBodyAbstract.prototype.setVelocity = function (velocity) {
+        MaterialBodyAbstract.prototype.velocityWatcherMethod = function (velocity) {
             this.velocity = velocity;
         };
         Object.defineProperty(MaterialBodyAbstract.prototype, "angle", {
@@ -3023,7 +3023,8 @@ var Brass = (function (exports, p5) {
             configurable: true
         });
         Object.defineProperty(RayBody.prototype, "collisionCategory", {
-            set: function (_) { },
+            set: function (_) {
+            },
             enumerable: false,
             configurable: true
         });
@@ -3057,7 +3058,7 @@ var Brass = (function (exports, p5) {
             }
             return this;
         };
-        RayBody.prototype.rotate = function (_) {
+        RayBody.prototype.rotate = function () {
             throw Error("RayBody can't have rotation");
         };
         RayBody.prototype.applyForce = function () {
@@ -3184,9 +3185,9 @@ var Brass = (function (exports, p5) {
         }
         lastDelta = delta;
         try {
-            for (var _b = __values(getRays().entries()), _c = _b.next(); !_c.done; _c = _b.next()) {
-                var _d = __read(_c.value, 2), _ = _d[0], ray = _d[1];
-                var _e = ray.castOverTime(delta), body = _e.body, point_1 = _e.point;
+            for (var _b = __values(getRays().values()), _c = _b.next(); !_c.done; _c = _b.next()) {
+                var ray = _c.value;
+                var _d = ray.castOverTime(delta), body = _d.body, point_1 = _d.point;
                 ray.position = point_1.copy();
                 if (!body)
                     continue;
@@ -3204,7 +3205,7 @@ var Brass = (function (exports, p5) {
     }
     function drawColliders(weight, arrowRatio, d) {
         if (weight === void 0) { weight = 0.1; }
-        if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+        if (d === void 0) { d = getDefaultP5DrawTarget(); }
         var g = d.getMaps().canvas;
         g.push();
         g.noFill();
@@ -3287,11 +3288,10 @@ var Brass = (function (exports, p5) {
     }
 
     var frameRateList = [];
-    var loadingScreenHue;
+    var loadingScreenHue = Math.random() * 360;
     var loadingTips;
     var loadingTipIndex;
     var loadingTipEndTime;
-    loadingScreenHue = Math.random() * 360;
     setLoadingTips(["...loading"]);
     function setLoadingTips(tips) {
         if (tips.length === 0) {
@@ -3314,7 +3314,7 @@ var Brass = (function (exports, p5) {
             loadingTips[loadingTipIndex].length * 50 + 1500;
     }
     function drawFPS(d) {
-        if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+        if (d === void 0) { d = getDefaultP5DrawTarget(); }
         var g = d.getMaps().canvas;
         g.push();
         g.resetMatrix();
@@ -3362,7 +3362,7 @@ var Brass = (function (exports, p5) {
         g.pop();
     }
     function drawLoading(d) {
-        if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+        if (d === void 0) { d = getDefaultP5DrawTarget(); }
         var g = d.getMaps().canvas;
         g.push();
         g.resetMatrix();
@@ -3427,12 +3427,12 @@ var Brass = (function (exports, p5) {
     function draw(v, d) {
         var e_2, _a;
         if (v === void 0) { v = getDefaultViewpoint(); }
-        if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+        if (d === void 0) { d = getDefaultP5DrawTarget(); }
         var g = d.getMaps().canvas;
         var viewArea = v.getWorldViewArea(d);
         try {
-            for (var _b = __values(particles.entries()), _c = _b.next(); !_c.done; _c = _b.next()) {
-                var _d = __read(_c.value, 2), _ = _d[0], particle = _d[1];
+            for (var _b = __values(particles.values()), _c = _b.next(); !_c.done; _c = _b.next()) {
+                var particle = _c.value;
                 if (particle.visable(viewArea)) {
                     g.push();
                     g.translate(particle.position.x, particle.position.y);
@@ -3453,8 +3453,8 @@ var Brass = (function (exports, p5) {
     function forEachParticle(func) {
         var e_3, _a;
         try {
-            for (var _b = __values(particles.entries()), _c = _b.next(); !_c.done; _c = _b.next()) {
-                var _d = __read(_c.value, 2), _ = _d[0], particle = _d[1];
+            for (var _b = __values(particles.values()), _c = _b.next(); !_c.done; _c = _b.next()) {
+                var particle = _c.value;
                 func(particle);
             }
         }
@@ -3469,11 +3469,11 @@ var Brass = (function (exports, p5) {
     function forEachVisableParticle(func, v, d) {
         var e_4, _a;
         if (v === void 0) { v = getDefaultViewpoint(); }
-        if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+        if (d === void 0) { d = getDefaultP5DrawTarget(); }
         var viewArea = v.getWorldViewArea(d);
         try {
-            for (var _b = __values(particles.entries()), _c = _b.next(); !_c.done; _c = _b.next()) {
-                var _d = __read(_c.value, 2), _ = _d[0], particle = _d[1];
+            for (var _b = __values(particles.values()), _c = _b.next(); !_c.done; _c = _b.next()) {
+                var particle = _c.value;
                 if (particle.visable(viewArea))
                     func(particle);
             }
@@ -3549,7 +3549,7 @@ var Brass = (function (exports, p5) {
         PathAgent.prototype.drawPath = function (thickness, fillColor, d) {
             if (thickness === void 0) { thickness = 0.2; }
             if (fillColor === void 0) { fillColor = "red"; }
-            if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+            if (d === void 0) { d = getDefaultP5DrawTarget(); }
             var g = d.getMaps().canvas;
             if (this.position === null)
                 return;
@@ -4107,7 +4107,7 @@ var Brass = (function (exports, p5) {
             for (var y = startY; y < endY; y++) {
                 var runStart = undefined;
                 for (var x = startX; x < endX; x++) {
-                    if (!!grid[x + y * this.width]) {
+                    if (grid[x + y * this.width]) {
                         if (runStart === undefined) {
                             runStart = x;
                         }
@@ -4123,17 +4123,18 @@ var Brass = (function (exports, p5) {
                     stripMap.set(runStart + y * this.width, { width: endX - runStart, height: 1 });
                 }
             }
+            var row = this.width;
+            var length = this.width * this.height;
             try {
                 for (var _c = __values(stripMap.entries()), _d = _c.next(); !_d.done; _d = _c.next()) {
                     var _e = __read(_d.value, 2), key_1 = _e[0], strip = _e[1];
-                    var combineStripKey = key_1;
-                    while (true) {
-                        combineStripKey += this.width;
-                        var combineStrip = stripMap.get(combineStripKey);
-                        if (combineStrip === undefined || combineStrip.width !== strip.width)
+                    for (var otherKey = key_1 + row; otherKey < length; otherKey += row) {
+                        var otherStrip = stripMap.get(otherKey);
+                        if (otherStrip === undefined ||
+                            otherStrip.width !== strip.width)
                             break;
-                        strip.height += combineStrip.height;
-                        stripMap.delete(combineStripKey);
+                        strip.height += otherStrip.height;
+                        stripMap.delete(otherKey);
                     }
                 }
             }
@@ -4237,7 +4238,7 @@ var Brass = (function (exports, p5) {
     var TilemapAbstract = (function () {
         function TilemapAbstract(width, height, options) {
             if (options === void 0) { options = {}; }
-            var _a, _b, _c, _d, _e, _f;
+            var _a, _b, _c, _d;
             this.width = width;
             this.height = height;
             this.tileSize = (_a = options.tileSize) !== null && _a !== void 0 ? _a : 1;
@@ -4270,8 +4271,8 @@ var Brass = (function (exports, p5) {
             }
             this.hasBody = !!options.body;
             this.autoMaintainBody = (_d = options.autoMaintainBody) !== null && _d !== void 0 ? _d : true;
-            this.getTileData = (_e = this.bindOptionsFunction(options.getTileData)) !== null && _e !== void 0 ? _e : this.get;
-            this.isTileSolid = (_f = this.bindOptionsFunction(options.isTileSolid)) !== null && _f !== void 0 ? _f : null;
+            this.getTileData = this.bindOptionFunction(options.getTileData, this.get);
+            this.isTileSolid = this.bindNullableOptionFunction(options.isTileSolid);
             var solidField = this.fields[this.solidFieldId];
             if (this.isTileSolid !== null) {
                 var nullTileSolid = this.isTileSolid(this.getTileData(0, 0)) ? 1 : 0;
@@ -4288,9 +4289,14 @@ var Brass = (function (exports, p5) {
             this.bodyValid = this.hasBody;
             tilemaps.push(this);
         }
-        TilemapAbstract.prototype.bindOptionsFunction = function (func) {
+        TilemapAbstract.prototype.bindOptionFunction = function (func, fallbackFunc) {
             if (!func)
-                return func;
+                return fallbackFunc;
+            return safeBind(func, this);
+        };
+        TilemapAbstract.prototype.bindNullableOptionFunction = function (func) {
+            if (!func)
+                return null;
             return safeBind(func, this);
         };
         TilemapAbstract.prototype.maintain = function () {
@@ -4582,8 +4588,8 @@ var Brass = (function (exports, p5) {
             sketch.brassUpdate(simDelta);
         updateLate(simDelta);
         if (sketch.brassDraw !== undefined) {
-            syncDefaultP5DrawTarget();
-            getP5DrawTarget("defaultP5").getMaps().canvas.resetMatrix();
+            syncDefaultDrawTargetWithSketch();
+            getDefaultP5DrawTarget().getMaps().canvas.resetMatrix();
             sketch.brassDraw(simDelta);
         }
     }
@@ -4643,20 +4649,31 @@ var Brass = (function (exports, p5) {
         return color.apply(void 0, __spreadArray([], __read(colArgs), false));
     }
 
-    var P5Lighter = (function () {
-        function P5Lighter(options) {
-            if (options === void 0) { options = {}; }
-            var _a, _b, _c;
-            this.lightBuffer = new P5DrawBuffer();
-            this.directionalCache = new Map();
-            this.viewpoint = null;
-            this.resolution = (_a = options.resolution) !== null && _a !== void 0 ? _a : 0.25;
-            this._blur = (_b = options.blur) !== null && _b !== void 0 ? _b : 1;
-            this.color = (_c = options.color) !== null && _c !== void 0 ? _c : createColor(255);
+    var LighterAbstract = (function () {
+        function LighterAbstract(options) {
+            var _a;
+            this.resolution = (_a = options.resolution) !== null && _a !== void 0 ? _a : 0.5;
         }
-        P5Lighter.prototype.begin = function (v, d) {
+        return LighterAbstract;
+    }());
+
+    var P5MatterLighter = (function (_super) {
+        __extends(P5MatterLighter, _super);
+        function P5MatterLighter(options) {
+            if (options === void 0) { options = {}; }
+            var _this = this;
+            var _a, _b;
+            _this = _super.call(this, options) || this;
+            _this.lightBuffer = new P5DrawBuffer();
+            _this.directionalCache = new Map();
+            _this.viewpoint = null;
+            _this._blur = (_a = options.blur) !== null && _a !== void 0 ? _a : 1;
+            _this.color = (_b = options.color) !== null && _b !== void 0 ? _b : createColor(255);
+            return _this;
+        }
+        P5MatterLighter.prototype.begin = function (v, d) {
             if (v === void 0) { v = getDefaultViewpoint(); }
-            if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+            if (d === void 0) { d = getDefaultP5DrawTarget(); }
             var newContext = !this.lightBuffer.hasSize();
             this.lightBuffer.sizeMaps(d.getSize(this.resolution));
             if (newContext)
@@ -4669,16 +4686,17 @@ var Brass = (function (exports, p5) {
             this.viewpoint = v;
             return this;
         };
-        P5Lighter.prototype.end = function (d) {
-            if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+        P5MatterLighter.prototype.end = function (d) {
+            if (d === void 0) { d = getDefaultP5DrawTarget(); }
             var g = d.getMaps().canvas;
             g.push();
             g.resetMatrix();
             g.blendMode(MULTIPLY);
             g.image(this.getLightCanvas(), 0, 0, width, height);
             g.pop();
+            return this;
         };
-        Object.defineProperty(P5Lighter.prototype, "blur", {
+        Object.defineProperty(P5MatterLighter.prototype, "blur", {
             get: function () {
                 return this._blur;
             },
@@ -4689,7 +4707,7 @@ var Brass = (function (exports, p5) {
             enumerable: false,
             configurable: true
         });
-        P5Lighter.prototype.fill = function () {
+        P5MatterLighter.prototype.fill = function () {
             var colArgs = [];
             for (var _i = 0; _i < arguments.length; _i++) {
                 colArgs[_i] = arguments[_i];
@@ -4708,19 +4726,19 @@ var Brass = (function (exports, p5) {
             this.color = col;
             return this;
         };
-        P5Lighter.prototype.point = function (x, y, r) {
+        P5MatterLighter.prototype.point = function (x, y, r) {
             var lightCanvas = this.getLightCanvas();
             lightCanvas.circle(x, y, r * 2);
             return this;
         };
-        P5Lighter.prototype.cone = function (x, y, angle, width, distance) {
+        P5MatterLighter.prototype.cone = function (x, y, angle, width, distance) {
             if (width === void 0) { width = HALF_PI; }
             if (distance === void 0) { distance = 100; }
             var lightCanvas = this.getLightCanvas();
             lightCanvas.triangle(x, y, x + Math.cos(angle - width / 2) * distance, y + Math.sin(angle - width / 2) * distance, x + Math.cos(angle + width / 2) * distance, y + Math.sin(angle + width / 2) * distance);
             return this;
         };
-        P5Lighter.prototype.world = function (vignette) {
+        P5MatterLighter.prototype.world = function (vignette) {
             if (vignette === void 0) { vignette = 0; }
             var lightCanvas = this.getLightCanvas();
             if (this.viewpoint === null)
@@ -4734,7 +4752,7 @@ var Brass = (function (exports, p5) {
             lightCanvas.rect(area.minX - paddingX * 0.5, area.minY - paddingY * 0.5, areaWidth + paddingX * 1, areaHeight + paddingY * 1);
             return this;
         };
-        P5Lighter.prototype.directional = function (x, y, radius, options) {
+        P5MatterLighter.prototype.directional = function (x, y, radius, options) {
             var e_1, _a;
             var _b;
             if (options === void 0) { options = {}; }
@@ -4771,7 +4789,7 @@ var Brass = (function (exports, p5) {
             }
             lightCanvas.endShape(CLOSE);
         };
-        P5Lighter.prototype.simulateDirectional = function (x, y, radius, options) {
+        P5MatterLighter.prototype.simulateDirectional = function (x, y, radius, options) {
             var _a, _b;
             if (this.viewpoint === null)
                 this.throwBeginError();
@@ -4811,7 +4829,7 @@ var Brass = (function (exports, p5) {
             this.castDirectionalRays(points, paths, options);
             return points;
         };
-        P5Lighter.prototype.findDirectionalLineSegment = function (U0, centerRadius, vec, rayDirection, radius, lightInArea, points, paths) {
+        P5MatterLighter.prototype.findDirectionalLineSegment = function (U0, centerRadius, vec, rayDirection, radius, lightInArea, points, paths) {
             var U1 = rayDirection.copy().multScalar(U0.dot(rayDirection));
             var U2 = U0.copy().sub(U1);
             var nearDist = U2.mag;
@@ -4835,7 +4853,7 @@ var Brass = (function (exports, p5) {
                 end: lineEnd,
             });
         };
-        P5Lighter.prototype.castDirectionalRays = function (points, paths, options) {
+        P5MatterLighter.prototype.castDirectionalRays = function (points, paths, options) {
             var _a, _b, _c;
             for (var i = paths.length - 1; i >= 0; i--) {
                 var path = paths[i];
@@ -4846,7 +4864,7 @@ var Brass = (function (exports, p5) {
                 points.push(endPoint);
             }
         };
-        P5Lighter.prototype.resetLightCanvas = function () {
+        P5MatterLighter.prototype.resetLightCanvas = function () {
             var lightCanvas = this.getLightCanvas();
             lightCanvas.push();
             lightCanvas.blendMode(BLEND);
@@ -4854,12 +4872,12 @@ var Brass = (function (exports, p5) {
             lightCanvas.pop();
             lightCanvas.resetMatrix();
         };
-        P5Lighter.prototype.getLightCanvas = function () {
+        P5MatterLighter.prototype.getLightCanvas = function () {
             if (!this.lightBuffer.hasSize())
                 this.throwBeginError();
             return this.lightBuffer.getMaps().canvas;
         };
-        Object.defineProperty(P5Lighter.prototype, "lightCanvas", {
+        Object.defineProperty(P5MatterLighter.prototype, "lightCanvas", {
             get: function () {
                 if (!this.lightBuffer.hasSize())
                     return null;
@@ -4868,11 +4886,11 @@ var Brass = (function (exports, p5) {
             enumerable: false,
             configurable: true
         });
-        P5Lighter.prototype.throwBeginError = function () {
+        P5MatterLighter.prototype.throwBeginError = function () {
             throw Error("Lighter.begin() must be ran before using lighting");
         };
-        return P5Lighter;
-    }());
+        return P5MatterLighter;
+    }(LighterAbstract));
 
     var Particle = (function () {
         function Particle() {
@@ -4880,7 +4898,8 @@ var Brass = (function (exports, p5) {
             this.lifetime = 5000;
             this.spawnTime = getTime();
         }
-        Particle.prototype.update = function (delta) { };
+        Particle.prototype.update = function (delta) {
+        };
         Particle.prototype.draw = function (g) {
             g.noStroke();
             g.fill(255, 0, 255);
@@ -4895,7 +4914,8 @@ var Brass = (function (exports, p5) {
                 this.position.y + this.radius > viewArea.minY &&
                 this.position.y - this.radius < viewArea.maxY);
         };
-        Particle.prototype.kill = function () { };
+        Particle.prototype.kill = function () {
+        };
         Object.defineProperty(Particle.prototype, "age", {
             get: function () {
                 return (getTime() - this.spawnTime) / this.lifetime;
@@ -5199,7 +5219,7 @@ var Brass = (function (exports, p5) {
         function P5Tilemap(width, height, options) {
             if (options === void 0) { options = {}; }
             var _this = this;
-            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
+            var _a, _b, _c, _d, _e, _f, _g, _h;
             _this = _super.call(this, width, height, options) || this;
             _this.drawCacheMode = (_a = options.drawCacheMode) !== null && _a !== void 0 ? _a : "never";
             _this.drawCacheChunkSize = (_b = options.drawCacheChunkSize) !== null && _b !== void 0 ? _b : (_this.drawCacheMode === "never" ? 1 : 4);
@@ -5230,9 +5250,9 @@ var Brass = (function (exports, p5) {
                 _this.chunks = Array(drawCacheChunkSize).fill(null);
                 _this.cacheableChunks = Array(drawCacheChunkSize).fill(null);
             }
-            _this.drawTile = (_j = _this.bindOptionsFunction(options.drawTile)) !== null && _j !== void 0 ? _j : _this.defaultDrawTile;
-            _this.drawOrder = (_k = _this.bindOptionsFunction(options.drawOrder)) !== null && _k !== void 0 ? _k : null;
-            _this.canCacheTile = (_l = _this.bindOptionsFunction(options.canCacheTile)) !== null && _l !== void 0 ? _l : null;
+            _this.drawTile = _this.bindOptionFunction(options.drawTile, _this.defaultDrawTile);
+            _this.drawOrder = _this.bindNullableOptionFunction(options.drawOrder);
+            _this.canCacheTile = _this.bindNullableOptionFunction(options.canCacheTile);
             if (_this.canCacheTile === null &&
                 _this.drawCacheMode === "check") {
                 throw Error("drawCacheMode of \"check\" requires canCacheTile function in options");
@@ -5241,7 +5261,7 @@ var Brass = (function (exports, p5) {
         }
         P5Tilemap.prototype.draw = function (v, d) {
             if (v === void 0) { v = getDefaultViewpoint(); }
-            if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
+            if (d === void 0) { d = getDefaultP5DrawTarget(); }
             var g = d.getMaps().canvas;
             var viewArea = v.getWorldViewArea(d);
             viewArea.minX = Math.max(0, viewArea.minX / this.tileSize);
@@ -5261,8 +5281,7 @@ var Brass = (function (exports, p5) {
                 case "never":
                     this.drawTiles(viewArea.minX, viewArea.minY, viewArea.maxX, viewArea.maxY, g);
                     break;
-                case "always":
-                    alwaysCache = true;
+                case "always": alwaysCache = true;
                 case "check":
                     assert(this.chunkPool !== null);
                     this.padChunks(alwaysCache, v, d);
@@ -5490,387 +5509,6 @@ var Brass = (function (exports, p5) {
         return P5Tilemap;
     }(TilemapAbstract));
 
-    var ComponentAbstract = (function () {
-        function ComponentAbstract(style) {
-            if (style === void 0) { style = {}; }
-            this.id = Symbol();
-            this.cache = new Map();
-            this.position = new Vector2();
-            this.weight = 1;
-            this._style = style;
-        }
-        Object.defineProperty(ComponentAbstract.prototype, "style", {
-            get: function () {
-                return this.getStyle(this, "_style");
-            },
-            set: function (value) {
-                this.setStyle(this, "_style", value);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        ComponentAbstract.prototype.cacheProperty = function (name, getValue) {
-            if (this.cache.has(name)) {
-                return this.cache.get(name);
-            }
-            var value = getValue();
-            this.cache.set(name, value);
-            return value;
-        };
-        ComponentAbstract.prototype.displayChange = function () {
-            this.changed = true;
-            this.cache.clear();
-        };
-        ComponentAbstract.prototype.getStyle = function (object, prop) {
-            if (object.hasOwnProperty(prop)) {
-                var value = Reflect.get(object, prop);
-                if (typeof value !== "object") {
-                    return value;
-                }
-                else {
-                    return new Proxy(value, {
-                        get: this.getStyle.bind(this),
-                        set: this.setStyle.bind(this)
-                    });
-                }
-            }
-            else {
-                return Reflect.get(object, prop);
-            }
-        };
-        ComponentAbstract.prototype.setStyle = function (object, prop, value) {
-            var e_1, _a;
-            if (object.hasOwnProperty(prop)) {
-                if (typeof value === "object" && value !== null) {
-                    var succuss = true;
-                    try {
-                        for (var _b = __values(Object.keys(value)), _c = _b.next(); !_c.done; _c = _b.next()) {
-                            var key_1 = _c.value;
-                            succuss && (succuss = this.setStyle(Reflect.get(object, prop), key_1, Reflect.get(value, prop)));
-                        }
-                    }
-                    catch (e_1_1) { e_1 = { error: e_1_1 }; }
-                    finally {
-                        try {
-                            if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
-                        }
-                        finally { if (e_1) throw e_1.error; }
-                    }
-                    return succuss;
-                }
-                else {
-                    var succuss = Reflect.set(object, prop, value);
-                    if (succuss)
-                        this.displayChange();
-                    return succuss;
-                }
-            }
-            throw Error("Can't set none-existent style property (".concat(prop, ")"));
-        };
-        return ComponentAbstract;
-    }());
-
-    var BranchComponentAbstract = (function (_super) {
-        __extends(BranchComponentAbstract, _super);
-        function BranchComponentAbstract(style) {
-            if (style === void 0) { style = {}; }
-            var _this = this;
-            var _a;
-            (_a = style.bufferDisplay) !== null && _a !== void 0 ? _a : (style.bufferDisplay = true);
-            _this = _super.call(this, style) || this;
-            _this.children = [];
-            _this._size = new Vector2();
-            _this._changed = true;
-            _this.drawBuffer = new P5DrawBuffer();
-            return _this;
-        }
-        Object.defineProperty(BranchComponentAbstract.prototype, "size", {
-            set: function (size) {
-                size = size.copy().floor();
-                this.distributeSize(size, this._size);
-                this._size = size.copy().floor();
-                this.changed = true;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(BranchComponentAbstract.prototype, "targetSize", {
-            get: function () {
-                return this.cacheProperty("targetSize", this.collectTargetSize);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(BranchComponentAbstract.prototype, "changed", {
-            get: function () {
-                if (this._changed)
-                    return true;
-                return this.children
-                    .map(function (child) { return child.changed; })
-                    .reduce(function (a, b) { return a || b; });
-            },
-            set: function (value) {
-                this._changed = value;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        BranchComponentAbstract.prototype.addChild = function (child, location) {
-            var index = this.evaluateChildLocation(location);
-            this.children.splice(index, 0, child);
-            this.displayChange();
-            return this;
-        };
-        BranchComponentAbstract.prototype.removeChild = function (location) {
-            var index = this.evaluateChildLocation(location);
-            this.children.splice(index, 1);
-            this.displayChange();
-            return this;
-        };
-        BranchComponentAbstract.prototype.evaluateChildLocation = function (location) {
-            if (location === void 0) { location = this.children.length; }
-            if (typeof location !== "number") {
-                location = this.findChildIndex(location);
-                if (location === -1) {
-                    throw Error("Could not locate child, not in parent");
-                }
-            }
-            return Math.max(0, location);
-        };
-        BranchComponentAbstract.prototype.findChildIndex = function (component) {
-            for (var i = 0; i < this.children.length; i++) {
-                if (component.id === this.children[i].id) {
-                    return i;
-                }
-            }
-            return -1;
-        };
-        BranchComponentAbstract.prototype.findTarget = function (position) {
-            var _a;
-            return (_a = this.findChildAt(position)) !== null && _a !== void 0 ? _a : this;
-        };
-        BranchComponentAbstract.prototype.findChildAt = function (position) {
-            var e_1, _a;
-            try {
-                for (var _b = __values(this.children), _c = _b.next(); !_c.done; _c = _b.next()) {
-                    var child = _c.value;
-                    if (position.x >= child.position.x &&
-                        position.x >= child.position.x + child.size.x &&
-                        position.y >= child.position.y &&
-                        position.y >= child.position.y + child.size.y) {
-                        return child;
-                    }
-                }
-            }
-            catch (e_1_1) { e_1 = { error: e_1_1 }; }
-            finally {
-                try {
-                    if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
-                }
-                finally { if (e_1) throw e_1.error; }
-            }
-            return null;
-        };
-        BranchComponentAbstract.prototype.draw = function (g) {
-            if (this._style.bufferDisplay) {
-                var buffer = this.drawBuffer.getMaps(this.size).canvas;
-                if (this._changed) {
-                    this._draw(buffer);
-                }
-                g.image(buffer, 0, 0);
-                return;
-            }
-            this._draw(g);
-            this._changed = false;
-        };
-        BranchComponentAbstract.prototype._draw = function (g) {
-            this.children.map(function (child) {
-                g.push();
-                var _a = child.position, x = _a.x, y = _a.y;
-                g.translate(x, y);
-                child.draw(g);
-                g.pop();
-            });
-        };
-        return BranchComponentAbstract;
-    }(ComponentAbstract));
-
-    var DivDirection;
-    (function (DivDirection) {
-        DivDirection["Vertical"] = "vertical";
-        DivDirection["Horizontal"] = "horizontal";
-        DivDirection["VerticalReversed"] = "verticalReversed";
-        DivDirection["HorizontalReversed"] = "horizontalReversed";
-    })(DivDirection || (DivDirection = {}));
-    var DivComponent = (function (_super) {
-        __extends(DivComponent, _super);
-        function DivComponent(style) {
-            if (style === void 0) { style = {}; }
-            var _a, _b, _c;
-            (_a = style.direction) !== null && _a !== void 0 ? _a : (style.direction = DivDirection.Vertical);
-            (_b = style.stretchAcross) !== null && _b !== void 0 ? _b : (style.stretchAcross = false);
-            (_c = style.stretchAlong) !== null && _c !== void 0 ? _c : (style.stretchAlong = false);
-            return _super.call(this, style) || this;
-        }
-        DivComponent.prototype.distributeSize = function (size) {
-            var _this = this;
-            var weightSum = this.children
-                .map(function (child) { return child.weight; })
-                .reduce(function (a, b) { return a + b; });
-            if (this._style.direction === DivDirection.Horizontal) {
-                var x_1 = 0, unusedWidth_1 = size.x;
-                this.children.map(function (child) {
-                    var width = Math.ceil(unusedWidth_1 * child.weight / weightSum);
-                    unusedWidth_1 -= width;
-                    child.position = new Vector2(x_1, _this._style.stretch ? 0 : Math.floor((size.y - child.size.y) / 2));
-                    child.size = new Vector2(width, _this._style.stretch ? size.y : Math.min(size.y, child.targetSize.y));
-                    x_1 += width;
-                });
-            }
-            else {
-                var y_1 = 0, unusedHeight_1 = size.y;
-                this.children.map(function (child) {
-                    var height = Math.ceil(unusedHeight_1 * child.weight / weightSum);
-                    unusedHeight_1 -= height;
-                    child.position = new Vector2(_this._style.stretch ? 0 : Math.floor((size.x - child.size.x) / 2), y_1);
-                    child.size = new Vector2(_this._style.stretch ? size.x : Math.min(size.x, child.targetSize.x), height);
-                    y_1 += height;
-                });
-            }
-        };
-        DivComponent.prototype.collectTargetSize = function () {
-            var size = new Vector2();
-            if (this.children.length === 0)
-                return size;
-            var direction = this._style.direction;
-            var sizes = this.children
-                .map(function (child) { return child.size; });
-            if (direction === DivDirection.Vertical) {
-                size = sizes.reduce(function (a, b) { return new Vector2(Math.max(a.x, b.x), a.y + b.y); });
-            }
-            else if (direction === DivDirection.Horizontal) {
-                size = sizes.reduce(function (a, b) { return new Vector2(a.x + b.x, Math.max(a.y, b.y)); });
-            }
-            return size;
-        };
-        return DivComponent;
-    }(BranchComponentAbstract));
-
-    var SpreadComponent = (function (_super) {
-        __extends(SpreadComponent, _super);
-        function SpreadComponent() {
-            return _super !== null && _super.apply(this, arguments) || this;
-        }
-        SpreadComponent.prototype.distributeSize = function (size) {
-            var e_1, _a;
-            try {
-                for (var _b = __values(this.children), _c = _b.next(); !_c.done; _c = _b.next()) {
-                    var child = _c.value;
-                    child.position = new Vector2();
-                    child.size = size;
-                }
-            }
-            catch (e_1_1) { e_1 = { error: e_1_1 }; }
-            finally {
-                try {
-                    if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
-                }
-                finally { if (e_1) throw e_1.error; }
-            }
-        };
-        SpreadComponent.prototype.collectTargetSize = function () {
-            return new Vector2(Infinity, Infinity);
-        };
-        return SpreadComponent;
-    }(BranchComponentAbstract));
-
-    var LeafComponentAbstract = (function (_super) {
-        __extends(LeafComponentAbstract, _super);
-        function LeafComponentAbstract() {
-            var _this = _super !== null && _super.apply(this, arguments) || this;
-            _this.size = new Vector2();
-            _this.changed = true;
-            return _this;
-        }
-        LeafComponentAbstract.prototype.findTarget = function () {
-            return this;
-        };
-        return LeafComponentAbstract;
-    }(ComponentAbstract));
-
-    var ButtonComponent = (function (_super) {
-        __extends(ButtonComponent, _super);
-        function ButtonComponent() {
-            var _this = _super !== null && _super.apply(this, arguments) || this;
-            _this.targetSize = new Vector2(32, 32);
-            return _this;
-        }
-        ButtonComponent.prototype.draw = function (g) {
-            g.stroke(0);
-            g.fill(240);
-            g.rect(1, 1, this.size.x - 2, this.size.y - 2);
-        };
-        return ButtonComponent;
-    }(LeafComponentAbstract));
-
-    var EmptyComponent = (function (_super) {
-        __extends(EmptyComponent, _super);
-        function EmptyComponent() {
-            var _this = _super !== null && _super.apply(this, arguments) || this;
-            _this.targetSize = new Vector2(0, 0);
-            return _this;
-        }
-        EmptyComponent.prototype.draw = function () { };
-        return EmptyComponent;
-    }(LeafComponentAbstract));
-
-    var openScreenName = null;
-    var screens = new Map();
-    var fragments = new Map();
-    function setFragment(name, fragment) {
-        fragments.set(name, fragment);
-    }
-    function getFragment(name) {
-        var fragment = fragments.get(name);
-        if (fragment === undefined || fragment instanceof EmptyComponent) {
-            console.warn("Found empty fragment (".concat(name, ")"));
-            fragment = new EmptyComponent();
-        }
-        return fragment;
-    }
-    function setScreen(screenName, fragment) {
-        if (fragment === void 0) { fragment = screenName; }
-        if (typeof fragment === "string") {
-            screens.set(screenName, { fragmentName: fragment, component: null });
-        }
-        else {
-            screens.set(screenName, { fragmentName: null, component: fragment });
-        }
-    }
-    function getScreen(screenName) {
-        var screen = screens.get(screenName);
-        if (screen === undefined)
-            throw Error("Could not find screen (".concat(screenName, ")"));
-        if (screen.component === null) {
-            assert(screen.fragmentName !== null);
-            screen.component = getFragment(screen.fragmentName);
-            screens.set(screenName, screen);
-        }
-        return screen.component;
-    }
-    function openScreen(screenName) {
-        openScreenName = screenName;
-    }
-    function drawUI(d) {
-        if (d === void 0) { d = getP5DrawTarget("defaultP5"); }
-        if (openScreenName === null)
-            return;
-        var g = d.getMaps().canvas;
-        var component = getScreen(openScreenName);
-        component.size = component.targetSize.copy().minScalar(g.width, g.height);
-        component.draw(g);
-    }
-
     var Viewpoint = (function (_super) {
         __extends(Viewpoint, _super);
         function Viewpoint(scale, translation, options) {
@@ -5933,11 +5571,9 @@ var Brass = (function (exports, p5) {
     }(ViewpointAbstract));
 
     exports.AStarPathfinder = AStarPathfinder;
-    exports.ButtonComponent = ButtonComponent;
     exports.CanvasDrawTarget = CanvasDrawTarget;
     exports.CircleBody = CircleBody;
     exports.ClassicViewpoint = ClassicViewpoint;
-    exports.DivComponent = DivComponent;
     exports.DrawBuffer = DrawBuffer;
     exports.DrawTarget = DrawTarget;
     exports.GridBody = GridBody;
@@ -5950,14 +5586,13 @@ var Brass = (function (exports, p5) {
     exports.MinHeap = MinHeap;
     exports.P5DrawBuffer = P5DrawBuffer;
     exports.P5DrawTarget = P5DrawTarget;
-    exports.P5Lighter = P5Lighter;
+    exports.P5MatterLighter = P5MatterLighter;
     exports.P5Tilemap = P5Tilemap;
     exports.Particle = Particle;
     exports.PolyBody = PolyBody;
     exports.Pool = Pool;
     exports.RayBody = RayBody;
     exports.RectBody = RectBody;
-    exports.SpreadComponent = SpreadComponent;
     exports.Vector2 = Vector2;
     exports.VelocityParticle = VelocityParticle;
     exports.Viewpoint = Viewpoint;
@@ -5968,21 +5603,17 @@ var Brass = (function (exports, p5) {
     exports.drawFPS = drawFPS;
     exports.drawLoading = drawLoading;
     exports.drawParticles = draw;
-    exports.drawUI = drawUI;
     exports.emitParticle = emitParticle;
     exports.emitParticles = emitParticles;
     exports.forEachParticle = forEachParticle;
     exports.forEachVisableParticle = forEachVisableParticle;
-    exports.getCanvasDrawTarget = getCanvasDrawTarget;
     exports.getDefaultViewpoint = getDefaultViewpoint;
     exports.getDrawTarget = getDrawTarget;
+    exports.getDrawTargetOf = getDrawTargetOf;
     exports.getExactTime = getExactTime;
-    exports.getFragment = getFragment;
     exports.getImage = getImage;
     exports.getLevel = getLevel;
-    exports.getP5DrawTarget = getP5DrawTarget;
     exports.getRegl = getRegl;
-    exports.getScreen = getScreen;
     exports.getSimTime = getSimTime;
     exports.getSound = getSound;
     exports.getTestStatus = getTestStatus;
@@ -6000,16 +5631,13 @@ var Brass = (function (exports, p5) {
     exports.loadSoundEarly = loadSoundEarly;
     exports.loadSoundLate = loadSoundLate;
     exports.loaded = loaded;
-    exports.openScreen = openScreen;
     exports.refreshRegl = refreshRegl;
     exports.refreshReglFast = refreshReglFast;
     exports.resize = resize;
     exports.setDefaultViewpoint = setDefaultViewpoint;
     exports.setDrawTarget = setDrawTarget;
-    exports.setFragment = setFragment;
     exports.setLoadingTips = setLoadingTips;
     exports.setParticleLimit = setParticleLimit;
-    exports.setScreen = setScreen;
     exports.setTestStatus = setTestStatus;
     exports.setUnsafeLevelLoading = setUnsafeLevelLoading;
     exports.timewarp = timewarp;

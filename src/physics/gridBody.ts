@@ -11,7 +11,7 @@ export class GridBody extends MaterialBodyAbstract {
 	private readonly gridScale: number;
 	private readonly options: Matter.IBodyDefinition;
 
-	constructor(width: number, height: number, grid: ArrayLike<any>,
+	constructor(width: number, height: number, grid: ArrayLike<unknown>,
 		options: Matter.IBodyDefinition = {}, gridScale = 1) {
 
 		super(Matter.Body.create({}));
@@ -33,7 +33,7 @@ export class GridBody extends MaterialBodyAbstract {
 		this.buildBody(grid);
 	}
 
-	buildBody(grid: ArrayLike<any>, minX = 0, minY = 0, maxX = Infinity, maxY = Infinity) {
+	buildBody(grid: ArrayLike<unknown>, minX = 0, minY = 0, maxX = Infinity, maxY = Infinity) {
 		const spaceScale = getSpaceScale();
 		if (this.static) {
 			this.buildParts(grid, minX, minY, maxX, maxY);
@@ -61,7 +61,7 @@ export class GridBody extends MaterialBodyAbstract {
 		return this.body.isStatic;
 	}
 
-	private buildParts(grid: ArrayLike<any>, minX: number, minY: number, maxX: number, maxY: number) {
+	private buildParts(grid: ArrayLike<unknown>, minX: number, minY: number, maxX: number, maxY: number) {
 		const
 			startX = Math.max(0, minX), startY = Math.max(0, minY), endX = Math.min(this.width, maxX), endY = Math.min(this.height, maxY);
 
@@ -71,7 +71,7 @@ export class GridBody extends MaterialBodyAbstract {
 		for (let y = startY; y < endY; y++) {
 			let runStart: number | undefined = undefined;
 			for (let x = startX; x < endX; x++) {
-				if (!!grid[x + y * this.width]) {
+				if (grid[x + y * this.width]) {
 					if (runStart === undefined) {
 						runStart = x;
 					}
@@ -89,19 +89,19 @@ export class GridBody extends MaterialBodyAbstract {
 			}
 		}
 
-		// combine strips width matching ends on adjacent rows 
+		const row = this.width;
+		const length = this.width * this.height;
+		// combine strips with matching width on rows below
 		for (const [key, strip] of stripMap.entries()) {
-			let combineStripKey = key;
+			for (let otherKey = key + row;
+				otherKey < length;
+				otherKey += row) {
+				const otherStrip = stripMap.get(otherKey);
+				if (otherStrip === undefined ||
+					otherStrip.width !== strip.width) break;
 
-			while (true) {
-				combineStripKey += this.width;
-
-				const combineStrip = stripMap.get(combineStripKey);
-				if (combineStrip === undefined || combineStrip.width !== strip.width)
-					break;
-
-				strip.height += combineStrip.height;
-				stripMap.delete(combineStripKey);
+				strip.height += otherStrip.height;
+				stripMap.delete(otherKey);
 			}
 		}
 

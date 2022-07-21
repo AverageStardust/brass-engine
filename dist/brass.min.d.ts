@@ -12,13 +12,13 @@ declare class Pool<T> {
     release(obj: T): void;
     get size(): number;
 }
-declare abstract class HeapAbstract<HeapType> {
-    protected data: HeapType[];
+declare abstract class HeapAbstract<T> {
+    protected data: T[];
     private readonly compare;
-    constructor(data?: HeapType[], compare?: (a: HeapType, b: HeapType) => boolean);
-    insert(value: any): this;
-    remove(index?: number): HeapType | undefined;
-    top(): HeapType;
+    constructor(data?: T[], compare?: (a: T, b: T) => boolean);
+    insert(value: T): this;
+    remove(index?: number): T | undefined;
+    top(): T;
     sort(): this;
     log(): this;
     private siftUp;
@@ -29,37 +29,37 @@ declare abstract class HeapAbstract<HeapType> {
     private childRight;
     get size(): number;
 }
-declare class Heap<HeapType> extends HeapAbstract<HeapType> {
+declare class Heap<T> extends HeapAbstract<T> {
     protected swap(indexA: number, indexB: number): this;
 }
-declare class MappedHeap<HeapType> extends HeapAbstract<HeapType> {
+declare class MappedHeap<T> extends HeapAbstract<T> {
     private readonly map;
-    constructor(data?: HeapType[], compare?: (a: HeapType, b: HeapType) => boolean);
-    insert(value: HeapType): this;
-    removeValue(value: HeapType): HeapType | undefined;
+    constructor(data?: T[], compare?: (a: T, b: T) => boolean);
+    insert(value: T): this;
+    removeValue(value: T): T | undefined;
     protected swap(indexA: number, indexB: number): this;
 }
-declare class MaxHeap<HeapType> extends Heap<HeapType> {
-    constructor(data: HeapType[]);
+declare class MaxHeap<T> extends Heap<T> {
+    constructor(data: T[]);
 }
-declare class MinHeap<HeapType> extends Heap<HeapType> {
-    constructor(data: HeapType[]);
+declare class MinHeap<T> extends Heap<T> {
+    constructor(data: T[]);
 }
-declare class MappedMaxHeap<HeapType> extends MappedHeap<HeapType> {
-    constructor(data: HeapType[]);
+declare class MappedMaxHeap<T> extends MappedHeap<T> {
+    constructor(data: T[]);
 }
-declare class MappedMinHeap<HeapType> extends MappedHeap<HeapType> {
-    constructor(data: HeapType[]);
+declare class MappedMinHeap<T> extends MappedHeap<T> {
+    constructor(data: T[]);
 }
 type MatterWorldDefinition = Partial<Matter.IEngineDefinition & {
     spaceScale: number;
 }>;
 declare abstract class VectorAbstract {
     abstract array: number[];
-    watch(watcher: Function): this;
+    watch(watcher: (watchedVector: this) => void): this;
     private getWatchedValue;
     private setWatchedValue;
-    private watchedVectorMethod;
+    private watchedVectorMethodWrapper;
 }
 type Vertex2 = {
     x: number;
@@ -130,7 +130,7 @@ declare class Vector2 extends VectorAbstract {
     ]);
 }
 declare abstract class LayerAbstract<T extends {
-    [key: string]: any;
+    [key: string]: unknown;
 }> {
     id: symbol;
     protected abstract size: Vertex2 | null;
@@ -149,7 +149,9 @@ declare abstract class LayerAbstract<T extends {
     private getMap;
     protected throwSizeError(): never;
 }
-declare class DrawBuffer<T> extends LayerAbstract<T> {
+declare class DrawBuffer<T extends {
+    [key: string]: unknown;
+}> extends LayerAbstract<T> {
     protected size: Vertex2 | null;
     constructor(creator: (size: Vertex2) => T, resizer?: (size: Vertex2, oldMaps: T) => T);
     getMaps(size?: Vertex2): T;
@@ -157,15 +159,18 @@ declare class DrawBuffer<T> extends LayerAbstract<T> {
 declare function resize(_width?: number, _height?: number): void;
 declare function setDrawTarget(name: string, drawTarget: DrawTarget<any>): void;
 declare function getDrawTarget(name: string): DrawTarget<any>;
+declare function getDrawTargetOf<T>(name: string, classConstructor: new (...args: any[]) => T): T;
 declare const hasDrawTarget: (key: string) => boolean;
-declare class DrawTarget<T> extends LayerAbstract<T> {
+declare class DrawTarget<T extends {
+    [key: string]: unknown;
+}> extends LayerAbstract<T> {
     protected size: Vertex2 | null;
     private sizer;
     constructor(creator: (size: Vertex2) => T, resizer?: (size: Vertex2, oldMaps: T) => T, sizer?: (self: DrawTarget<T>) => Vertex2);
     setSizer(sizer: (self: DrawTarget<T>) => Vertex2): void;
     getMaps(): T;
     ensureSize(): void;
-    refresh(causes?: Symbol[]): void;
+    refresh(causes?: symbol[]): void;
     hasName(name: string): boolean;
     private getSizerResult;
     private defaultSizer;
@@ -174,7 +179,6 @@ type P5LayerMap = p5.Graphics | p5;
 type P5Layer = LayerAbstract<{
     canvas: P5LayerMap;
 }>;
-declare function getP5DrawTarget(name: string): P5DrawTarget;
 declare class P5DrawBuffer extends DrawBuffer<{
     canvas: P5LayerMap;
 }> {
@@ -233,7 +237,9 @@ interface Timewarp {
 }
 interface InitOptions {
     sketch?: p5;
-    drawTarget?: p5.Graphics | DrawTarget<any>;
+    drawTarget?: p5.Graphics | DrawTarget<{
+        [key: string]: unknown;
+    }>;
     viewpoint?: ViewpointAbstract;
     maxFrameRate?: number;
     maxTimeDelta?: number;
@@ -320,17 +326,25 @@ type ColorArgs = [
     number,
     number
 ] | [
+    number[]
+] | [
     p5.Color
 ];
 interface LighterAbstractOptions {
     resolution?: number;
 }
-interface P5LighterOptions extends LighterAbstractOptions {
+declare abstract class LighterAbstract {
+    protected resolution: number;
+    constructor(options: LighterAbstractOptions);
+    abstract begin(v: ViewpointAbstract, d: LayerAbstract<any>): this;
+    abstract end(d: LayerAbstract<any>): this;
+}
+interface P5MatterLighterOptions extends LighterAbstractOptions {
     blur?: number;
     color?: p5.Color;
 }
 interface DirectionalOptions {
-    cacheName?: any;
+    cacheName?: unknown;
     cacheTime?: number;
     rays?: number;
     raySteps?: number;
@@ -338,16 +352,15 @@ interface DirectionalOptions {
     raysCollideWith?: "everything" | "nothing" | number | number[];
     drawOffscreen?: boolean;
 }
-declare class P5Lighter {
+declare class P5MatterLighter extends LighterAbstract {
     private lightBuffer;
-    private resolution;
     private _blur;
     private color;
     private directionalCache;
     private viewpoint;
-    constructor(options?: P5LighterOptions);
-    begin(v?: ViewpointAbstract, d?: P5DrawTarget): this;
-    end(d?: P5Layer): void;
+    constructor(options?: P5MatterLighterOptions);
+    begin(v?: ViewpointAbstract, d?: P5Layer): this;
+    end(d?: P5Layer): this;
     set blur(value: number);
     get blur(): number;
     fill(...colArgs: ColorArgs): this;
@@ -366,7 +379,7 @@ declare class P5Lighter {
 type DynamicTypedArrayType = "int8" | "int16" | "int32" | "uint8" | "uint16" | "uint32" | "float32" | "float64";
 type DynamicArrayType = "any" | DynamicTypedArrayType;
 type DynamicTypedArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array | Float32Array | Float64Array;
-type DynamicArray = any[] | DynamicTypedArray;
+type DynamicArray = unknown[] | DynamicTypedArray;
 type Opaque<T, S> = T & {
     __opaque__: S;
 };
@@ -382,7 +395,7 @@ type CollisionFilterCategory = Opaque<number, "CollisionFilterCategory">;
 declare abstract class BodyAbstract {
     private sensors;
     alive: boolean;
-    data: any;
+    data: unknown;
     constructor();
     abstract get position(): Vector2;
     abstract get velocity(): Vector2;
@@ -419,20 +432,19 @@ declare abstract class MaterialBodyAbstract extends BodyAbstract {
     body: InternalMatterBody;
     constructor(body: Matter.Body);
     protected setBody(body: Matter.Body): void;
-    protected removeBody(): void;
     get position(): Vector2;
-    private setPosition;
-    get velocity(): Vector2;
-    private setVelocity;
-    get angle(): number;
-    get angularVelocity(): number;
-    get static(): boolean;
-    get ghost(): boolean;
     set position(position: Vertex2);
+    private positionWatcherMethod;
+    get velocity(): Vector2;
     set velocity(velocity: Vertex2);
+    private velocityWatcherMethod;
+    get angle(): number;
     set angle(angle: number);
+    get angularVelocity(): number;
     set angularVelocity(angularVelocity: number);
+    get static(): boolean;
     set static(isStatic: boolean);
+    get ghost(): boolean;
     set ghost(isGhost: boolean);
     set collisionCategory(categoryIndex: number);
     set collidesWith(category: "everything" | "nothing" | number | number[]);
@@ -449,8 +461,8 @@ declare class GridBody extends MaterialBodyAbstract {
     private readonly height;
     private readonly gridScale;
     private readonly options;
-    constructor(width: number, height: number, grid: ArrayLike<any>, options?: Matter.IBodyDefinition, gridScale?: number);
-    buildBody(grid: ArrayLike<any>, minX?: number, minY?: number, maxX?: number, maxY?: number): void;
+    constructor(width: number, height: number, grid: ArrayLike<unknown>, options?: Matter.IBodyDefinition, gridScale?: number);
+    buildBody(grid: ArrayLike<unknown>, minX?: number, minY?: number, maxX?: number, maxY?: number): void;
     get static(): boolean;
     private buildParts;
 }
@@ -459,7 +471,7 @@ type FieldDeclaration = {
     [name: string]: SparseableDynamicArrayType;
 };
 type SparseFieldData = {
-    [name: `${number},${number}`]: any;
+    [name: `${number},${number}`]: unknown;
 };
 type SparseableDynamicArray = {
     sparse: true;
@@ -475,7 +487,7 @@ interface LevelFields {
     } | ({
         type: DynamicArrayType;
     } & ({
-        data: any[];
+        data: unknown[];
     } | {
         data: string;
         encoding: DynamicTypedArrayType;
@@ -484,7 +496,7 @@ interface LevelFields {
 interface Level {
     width: number;
     height: number;
-    objects: any[];
+    objects: unknown[];
     tilesets: {
         [name: string]: LevelTileset;
     };
@@ -494,7 +506,7 @@ interface LevelTileset {
     firstId: number;
     tiles: {
         [id: number]: {
-            [name: string]: any;
+            [name: string]: unknown;
         };
     };
 }
@@ -505,7 +517,7 @@ interface TilemapAbstractOptions {
     body?: boolean | Matter.IBodyDefinition;
     autoMaintainBody?: boolean;
     getTileData?: (x: number, y: number) => unknown;
-    isTileSolid?: (data: any) => boolean;
+    isTileSolid?: (data: unknown) => boolean;
 }
 declare abstract class TilemapAbstract {
     readonly width: number;
@@ -524,11 +536,12 @@ declare abstract class TilemapAbstract {
     protected readonly getTileData: (x: number, y: number) => unknown;
     private readonly isTileSolid;
     constructor(width: number, height: number, options?: TilemapAbstractOptions);
-    bindOptionsFunction(func?: Function): any;
+    bindOptionFunction<T extends Function>(func: T | undefined, fallbackFunc: T): T;
+    bindNullableOptionFunction<T extends Function>(func: T | undefined): T | null;
     maintain(): void;
     maintainBody(minX?: number, minY?: number, maxX?: number, maxY?: number): void;
-    get(x: number, y: number, fieldId?: number): any;
-    set(value: any, x: number, y: number, fieldId?: number): boolean;
+    get(x: number, y: number, fieldId?: number): unknown;
+    set(value: unknown, x: number, y: number, fieldId?: number): boolean;
     getSolid(x: number, y: number): boolean | undefined;
     export(): Level;
     import(world: Level): void;
@@ -560,7 +573,7 @@ declare function setUnsafeLevelLoading(value?: boolean): void;
 declare function loadLevelEarly(fields: FieldDeclaration, ...args: AssetDefinitionArgs): Promise<unknown>;
 declare function loadLevelLate(fields: FieldDeclaration, ...args: AssetDefinitionArgs): Promise<Asset>;
 declare function getLevel(name: string): Level | null;
-type ParticleClass = new (...rest: any[]) => Particle;
+type ParticleClass = new (...rest: unknown[]) => Particle;
 declare class Particle {
     position: Vector2;
     radius: number;
@@ -583,8 +596,8 @@ declare function draw(v?: ViewpointAbstract, d?: P5DrawTarget): void;
 declare function forEachParticle(func: (particle: Particle) => void): void;
 declare function forEachVisableParticle(func: (particle: Particle) => void, v?: ViewpointAbstract, d?: P5DrawTarget): void;
 declare function setParticleLimit(limit: number): void;
-declare function emitParticles(classVar: ParticleClass, amount: number, position: Vertex2, ...data: any[]): void;
-declare function emitParticle(classVar: ParticleClass, position: Vertex2, ...data: any[]): void;
+declare function emitParticles(classVar: ParticleClass, amount: number, position: Vertex2, ...data: unknown[]): void;
+declare function emitParticle(classVar: ParticleClass, position: Vertex2, ...data: unknown[]): void;
 declare class VelocityParticle extends Particle {
     protected velocity: Vector2;
     constructor(velocity?: Vector2);
@@ -736,23 +749,23 @@ declare class RayBody extends BodyAbstract {
         mask?: number;
     });
     get angle(): number;
-    get angularVelocity(): number;
-    get static(): boolean;
-    get ghost(): boolean;
     set angle(_: number);
+    get angularVelocity(): number;
     set angularVelocity(_: number);
+    get static(): boolean;
     set static(isStatic: boolean);
+    get ghost(): boolean;
     set ghost(isGhost: boolean);
     set collisionCategory(_: number);
     set collidesWith(category: "everything" | "nothing" | number | number[]);
     private setCollidesWith;
-    rotate(_: number): never;
+    rotate(): never;
     applyForce(): never;
     kill(): void;
     protected remove(): void;
     castOverTime(delta: number, steps?: number): {
         point: Vector2;
-        dist: Number;
+        dist: number;
         body: MaterialBodyAbstract | null;
     };
     cast(_displacement: Vector2, steps?: number): {
@@ -769,9 +782,9 @@ interface P5TilemapOptions extends TilemapAbstractOptions {
     drawCachePadding?: number;
     drawCachePaddingTime?: number;
     drawCachePoolInitalSize?: number;
-    drawTile?: (data: any, x: number, y: number, g: P5LayerMap) => void;
-    drawOrder?: (data: any) => number;
-    canCacheTile?: (data: any) => boolean;
+    drawTile?: (data: unknown, x: number, y: number, g: P5LayerMap) => void;
+    drawOrder?: (data: unknown) => number;
+    canCacheTile?: (data: unknown) => boolean;
 }
 declare class P5Tilemap extends TilemapAbstract {
     readonly drawCacheMode: "never" | "check" | "always";
@@ -801,80 +814,15 @@ declare class P5Tilemap extends TilemapAbstract {
 declare function setLoadingTips(tips: string[]): void;
 declare function drawFPS(d?: P5DrawTarget): void;
 declare function drawLoading(d?: P5DrawTarget): void;
-declare abstract class ComponentAbstract {
-    id: symbol;
-    private cache;
-    protected _style: any;
-    position: Vector2;
-    abstract size: Vector2;
-    abstract targetSize: Vector2;
-    abstract changed: boolean;
-    weight: number;
-    constructor(style?: any);
-    get style(): {};
-    set style(value: any);
-    abstract draw(g: P5LayerMap): void;
-    abstract findTarget(position: Vector2): ComponentAbstract | null;
-    protected cacheProperty<T>(name: string, getValue: () => T): T;
-    protected displayChange(): void;
-    private getStyle;
-    private setStyle;
-}
-declare abstract class BranchComponentAbstract extends ComponentAbstract {
-    protected children: ComponentAbstract[];
-    private _size;
-    private _changed;
-    drawBuffer: P5DrawBuffer;
-    constructor(style?: any);
-    set size(size: Vector2);
-    get targetSize(): Vector2;
-    set changed(value: boolean);
-    get changed(): boolean;
-    addChild(child: ComponentAbstract, location?: number | ComponentAbstract): this;
-    removeChild(location?: number | ComponentAbstract): this;
-    protected evaluateChildLocation(location?: number | ComponentAbstract): number;
-    findChildIndex(component: ComponentAbstract): number;
-    findTarget(position: Vector2): ComponentAbstract | this;
-    findChildAt(position: Vector2): ComponentAbstract | null;
-    abstract distributeSize(size: Vector2, oldSize: Vector2): void;
-    abstract collectTargetSize(): Vector2;
-    draw(g: P5LayerMap): void;
-    _draw(g: P5LayerMap): void;
-}
-declare class DivComponent extends BranchComponentAbstract {
-    constructor(style?: any);
-    distributeSize(size: Vector2): void;
-    collectTargetSize(): Vector2;
-}
-declare class SpreadComponent extends BranchComponentAbstract {
-    distributeSize(size: Vector2): void;
-    collectTargetSize(): Vector2;
-}
-declare abstract class LeafComponentAbstract extends ComponentAbstract {
-    size: Vector2;
-    changed: boolean;
-    findTarget(): this;
-}
-declare class ButtonComponent extends LeafComponentAbstract {
-    targetSize: Vector2;
-    draw(g: P5LayerMap): void;
-}
-declare function setFragment(name: string, fragment: ComponentAbstract): void;
-declare function getFragment(name: string): ComponentAbstract;
-declare function setScreen(screenName: string, fragment?: string | ComponentAbstract): void;
-declare function getScreen(screenName: string): ComponentAbstract;
-declare function openScreen(screenName: string | null): void;
-declare function drawUI(d?: P5Layer): void;
 declare function getRegl(): REGL.Regl;
 declare function refreshRegl(): void;
 declare function refreshReglFast(): void;
-declare function getCanvasDrawTarget(name: string): CanvasDrawTarget;
 declare class CanvasDrawTarget extends DrawTarget<{
     canvas: HTMLCanvasElement;
 }> {
     constructor(sizer?: (self: CanvasDrawTarget) => Vertex2);
 }
-declare function drawCanvasToP5(p5Target?: P5DrawTarget, canvasTarget?: CanvasDrawTarget): void;
+declare function drawCanvasToP5(p5Target?: P5Layer, canvasTarget?: CanvasDrawTarget): void;
 declare function setDefaultViewpoint(viewpoint: ViewpointAbstract): void;
 declare function getDefaultViewpoint(): ViewpointAbstract;
 declare class ClassicViewpoint extends ViewpointAbstract {
@@ -902,4 +850,4 @@ declare class Viewpoint extends ViewpointAbstract {
     set target(value: Vector2);
     get target(): Vector2;
 }
-export { createFastGraphics, Pool, Heap, MaxHeap, MinHeap, MappedHeap, MappedMaxHeap, MappedMinHeap, init$0 as init, update$0 as update, setTestStatus, getTestStatus, timewarp, getTimewarp, getTimewarps, getTime, getExactTime, getSimTime, InputMapper, disableContextMenu, P5Lighter, loadImageEarly, loadImageLate, loadImageDynamic, getImage, loadSoundEarly, loadSoundLate, getSound, setUnsafeLevelLoading, loadLevelEarly, loadLevelLate, getLevel, loaded, loadProgress, setParticleLimit, emitParticles, emitParticle, forEachParticle, forEachVisableParticle, draw as drawParticles, Particle, VelocityParticle, AStarPathfinder, drawColliders, RectBody, CircleBody, PolyBody, GridBody, RayBody, P5Tilemap, drawFPS, drawLoading, setLoadingTips, DivComponent, SpreadComponent, ButtonComponent, setFragment, getFragment, setScreen, getScreen, openScreen, drawUI, Vertex2, Vector2, getRegl, refreshRegl, refreshReglFast, DrawBuffer, resize, DrawTarget, setDrawTarget, hasDrawTarget, getDrawTarget, P5DrawBuffer, P5DrawTarget, getP5DrawTarget, CanvasDrawTarget, getCanvasDrawTarget, drawCanvasToP5, setDefaultViewpoint, getDefaultViewpoint, ClassicViewpoint, Viewpoint };
+export { createFastGraphics, Pool, Heap, MaxHeap, MinHeap, MappedHeap, MappedMaxHeap, MappedMinHeap, init$0 as init, update$0 as update, setTestStatus, getTestStatus, timewarp, getTimewarp, getTimewarps, getTime, getExactTime, getSimTime, InputMapper, disableContextMenu, P5MatterLighter, loadImageEarly, loadImageLate, loadImageDynamic, getImage, loadSoundEarly, loadSoundLate, getSound, setUnsafeLevelLoading, loadLevelEarly, loadLevelLate, getLevel, loaded, loadProgress, setParticleLimit, emitParticles, emitParticle, forEachParticle, forEachVisableParticle, draw as drawParticles, Particle, VelocityParticle, AStarPathfinder, drawColliders, RectBody, CircleBody, PolyBody, GridBody, RayBody, P5Tilemap, drawFPS, drawLoading, setLoadingTips, Vertex2, Vector2, getRegl, refreshRegl, refreshReglFast, DrawBuffer, resize, DrawTarget, setDrawTarget, hasDrawTarget, getDrawTarget, getDrawTargetOf, P5DrawBuffer, P5DrawTarget, CanvasDrawTarget, drawCanvasToP5, setDefaultViewpoint, getDefaultViewpoint, ClassicViewpoint, Viewpoint };

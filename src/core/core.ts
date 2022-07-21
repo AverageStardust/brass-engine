@@ -11,14 +11,14 @@ import { init as initViewpoint, updateViewpoints } from "../camera/camera";
 import { init as initLayer } from "../layers/layers";
 import { init as initSketch, getSketch } from "./sketch";
 import { init as initPhysics, MatterWorldDefinition, update as updatePhysics } from "../physics/physics";
-import { DrawTarget, resize, syncDefaultP5DrawTarget } from "../layers/drawTarget";
+import { DrawTarget, resize, syncDefaultDrawTargetWithSketch } from "../layers/drawTarget";
 import { ViewpointAbstract } from "../camera/viewpointAbstract";
 import { deltaSimTime, update as updateTime } from "./time";
 import { drawLoading } from "../ui/legacyUI";
 import { update as updateEffects } from "../effects/effects";
 import { update as updatePathfinders } from "../pathfinder/pathfinder";
 import { update as updateTilemaps } from "../tilemap/tilemap";
-import { getP5DrawTarget } from "../layers/p5Layers";
+import { getDefaultP5DrawTarget } from "../layers/p5Layers";
 
 
 
@@ -34,7 +34,7 @@ interface Timewarp {
 
 interface InitOptions {
 	sketch?: p5;
-	drawTarget?: p5.Graphics | DrawTarget<any>;
+	drawTarget?: p5.Graphics | DrawTarget<{ [key: string]: unknown }>;
 	viewpoint?: ViewpointAbstract;
 
 	maxFrameRate?: number;
@@ -146,8 +146,8 @@ function defaultSketchDraw() {
 	updateLate(simDelta);
 
 	if (sketch.brassDraw !== undefined) {
-		syncDefaultP5DrawTarget();
-		getP5DrawTarget("defaultP5").getMaps().canvas.resetMatrix();
+		syncDefaultDrawTargetWithSketch();
+		getDefaultP5DrawTarget().getMaps().canvas.resetMatrix();
 		sketch.brassDraw(simDelta);
 	}
 }

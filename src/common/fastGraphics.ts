@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import p5 from "p5";
 
 
@@ -51,7 +52,7 @@ class FastGraphics extends p5.Element {
 
 	remove() {
 		// @ts-ignore because this is all hacks
-		for (var elt_ev in this._events) {
+		for (const elt_ev in this._events) {
 			// @ts-ignore because this is all hacks
 			this.elt.removeEventListener(elt_ev, this._events[elt_ev]);
 		}

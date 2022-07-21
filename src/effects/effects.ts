@@ -4,10 +4,10 @@
  * @module
  */
 
-import { getP5DrawTarget } from "../layers/p5Layers";
 import { Vector2, Vertex2 } from "../vector/vector2";
 import { getDefaultViewpoint } from "../camera/camera";
 import { Particle, ParticleClass } from "./particle";
+import { getDefaultP5DrawTarget } from "../layers/p5Layers";
 
 
 
@@ -31,11 +31,11 @@ export function update(delta: number) {
 	}
 }
 
-export function draw(v = getDefaultViewpoint(), d = getP5DrawTarget("defaultP5")) {
+export function draw(v = getDefaultViewpoint(), d = getDefaultP5DrawTarget()) {
 	const g = d.getMaps().canvas;
 	const viewArea = v.getWorldViewArea(d);
 
-	for (const [_, particle] of particles.entries()) {
+	for (const particle of particles.values()) {
 		if (particle.visable(viewArea)) {
 			g.push();
 
@@ -50,16 +50,16 @@ export function draw(v = getDefaultViewpoint(), d = getP5DrawTarget("defaultP5")
 }
 
 export function forEachParticle(func: (particle: Particle) => void) {
-	for (const [_, particle] of particles.entries()) {
+	for (const particle of particles.values()) {
 		func(particle);
 	}
 }
 
 export function forEachVisableParticle(func: (particle: Particle) => void,
-	v = getDefaultViewpoint(), d = getP5DrawTarget("defaultP5")) {
+	v = getDefaultViewpoint(), d = getDefaultP5DrawTarget()) {
 	const viewArea = v.getWorldViewArea(d);
 
-	for (const [_, particle] of particles.entries()) {
+	for (const particle of particles.values()) {
 		if (particle.visable(viewArea)) func(particle);
 	}
 }
@@ -82,7 +82,7 @@ export function setParticleLimit(limit: number) {
 	particleLimit = limit;
 }
 
-export function emitParticles(classVar: ParticleClass, amount: number, position: Vertex2, ...data: any[]) {
+export function emitParticles(classVar: ParticleClass, amount: number, position: Vertex2, ...data: unknown[]) {
 	// percent of limit filled
 	const limitFilled = particles.size / particleLimit;
 	// spawn less when near/over limit
@@ -95,7 +95,7 @@ export function emitParticles(classVar: ParticleClass, amount: number, position:
 	}
 }
 
-export function emitParticle(classVar: ParticleClass, position: Vertex2, ...data: any[]) {
+export function emitParticle(classVar: ParticleClass, position: Vertex2, ...data: unknown[]) {
 	// percent of limit filled
 	const limitFilled = particles.size / particleLimit;
 	// don't spawn less when over limit
@@ -105,7 +105,7 @@ export function emitParticle(classVar: ParticleClass, position: Vertex2, ...data
 	spawnParticle(classVar, position, data);
 }
 
-function spawnParticle(classVar: ParticleClass, position: Vertex2, data: any[]) {
+function spawnParticle(classVar: ParticleClass, position: Vertex2, data: unknown[]) {
 	const particle = new classVar(...data);
 	particle.position = Vector2.fromObj(position);
 

@@ -12,7 +12,6 @@ import { PathSituation, PathSituationType } from "./PathSituationType";
 
 
 
-
 export type ComputePathArgs = [PathSituation<unknown>] | [Vector2, Vector2, number];
 
 export interface PathfinderAbstractOptions {
@@ -73,7 +72,6 @@ export abstract class PathfinderAbstract {
 	protected confidence = 0.5;
 	protected agents: PathAgent[];
 	protected waitingAgent: number;
-
 
 	constructor(options: PathfinderAbstractOptions) {
 		this.width = options.width;
@@ -239,8 +237,6 @@ export abstract class PathfinderAbstract {
 					}
 				} else {
 					// if possible only compute part
-					let continueToWhole = true;
-
 					if (agent.path.length > 0 && !agent.tryedPartCompute) {
 						const situation = this.attemptAgentPartCompute(agent);
 						if (situation !== undefined) {
@@ -408,7 +404,7 @@ export abstract class PathfinderAbstract {
 				maxRuntime: args[2],
 				runtime: 0,
 				type: PathSituationType.Inital
-			}
+			};
 		}
 	}
 

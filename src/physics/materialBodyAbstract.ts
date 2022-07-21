@@ -41,23 +41,33 @@ export abstract class MaterialBodyAbstract extends BodyAbstract {
 		Matter.World.add(getMatterWorld(), body);
 	}
 
-	protected removeBody() {
-	}
-
 	get position(): Vector2 {
 		const position = Vector2.fromObj(this.body.position).divScalar(getSpaceScale());
-		return position.watch(this.setPosition.bind(this));
+		return position.watch(this.positionWatcherMethod.bind(this));
 	}
 
-	private setPosition(position: Vector2) {
+	set position(position: Vertex2) {
+		const spaceScale = getSpaceScale();
+		position = Matter.Vector.create(position.x * spaceScale, position.y * spaceScale);
+		Matter.Body.setPosition(this.body, position);
+	}
+
+	private positionWatcherMethod(position: Vector2) {
 		this.position = position;
 	}
 
 	get velocity(): Vector2 {
 		const velocity = Vector2.fromObj(this.body.velocity).divScalar(getSpaceScale());
-		return velocity.watch(this.setVelocity.bind(this));
+		return velocity.watch(this.velocityWatcherMethod.bind(this));
 	}
-	private setVelocity(velocity: Vector2) {
+	
+	set velocity(velocity: Vertex2) {
+		const spaceScale = getSpaceScale();
+		velocity = Matter.Vector.create(velocity.x * spaceScale, velocity.y * spaceScale);
+		Matter.Body.setVelocity(this.body, velocity);
+	}
+
+	private velocityWatcherMethod(velocity: Vector2) {
 		this.velocity = velocity;
 	}
 
@@ -65,41 +75,28 @@ export abstract class MaterialBodyAbstract extends BodyAbstract {
 		return this.body.angle;
 	}
 
-	get angularVelocity() {
-		return this.body.angularVelocity;
-	}
-
-	get static() {
-		return this.body.isStatic;
-	}
-
-	get ghost() {
-		return this.body.isSensor;
-	}
-
-	set position(position: Vertex2) {
-		;
-		const spaceScale = getSpaceScale();
-		position = Matter.Vector.create(position.x * spaceScale, position.y * spaceScale);
-		Matter.Body.setPosition(this.body, position);
-	}
-
-	set velocity(velocity: Vertex2) {
-		const spaceScale = getSpaceScale();
-		velocity = Matter.Vector.create(velocity.x * spaceScale, velocity.y * spaceScale);
-		Matter.Body.setVelocity(this.body, velocity);
-	}
-
 	set angle(angle: number) {
 		Matter.Body.setAngle(this.body, angle);
+	}
+
+	get angularVelocity() {
+		return this.body.angularVelocity;
 	}
 
 	set angularVelocity(angularVelocity: number) {
 		Matter.Body.setAngularVelocity(this.body, angularVelocity);
 	}
 
+	get static() {
+		return this.body.isStatic;
+	}
+
 	set static(isStatic: boolean) {
 		Matter.Body.setStatic(this.body, isStatic);
+	}
+
+	get ghost() {
+		return this.body.isSensor;
 	}
 
 	set ghost(isGhost: boolean) {

@@ -23,7 +23,7 @@ export class RayBody extends BodyAbstract {
 	private width: number;
 	private mask: CollisionFilterMask;
 
-	constructor(x: number, y: number, width: number = 0.1, options: { velocity?: Vertex2; mask?: number; } = {}) {
+	constructor(x: number, y: number, width = 0.1, options: { velocity?: Vertex2; mask?: number; } = {}) {
 		super();
 		this.position = new Vector2(x, y);
 		this.velocity = Vector2.fromObj(options.velocity ?? { x: 0, y: 0 });
@@ -37,24 +37,20 @@ export class RayBody extends BodyAbstract {
 		throw Error("RayBody can't have rotation");
 	}
 
-	get angularVelocity() {
+	set angle(_: number) {
 		throw Error("RayBody can't have rotation");
 	}
 
-	get static() {
-		return false;
-	}
-
-	get ghost() {
-		return true;
-	}
-
-	set angle(_: number) {
+	get angularVelocity() {
 		throw Error("RayBody can't have rotation");
 	}
 
 	set angularVelocity(_: number) {
 		throw Error("RayBody can't have rotation");
+	}
+
+	get static() {
+		return false;
 	}
 
 	set static(isStatic: boolean) {
@@ -63,13 +59,19 @@ export class RayBody extends BodyAbstract {
 		}
 	}
 
+	get ghost() {
+		return true;
+	}
+
 	set ghost(isGhost: boolean) {
 		if (isGhost === false) {
 			throw Error("RayBody can't have ghost behaviour disabled");
 		}
 	}
 
-	set collisionCategory(_: number) { }
+	set collisionCategory(_: number) {
+		// do nothing
+	}
 
 	set collidesWith(category: "everything" | "nothing" | number | number[]) {
 		this.mask = 0 as CollisionFilterMask;
@@ -96,7 +98,7 @@ export class RayBody extends BodyAbstract {
 		return this;
 	}
 
-	rotate(_: number): never {
+	rotate(): never {
 		throw Error("RayBody can't have rotation");
 	}
 
@@ -115,7 +117,7 @@ export class RayBody extends BodyAbstract {
 
 	castOverTime(delta: number, steps?: number): {
 		point: Vector2;
-		dist: Number;
+		dist: number;
 		body: MaterialBodyAbstract | null;
 	} {
 		const timeSteps = (delta / 1000 * 60);

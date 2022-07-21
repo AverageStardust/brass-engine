@@ -1,7 +1,7 @@
 export type DynamicTypedArrayType = "int8" | "int16" | "int32" | "uint8" | "uint16" | "uint32" | "float32" | "float64";
 export type DynamicArrayType = "any" | DynamicTypedArrayType;
 export type DynamicTypedArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array | Float32Array | Float64Array;
-export type DynamicArray = any[] | DynamicTypedArray;
+export type DynamicArray = unknown[] | DynamicTypedArray;
 
 
 
@@ -40,7 +40,7 @@ export function encodeDynamicTypedArray(data: DynamicTypedArray): string {
 	const raw = new Uint8Array(data.buffer);
 
 	const binary = [];
-	for (var i = 0; i < raw.byteLength; i++) {
+	for (let i = 0; i < raw.byteLength; i++) {
 		binary.push(String.fromCharCode(raw[i]));
 	}
 
@@ -51,7 +51,7 @@ export function decodeDynamicTypedArray(type: DynamicTypedArrayType, base64: str
 	const binary = window.atob(base64);
 
 	const raw = new Uint8Array(binary.length);
-	for (var i = 0; i < raw.byteLength; i++) {
+	for (let i = 0; i < raw.byteLength; i++) {
 		raw[i] = binary.charCodeAt(i);
 	}
 

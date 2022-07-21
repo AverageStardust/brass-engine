@@ -3,14 +3,15 @@
  * @module
  */
 
-import { getP5DrawTarget, P5DrawTarget, P5LayerMap } from "../layers/p5Layers";
+import p5 from "p5";
+import { P5DrawTarget, P5LayerMap } from "../layers/p5Layers";
 import { getExactTime, getTime } from "../core/time";
 import { assert } from "../common/runtimeChecking";
 import { createFastGraphics } from "../common/fastGraphics";
 import { Pool } from "../common/pool";
 import { getDefaultViewpoint } from "../camera/camera";
 import { TilemapAbstract, TilemapAbstractOptions } from "./tilemapAbstract";
-import p5 from "p5";
+import { getDefaultP5DrawTarget } from "../layers/p5Layers";
 
 
 
@@ -25,9 +26,9 @@ export interface P5TilemapOptions extends TilemapAbstractOptions {
 	drawCachePaddingTime?: number; // milliseconds used on off-screen chunks rendering
 	drawCachePoolInitalSize?: number; // how many tile caches to create on initialization
 
-	drawTile?: (data: any, x: number, y: number, g: P5LayerMap) => void;
-	drawOrder?: (data: any) => number;
-	canCacheTile?: (data: any) => boolean;
+	drawTile?: (data: unknown, x: number, y: number, g: P5LayerMap) => void;
+	drawOrder?: (data: unknown) => number;
+	canCacheTile?: (data: unknown) => boolean;
 }
 
 export interface P5CacheChunk {
@@ -45,9 +46,9 @@ export class P5Tilemap extends TilemapAbstract {
 	private readonly drawCachePadding: number;
 	private readonly drawCachePaddingTime: number;
 
-	private readonly drawTile: (data: any, x: number, y: number, g: P5LayerMap) => void;
-	private readonly drawOrder: ((data: any) => number) | null;
-	private readonly canCacheTile: ((data: any) => boolean) | null;
+	private readonly drawTile: (data: unknown, x: number, y: number, g: P5LayerMap) => void;
+	private readonly drawOrder: ((data: unknown) => number) | null;
+	private readonly canCacheTile: ((data: unknown) => boolean) | null;
 
 	private readonly chunkPool: Pool<P5CacheChunk> | null;
 	private readonly chunks: (P5CacheChunk | null)[];
@@ -94,9 +95,9 @@ export class P5Tilemap extends TilemapAbstract {
 			this.cacheableChunks = Array(drawCacheChunkSize).fill(null);
 		}
 
-		this.drawTile = this.bindOptionsFunction(options.drawTile) ?? this.defaultDrawTile;
-		this.drawOrder = this.bindOptionsFunction(options.drawOrder) ?? null;
-		this.canCacheTile = this.bindOptionsFunction(options.canCacheTile) ?? null;
+		this.drawTile = this.bindOptionFunction(options.drawTile, this.defaultDrawTile);
+		this.drawOrder = this.bindNullableOptionFunction(options.drawOrder);
+		this.canCacheTile = this.bindNullableOptionFunction(options.canCacheTile);
 
 		if (this.canCacheTile === null &&
 			this.drawCacheMode === "check") {
@@ -104,7 +105,7 @@ export class P5Tilemap extends TilemapAbstract {
 		}
 	}
 
-	draw(v = getDefaultViewpoint(), d = getP5DrawTarget("defaultP5")) {
+	draw(v = getDefaultViewpoint(), d = getDefaultP5DrawTarget()) {
 		const g = d.getMaps().canvas;
 		const viewArea = v.getWorldViewArea(d);
 
@@ -134,8 +135,8 @@ export class P5Tilemap extends TilemapAbstract {
 					viewArea.maxX, viewArea.maxY, g);
 				break;
 
-			case "always":
-				alwaysCache = true;
+			case "always": alwaysCache = true;
+			// eslint-disable-next-line no-fallthrough
 			case "check":
 				// this.drawCacheMode !== "never" thus
 				assert(this.chunkPool !== null);
@@ -357,7 +358,7 @@ export class P5Tilemap extends TilemapAbstract {
 		g.pop();
 	}
 
-	private defaultDrawTile(data: any, x: number, y: number, g: P5LayerMap) {
+	private defaultDrawTile(data: unknown, x: number, y: number, g: P5LayerMap) {
 		g.noStroke();
 
 		const brightness = (x + y) % 2 * 255;

@@ -12,7 +12,6 @@ import { getViewpoints, ViewpointAbstract } from "./viewpointAbstract";
 
 
 
-
 let defaultViewpoint: ViewpointAbstract;
 
 

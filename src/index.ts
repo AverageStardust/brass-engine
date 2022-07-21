@@ -46,8 +46,8 @@ export {
 
 
 export {
-	P5Lighter
-} from "./lighting";
+	P5MatterLighter
+} from "./lighting/p5MatterLighter";
 
 
 
@@ -117,23 +117,6 @@ export {
 	drawLoading,
 	setLoadingTips
 } from "./ui/legacyUI";
-export {
-	DivComponent
-} from "./ui/divComponent";
-export {
-	SpreadComponent
-} from "./ui/spreadComponent";
-export {
-	ButtonComponent
-} from "./ui/buttonComponent";
-export {
-	setFragment,
-	getFragment,
-	setScreen,
-	getScreen,
-	openScreen,
-	drawUI
-} from "./ui/ui";
 
 
 
@@ -157,16 +140,15 @@ export {
 	DrawTarget,
 	setDrawTarget,
 	hasDrawTarget,
-	getDrawTarget
+	getDrawTarget,
+	getDrawTargetOf
 } from "./layers/drawTarget";
 export {
 	P5DrawBuffer,
 	P5DrawTarget,
-	getP5DrawTarget
 } from "./layers/p5Layers";
 export {
 	CanvasDrawTarget,
-	getCanvasDrawTarget
 } from "./layers/canvasLayers";
 export {
 	drawCanvasToP5
@@ -180,7 +162,7 @@ export {
 } from "./camera/camera";
 export {
 	ClassicViewpoint,
-} from "./camera/classicViewpoint"
+} from "./camera/classicViewpoint";
 export {
 	Viewpoint,
-} from "./camera/viewpoint"
+} from "./camera/viewpoint";

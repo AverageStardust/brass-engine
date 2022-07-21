@@ -4,8 +4,8 @@
  * @module
  */
 
-import { assert } from "../common/runtimeChecking";
-import { getP5DrawTarget, P5LayerMap } from "../layers/p5Layers";
+
+import { getDefaultP5DrawTarget, P5LayerMap } from "../layers/p5Layers";
 import { Vector2 } from "../vector/vector2";
 import { assertMatterWorld, getMatterWorld, getSpaceScale, setMatterWorld, setSpaceScale } from "./bodyAbstract";
 import { InternalMatterBody, MaterialBodyAbstract } from "./materialBodyAbstract";
@@ -17,7 +17,6 @@ export type MatterWorldDefinition = Partial<Matter.IEngineDefinition & { spaceSc
 
 
 
-let inited = false;
 let lastDelta: number | null = null;
 let engine: Matter.Engine;
 
@@ -38,8 +37,6 @@ export function init(_options: MatterWorldDefinition = {}) {
 	setMatterWorld(engine.world);
 
 	Matter.Events.on(engine, "collisionActive", handleActiveCollisions);
-
-	inited = true;
 }
 
 function handleActiveCollisions({ pairs }: Matter.IEventCollision<Matter.Engine>) {
@@ -65,7 +62,7 @@ export function update(delta: number) {
 	}
 	lastDelta = delta;
 
-	for (const [_, ray] of getRays().entries()) {
+	for (const ray of getRays().values()) {
 		const { body, point } = ray.castOverTime(delta);
 		ray.position = point.copy();
 
@@ -76,7 +73,7 @@ export function update(delta: number) {
 	}
 }
 
-export function drawColliders(weight = 0.1, arrowRatio?: number,  d = getP5DrawTarget("defaultP5")) {
+export function drawColliders(weight = 0.1, arrowRatio?: number,  d = getDefaultP5DrawTarget()) {
 	const g = d.getMaps().canvas;
 	g.push();
 	g.noFill();
@@ -102,7 +99,7 @@ function drawBodies(g: P5LayerMap) {
 		for (const part of body.parts) {
 			if (!queuedBodies.has(part.id)) {
 				bodyQueue.push(part);
-				queuedBodies.add(part.id)
+				queuedBodies.add(part.id);
 			}
 		}
 

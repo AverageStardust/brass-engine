@@ -314,11 +314,13 @@ class KeyboardInputDevice extends InputDeviceAbstract {
 		window.addEventListener("keyup", this.handleKeyListener.bind(this, false));
 	}
 
-	update() { } // do nothing, all async here
+	update() {
+		// do nothing, all async here
+	}
 
 	protected handleKeyListener(state: boolean, { code }: KeyboardEvent) {
 		if (code.startsWith("Key")) code = code.substring(3, Infinity);
-		this.setButton(code, state)
+		this.setButton(code, state);
 	}
 }
 
@@ -332,7 +334,9 @@ class MouseInputDevice extends InputDeviceAbstract {
 		window.addEventListener("mouseup", this.handleKeyListener.bind(this, false));
 	}
 
-	update() { } // do nothing, all async here
+	update() {
+		// do nothing, all async here
+	}
 
 	protected handleKeyListener(state: boolean, event: MouseEvent) {
 		switch (event.button) {
@@ -427,7 +431,7 @@ class GamepadInputDevice extends InputDeviceAbstract {
 
 		const
 			absX = Math.abs(position.x),
-			absY = Math.abs(position.y)
+			absY = Math.abs(position.y);
 
 		let squareEdge: Vector2;
 		if (absX > absY) {
@@ -547,7 +551,7 @@ class ButtonInputState extends InputState<boolean> {
 		}
 
 		this.unions.set(unionName, names);
-		this.add(unionName, undefined as any);
+		this.add(unionName, false);
 		this.updateUnion(unionName);
 	}
 }

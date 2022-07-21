@@ -1,9 +1,8 @@
 import p5 from "p5";
 import { createFastGraphics } from "../common/fastGraphics";
-import { getSketch } from "../core/sketch";
 import { Vertex2 } from "../vector/vector2";
 import { DrawBuffer } from "./drawBuffer";
-import { DrawTarget, getDrawTarget, hasDrawTarget } from "./drawTarget";
+import { DrawTarget, getDrawTargetOf } from "./drawTarget";
 import { LayerAbstract } from "./LayerAbstract";
 
 
@@ -14,14 +13,9 @@ export type P5Layer = LayerAbstract<{ canvas: P5LayerMap }>;
 
 
 
-export function getP5DrawTarget(name: string): P5DrawTarget {
-	const drawTarget = getDrawTarget(name);
-	if (!(drawTarget instanceof P5DrawTarget)) {
-		throw Error(`Could not find (${name}) P5DrawTarget; DrawTarget under that name is not of subclass P5DrawTarget`);
-	}
-	return drawTarget;
+export function getDefaultP5DrawTarget() {
+	return getDrawTargetOf("defaultP5", P5DrawTarget);
 }
-
 
 
 export class P5DrawBuffer extends DrawBuffer<{ canvas: P5LayerMap }> {

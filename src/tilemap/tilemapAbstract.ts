@@ -15,7 +15,7 @@ export type FieldDeclaration = {
 	[name: string]: SparseableDynamicArrayType;
 };
 
-type SparseFieldData = { [name: `${number},${number}`]: any };
+type SparseFieldData = { [name: `${number},${number}`]: unknown };
 type SparseableDynamicArray = { sparse: true, data: SparseFieldData } | { sparse: false, data: DynamicArray };
 type SolidFieldType = { sparse: false, data: Uint8Array };
 
@@ -26,7 +26,7 @@ interface LevelFields {
 	} | ({
 		type: DynamicArrayType
 	} & ({
-		data: any[]
+		data: unknown[]
 	} | {
 		data: string
 		encoding: DynamicTypedArrayType
@@ -37,7 +37,7 @@ export interface Level {
 	width: number;
 	height: number;
 
-	objects: any[];
+	objects: unknown[];
 	tilesets: { [name: string]: LevelTileset };
 
 	fields: LevelFields;
@@ -47,7 +47,7 @@ interface LevelTileset {
 	firstId: number;
 	tiles: {
 		[id: number]: {
-			[name: string]: any;
+			[name: string]: unknown;
 		}
 	};
 }
@@ -63,7 +63,7 @@ export interface TilemapAbstractOptions {
 	autoMaintainBody?: boolean;
 
 	getTileData?: (x: number, y: number) => unknown;
-	isTileSolid?: (data: any) => boolean;
+	isTileSolid?: (data: unknown) => boolean;
 }
 
 
@@ -84,7 +84,7 @@ export abstract class TilemapAbstract {
 	protected readonly fields: SparseableDynamicArray[];
 	protected readonly fieldIds: { [name: string]: number };
 	protected readonly solidFieldId: number;
-	protected readonly fieldTypes: FieldDeclaration
+	protected readonly fieldTypes: FieldDeclaration;
 
 	private readonly hasBody: boolean;
 	private readonly autoMaintainBody: boolean;
@@ -92,7 +92,7 @@ export abstract class TilemapAbstract {
 	private bodyValid: boolean;
 
 	protected readonly getTileData: (x: number, y: number) => unknown;
-	private readonly isTileSolid: ((data: any) => boolean) | null;
+	private readonly isTileSolid: ((data: unknown) => boolean) | null;
 
 	constructor(width: number, height: number, options: TilemapAbstractOptions = {}) {
 		this.width = width;
@@ -115,7 +115,7 @@ export abstract class TilemapAbstract {
 
 		this.fields = [];
 		this.fieldIds = {};
-		for (let fieldName in this.fieldTypes) {
+		for (const fieldName in this.fieldTypes) {
 			const fieldType = this.fieldTypes[fieldName];
 
 			const upperFieldName = fieldName.toUpperCase();
@@ -140,8 +140,8 @@ export abstract class TilemapAbstract {
 
 		this.autoMaintainBody = options.autoMaintainBody ?? true;
 
-		this.getTileData = this.bindOptionsFunction(options.getTileData) ?? this.get;
-		this.isTileSolid = this.bindOptionsFunction(options.isTileSolid) ?? null;
+		this.getTileData = this.bindOptionFunction(options.getTileData, this.get);
+		this.isTileSolid = this.bindNullableOptionFunction(options.isTileSolid);
 
 		const solidField = this.fields[this.solidFieldId] as SolidFieldType;
 
@@ -165,8 +165,15 @@ export abstract class TilemapAbstract {
 		tilemaps.push(this);
 	}
 
-	bindOptionsFunction(func?: Function) {
-		if (!func) return func;
+	// eslint-disable-next-line @typescript-eslint/ban-types
+	bindOptionFunction<T extends Function>(func: T | undefined, fallbackFunc: T): T {
+		if (!func) return fallbackFunc;
+		return safeBind(func, this);
+	}
+
+	// eslint-disable-next-line @typescript-eslint/ban-types
+	bindNullableOptionFunction<T extends Function>(func: T | undefined): T | null {
+		if (!func) return null;
 		return safeBind(func, this);
 	}
 
@@ -199,7 +206,7 @@ export abstract class TilemapAbstract {
 		return field.data[x + y * this.width];
 	}
 
-	set(value: any, x: number, y: number, fieldId = 0) {
+	set(value: unknown, x: number, y: number, fieldId = 0) {
 		if (!this.validateCoord(x, y)) return false;
 
 		const field = this.fields[fieldId];
@@ -238,7 +245,7 @@ export abstract class TilemapAbstract {
 			} else if (fieldType === "any") {
 				fields[fieldName] = {
 					type: "any",
-					data: fieldData as any[]
+					data: fieldData as unknown[]
 				};
 			} else {
 				fields[fieldName] = {
@@ -255,12 +262,12 @@ export abstract class TilemapAbstract {
 			objects: [],
 			tilesets: {},
 			fields
-		}
+		};
 	}
 
 	import(world: Level) {
 		if (world === null) {
-			throw Error("Tried to import (null) as world; Did you pass Brass.getLevel() before the world loaded?")
+			throw Error("Tried to import (null) as world; Did you pass Brass.getLevel() before the world loaded?");
 		}
 
 		if (world.width > this.width ||
@@ -286,7 +293,7 @@ export abstract class TilemapAbstract {
 				this.fields[feildId] = {
 					sparse: true,
 					data: field.data
-				}
+				};
 			} else {
 				let data: DynamicArray;
 
@@ -344,7 +351,7 @@ export abstract class TilemapAbstract {
 			const fieldId = this.fieldIds[fieldName];
 
 			if (fieldId === this.solidFieldId) continue;
-			const fieldType = this.fieldTypes[fieldName]
+			const fieldType = this.fieldTypes[fieldName];
 
 			this.fields[fieldId] = this.createField(fieldType);
 		}
@@ -367,7 +374,7 @@ export abstract class TilemapAbstract {
 			return {
 				sparse: false,
 				data
-			}
+			};
 		}
 	}
 

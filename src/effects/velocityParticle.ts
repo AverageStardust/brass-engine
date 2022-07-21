@@ -4,7 +4,6 @@ import { Particle } from "./particle";
 
 
 
-
 export class VelocityParticle extends Particle {
 	protected velocity: Vector2;
 

@@ -3,21 +3,19 @@
  * @module
  */
 
-import { getP5DrawTarget } from "../layers/p5Layers";
 import { loadFraction, loadProgress } from "../loader";
 import { getTime } from "../core/time";
+import { getDefaultP5DrawTarget } from "../layers/p5Layers";
 
 
 
 const frameRateList: number[] = [];
 
-let loadingScreenHue: number;
+const loadingScreenHue = Math.random() * 360;
 let loadingTips: string[];
 let loadingTipIndex: number;
 let loadingTipEndTime: number;
 
-
-loadingScreenHue = Math.random() * 360;
 setLoadingTips(["...loading"]);
 
 
@@ -49,7 +47,7 @@ function pickLoadingTip() {
 
 
 
-export function drawFPS(d = getP5DrawTarget("defaultP5")) {
+export function drawFPS(d = getDefaultP5DrawTarget()) {
 	const g = d.getMaps().canvas;
 	g.push();
 	g.resetMatrix();
@@ -108,7 +106,7 @@ export function drawFPS(d = getP5DrawTarget("defaultP5")) {
 	g.pop();
 }
 
-export function drawLoading(d = getP5DrawTarget("defaultP5")) {
+export function drawLoading(d = getDefaultP5DrawTarget()) {
 	const g = d.getMaps().canvas;
 	g.push();
 	g.resetMatrix();

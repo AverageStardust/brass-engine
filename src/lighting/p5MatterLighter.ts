@@ -1,32 +1,23 @@
-/**
- * Used to add lighting effects to games.
- * Only simple p5.js effects as of now.
- * @module
- */
-
 import p5 from "p5";
-import { getP5DrawTarget } from "./layers/p5Layers";
-import { ColorArgs, createColor } from "./common/color";
-import { getDefaultViewpoint } from "./camera/camera";
-import { ViewpointAbstract } from "./camera/viewpointAbstract";
-import { Vector2 } from "./vector/vector2";
-import { RayBody } from "./physics/rayBody";
-import { getSimTime } from "./core/time";
-import { P5DrawBuffer, P5Layer } from "./layers/p5Layers";
+import { ColorArgs, createColor } from "../common/color";
+import { getDefaultViewpoint } from "../camera/camera";
+import { ViewpointAbstract } from "../camera/viewpointAbstract";
+import { Vector2 } from "../vector/vector2";
+import { RayBody } from "../physics/rayBody";
+import { getSimTime } from "../core/time";
+import { P5DrawBuffer, P5Layer } from "../layers/p5Layers";
+import { LighterAbstractOptions, LighterAbstract } from "./lighterAbstract";
+import { getDefaultP5DrawTarget } from "../layers/p5Layers";
 
 
 
-interface LighterAbstractOptions {
-	resolution?: number;
-}
-
-interface P5LighterOptions extends LighterAbstractOptions {
+interface P5MatterLighterOptions extends LighterAbstractOptions {
 	blur?: number;
 	color?: p5.Color;
 }
 
 interface DirectionalOptions {
-	cacheName?: any;
+	cacheName?: unknown;
 	cacheTime?: number;
 	rays?: number;
 	raySteps?: number;
@@ -37,25 +28,25 @@ interface DirectionalOptions {
 
 
 
-export class P5Lighter {
+export class P5MatterLighter extends LighterAbstract {
 	private lightBuffer: P5DrawBuffer = new P5DrawBuffer();
-	private resolution: number;
 	private _blur: number;
 	private color: p5.Color;
-	private directionalCache: Map<any, { time: number, points: Vector2[] }> = new Map();
+	private directionalCache: Map<unknown, { time: number; points: Vector2[]; }> = new Map();
 	private viewpoint: ViewpointAbstract | null = null;
 
-	constructor(options: P5LighterOptions = {}) {
-		this.resolution = options.resolution ?? 0.25;
+	constructor(options: P5MatterLighterOptions = {}) {
+		super(options);
 		this._blur = options.blur ?? 1;
 		this.color = options.color ?? createColor(255);
 	}
 
 	// light
-	begin(v = getDefaultViewpoint(), d = getP5DrawTarget("defaultP5")) {
+	begin(v = getDefaultViewpoint(), d: P5Layer = getDefaultP5DrawTarget()) {
 		const newContext = !this.lightBuffer.hasSize();
-		this.lightBuffer.sizeMaps(d.getSize(this.resolution))
-		if (newContext) this.fill(this.color);
+		this.lightBuffer.sizeMaps(d.getSize(this.resolution));
+		if (newContext)
+			this.fill(this.color);
 
 		this.resetLightCanvas();
 
@@ -68,16 +59,18 @@ export class P5Lighter {
 		return this;
 	}
 
-	end(d: P5Layer = getP5DrawTarget("defaultP5")) {
+	end(d: P5Layer = getDefaultP5DrawTarget()) {
 		const g = d.getMaps().canvas;
 
 		g.push();
 		g.resetMatrix();
 
 		g.blendMode(MULTIPLY);
-		g.image(this.getLightCanvas() as any, 0, 0, width, height);
+		g.image(this.getLightCanvas() as unknown as p5.Image, 0, 0, width, height);
 
 		g.pop();
+
+		return this;
 	}
 
 	set blur(value: number) {
@@ -131,7 +124,8 @@ export class P5Lighter {
 
 	world(vignette = 0) {
 		const lightCanvas = this.getLightCanvas();
-		if (this.viewpoint === null) this.throwBeginError();
+		if (this.viewpoint === null)
+			this.throwBeginError();
 
 		const area = this.viewpoint.getWorldViewArea();
 		const areaWidth = area.maxX - area.minX;
@@ -180,9 +174,9 @@ export class P5Lighter {
 	private simulateDirectional(x: number, y: number, radius: number, options: DirectionalOptions) {
 		// light is drawn and simulated through an area centered on the screen
 		// this area is a circle with minimum radius to fill the screen
-
 		// find center drawing area
-		if (this.viewpoint === null) this.throwBeginError();
+		if (this.viewpoint === null)
+			this.throwBeginError();
 		const viewArea = this.viewpoint.getWorldViewArea();
 		let center, centerRadius;
 
@@ -218,7 +212,7 @@ export class P5Lighter {
 		// array of points on edge of lit area
 		const points: Vector2[] = [];
 		// list of rays to trace (in reverse order) to find points
-		const paths: { start: Vector2, end: Vector2 }[] = [];
+		const paths: { start: Vector2; end: Vector2; }[] = [];
 
 		// range and step between angles from light
 		const centerAngle = negativeU0.angle;
@@ -226,9 +220,7 @@ export class P5Lighter {
 		const endAngle = centerAngle + HALF_PI * 3 + lightCircleTagentAngle;
 		const stepAngle = TWO_PI / (options.rays ?? 50);
 
-		for (let angle = startAngle;
-			angle <= endAngle;
-			angle += stepAngle) {
+		for (let angle = startAngle; angle <= endAngle; angle += stepAngle) {
 			const rayDirection = Vector2.fromDirMag(angle, centerRadius)
 				.add(center).sub(vec).norm();
 			this.findDirectionalLineSegment(
@@ -245,16 +237,18 @@ export class P5Lighter {
 	// add point on the outside of the area if the light is outside of the area
 	private findDirectionalLineSegment(
 		U0: Vector2, centerRadius: number, vec: Vector2, rayDirection: Vector2,
-		radius: number, lightInArea: boolean, points: Vector2[], paths: { start: Vector2, end: Vector2 }[]) {
+		radius: number, lightInArea: boolean, points: Vector2[], paths: { start: Vector2; end: Vector2; }[]) {
 		const U1 = rayDirection.copy().multScalar(U0.dot(rayDirection));
 		const U2 = U0.copy().sub(U1);
 		const nearDist = U2.mag;
-		if (nearDist > centerRadius) return; // ray does not enter drawing area
+		if (nearDist > centerRadius)
+			return; // ray does not enter drawing area
 
 		const intersectDist = Math.sqrt(centerRadius * centerRadius - nearDist * nearDist);
 		const intersect = rayDirection.copy().multScalar(intersectDist);
 		const startOffset = U1.copy().sub(intersect);
-		if (!lightInArea && startOffset.mag > radius) return; // line segment does not reach drawing area
+		if (!lightInArea && startOffset.mag > radius)
+			return; // line segment does not reach drawing area
 
 		const lineStart = startOffset.limit(radius).add(vec);
 		const lineEnd = U1.copy().add(intersect).limit(radius).add(vec);
@@ -272,7 +266,7 @@ export class P5Lighter {
 	}
 
 	private castDirectionalRays(
-		points: Vector2[], paths: { start: Vector2, end: Vector2 }[], options: DirectionalOptions) {
+		points: Vector2[], paths: { start: Vector2; end: Vector2; }[], options: DirectionalOptions) {
 		for (let i = paths.length - 1; i >= 0; i--) {
 			const path = paths[i];
 			const ray = new RayBody(path.start.x, path.start.y, options.rayWidth ?? 0.01);
@@ -295,12 +289,14 @@ export class P5Lighter {
 	}
 
 	private getLightCanvas() {
-		if (!this.lightBuffer.hasSize()) this.throwBeginError();
+		if (!this.lightBuffer.hasSize())
+			this.throwBeginError();
 		return this.lightBuffer.getMaps().canvas;
 	}
 
 	get lightCanvas() {
-		if (!this.lightBuffer.hasSize()) return null;
+		if (!this.lightBuffer.hasSize())
+			return null;
 		return this.lightBuffer.getMaps().canvas;
 	}
 

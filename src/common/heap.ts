@@ -1,9 +1,9 @@
-abstract class HeapAbstract<HeapType> {
+abstract class HeapAbstract<T> {
 
-	protected data: HeapType[];
-	private readonly compare: (a: HeapType, b: HeapType) => boolean;
+	protected data: T[];
+	private readonly compare: (a: T, b: T) => boolean;
 
-	constructor(data: HeapType[] = [], compare?: (a: HeapType, b: HeapType) => boolean) {
+	constructor(data: T[] = [], compare?: (a: T, b: T) => boolean) {
 		if (compare === undefined)
 			throw Error("Heap was expecting a compare function");
 
@@ -16,7 +16,7 @@ abstract class HeapAbstract<HeapType> {
 		return this;
 	}
 
-	insert(value: any) {
+	insert(value: T) {
 		this.data.push(value);
 		this.siftUp(this.size - 1);
 
@@ -181,7 +181,7 @@ abstract class HeapAbstract<HeapType> {
 	}
 }
 
-export class Heap<HeapType> extends HeapAbstract<HeapType> {
+export class Heap<T> extends HeapAbstract<T> {
 	protected swap(indexA: number, indexB: number) {
 		const aValue = this.data[indexA];
 		this.data[indexA] = this.data[indexB];
@@ -191,10 +191,10 @@ export class Heap<HeapType> extends HeapAbstract<HeapType> {
 	}
 }
 
-export class MappedHeap<HeapType> extends HeapAbstract<HeapType> {
-	private readonly map: Map<HeapType, number>;
+export class MappedHeap<T> extends HeapAbstract<T> {
+	private readonly map: Map<T, number>;
 
-	constructor(data: HeapType[] = [], compare?: (a: HeapType, b: HeapType) => boolean) {
+	constructor(data: T[] = [], compare?: (a: T, b: T) => boolean) {
 		super([], compare);
 		this.map = new Map();
 
@@ -207,7 +207,7 @@ export class MappedHeap<HeapType> extends HeapAbstract<HeapType> {
 			this.sort();
 	}
 
-	insert(value: HeapType) {
+	insert(value: T) {
 		if (this.map.get(value) !== undefined) {
 			this.removeValue(value);
 		}
@@ -218,7 +218,7 @@ export class MappedHeap<HeapType> extends HeapAbstract<HeapType> {
 		return this;
 	}
 
-	removeValue(value: HeapType) {
+	removeValue(value: T) {
 		const index = this.map.get(value);
 		if (index === undefined)
 			return undefined;
@@ -243,26 +243,26 @@ export class MappedHeap<HeapType> extends HeapAbstract<HeapType> {
 	}
 }
 
-export class MaxHeap<HeapType> extends Heap<HeapType> {
-	constructor(data: HeapType[]) {
-		super(data, (a: HeapType, b: HeapType) => a > b);
+export class MaxHeap<T> extends Heap<T> {
+	constructor(data: T[]) {
+		super(data, (a: T, b: T) => a > b);
 	}
 }
 
-export class MinHeap<HeapType> extends Heap<HeapType> {
-	constructor(data: HeapType[]) {
-		super(data, (a: HeapType, b: HeapType) => a < b);
+export class MinHeap<T> extends Heap<T> {
+	constructor(data: T[]) {
+		super(data, (a: T, b: T) => a < b);
 	}
 }
 
-export class MappedMaxHeap<HeapType> extends MappedHeap<HeapType> {
-	constructor(data: HeapType[]) {
-		super(data, (a: HeapType, b: HeapType) => a > b);
+export class MappedMaxHeap<T> extends MappedHeap<T> {
+	constructor(data: T[]) {
+		super(data, (a: T, b: T) => a > b);
 	}
 }
 
-export class MappedMinHeap<HeapType> extends MappedHeap<HeapType> {
-	constructor(data: HeapType[]) {
-		super(data, (a: HeapType, b: HeapType) => a < b);
+export class MappedMinHeap<T> extends MappedHeap<T> {
+	constructor(data: T[]) {
+		super(data, (a: T, b: T) => a < b);
 	}
 }
