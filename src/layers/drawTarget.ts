@@ -1,3 +1,4 @@
+import { ClassOf } from "../common/types";
 import { getSketch } from "../core/sketch";
 import { Vertex2 } from "../vector/vector2";
 import { honorReglRefresh } from "./handleRegl";
@@ -43,7 +44,7 @@ export function getDrawTarget(name: string) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function getDrawTargetOf<T>(name: string, classConstructor: new (...args: any[]) => T): T {
+export function getDrawTargetOf<T extends DrawTarget<any>>(name: string, classConstructor: ClassOf<T>): T {
 	const drawTarget = getDrawTarget(name);
 	if (!(drawTarget instanceof classConstructor)) {
 		throw Error(`Could not find (${name}) P5DrawTarget; DrawTarget under that name is not of subclass P5DrawTarget`);

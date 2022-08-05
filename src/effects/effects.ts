@@ -7,7 +7,7 @@
 import { Vector2, Vertex2 } from "../vector/vector2";
 import { getDefaultViewpoint } from "../camera/camera";
 import { Particle, ParticleClass } from "./particle";
-import { getDefaultP5DrawTarget } from "../layers/p5Layers";
+import { getDefaultP5DrawTarget, P5Layer } from "../layers/p5Layers";
 
 
 
@@ -31,7 +31,7 @@ export function update(delta: number) {
 	}
 }
 
-export function draw(v = getDefaultViewpoint(), d = getDefaultP5DrawTarget()) {
+export function draw(v = getDefaultViewpoint(), d: P5Layer = getDefaultP5DrawTarget()) {
 	const g = d.getMaps().canvas;
 	const viewArea = v.getWorldViewArea(d);
 
@@ -56,7 +56,7 @@ export function forEachParticle(func: (particle: Particle) => void) {
 }
 
 export function forEachVisableParticle(func: (particle: Particle) => void,
-	v = getDefaultViewpoint(), d = getDefaultP5DrawTarget()) {
+	v = getDefaultViewpoint(), d: P5Layer = getDefaultP5DrawTarget()) {
 	const viewArea = v.getWorldViewArea(d);
 
 	for (const particle of particles.values()) {

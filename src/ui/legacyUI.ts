@@ -5,7 +5,7 @@
 
 import { loadFraction, loadProgress } from "../loader";
 import { getTime } from "../core/time";
-import { getDefaultP5DrawTarget } from "../layers/p5Layers";
+import { getDefaultP5DrawTarget, P5Layer } from "../layers/p5Layers";
 
 
 
@@ -47,7 +47,7 @@ function pickLoadingTip() {
 
 
 
-export function drawFPS(d = getDefaultP5DrawTarget()) {
+export function drawFPS(d: P5Layer = getDefaultP5DrawTarget()) {
 	const g = d.getMaps().canvas;
 	g.push();
 	g.resetMatrix();
@@ -106,7 +106,7 @@ export function drawFPS(d = getDefaultP5DrawTarget()) {
 	g.pop();
 }
 
-export function drawLoading(d = getDefaultP5DrawTarget()) {
+export function drawLoading(d: P5Layer = getDefaultP5DrawTarget()) {
 	const g = d.getMaps().canvas;
 	g.push();
 	g.resetMatrix();

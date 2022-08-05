@@ -1,9 +1,10 @@
 import typescript from "rollup-plugin-ts";
 import { terser } from "rollup-plugin-terser";
+const { version } = require("./package.json");
 
 const banner =
     `// library : Brass Engine
-// version : ${require('./package.json').version}
+// version : ${version}
 // author  : Wyatt Durbano (WD_STEVE)
 // required: p5
 // optional: p5.sound, matter.js, regl.js
@@ -12,16 +13,18 @@ const banner =
 const rawOutput = {
     banner,
     format: "iife",
-    name: "Brass",
-    file: './dist/brass.js',
+    name: "globalThis",
+    extend: true,
+    file: './app/main.js',
     globals: { p5: "p5" },
 };
 
 const minifyOutput = {
     banner,
     format: "iife",
-    name: "Brass",
-    file: './dist/brass.min.js',
+    name: "globalThis",
+    extend: true,
+    file: './app/main.min.js',
     globals: { p5: "p5" },
     plugins: [
         terser({
@@ -33,7 +36,7 @@ const minifyOutput = {
 };
 
 export default {
-    input: "./src/index.ts",
+    input: "./app/main.ts",
     output: (process.env.BUILD === "development") ?
         [rawOutput] :
         [rawOutput, minifyOutput],

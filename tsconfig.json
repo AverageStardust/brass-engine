@@ -1,6 +1,7 @@
 {
     "include": [
-        "src/index.ts"
+        "app/main.ts",
+        "src/**/*.ts"
     ],
     "compilerOptions": {
         "types": [
@@ -10,6 +11,7 @@
         "declaration": true,
         "declarationDir": "./dist",
         "allowUmdGlobalAccess": true,
+        "resolveJsonModule": true,
         "esModuleInterop": true,
         "target": "ES5",
         "module": "ES2020",

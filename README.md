@@ -3,7 +3,7 @@
 Make games with the flexibility of p5.js, the features of Matter.js, and the speed
 of WEBGL.
 ___
-**Brass is still in alpha, the API will break often.** <br> 
+**Brass is no longer maintained** <br> 
 Write p5 style code with the power of a game engine. After running
 `Brass.init()` everything is in one easy namespace. Brass engine loads from one
 easy file, it requires p5.js; Brass can optionally pull in other libraries.

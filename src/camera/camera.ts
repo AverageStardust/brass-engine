@@ -24,7 +24,7 @@ export function init(viewpoint?: ViewpointAbstract) {
 	}
 }
 
-export function updateViewpoints(delta: number) {
+export function update(delta: number) {
 	for (const viewpoint of getViewpoints()) {
 		viewpoint.update(delta);
 	}

@@ -4,7 +4,7 @@
  */
 
 import p5 from "p5";
-import { P5DrawTarget, P5LayerMap } from "../layers/p5Layers";
+import { P5Layer, P5LayerMap } from "../layers/p5Layers";
 import { getExactTime, getTime } from "../core/time";
 import { assert } from "../common/runtimeChecking";
 import { createFastGraphics } from "../common/fastGraphics";
@@ -105,7 +105,7 @@ export class P5Tilemap extends TilemapAbstract {
 		}
 	}
 
-	draw(v = getDefaultViewpoint(), d = getDefaultP5DrawTarget()) {
+	draw(v = getDefaultViewpoint(), d: P5Layer = getDefaultP5DrawTarget()) {
 		const g = d.getMaps().canvas;
 		const viewArea = v.getWorldViewArea(d);
 
@@ -183,7 +183,7 @@ export class P5Tilemap extends TilemapAbstract {
 		pop();
 	}
 
-	private padChunks(alwaysCache: boolean, v = getDefaultViewpoint(), d: P5DrawTarget) {
+	private padChunks(alwaysCache: boolean, v = getDefaultViewpoint(), d: P5Layer) {
 		assert(this.chunkPool !== null);
 
 		const viewArea = v.getWorldViewArea(d);

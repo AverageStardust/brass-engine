@@ -6,7 +6,6 @@ module.exports = {
     "xip": false,
     "reloadDelay": 0,
     "reloadDebounce": 500,
-    "startPath": "examples",
-    "localOnly": false,
-    "tunnel": true
+    "startPath": "app",
+    "localOnly": false
 };

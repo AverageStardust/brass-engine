@@ -1,4 +1,4 @@
-import REGL from "../../globalTypes/regl";
+import REGL from "../../externalTypes/regl";
 import { assert } from "../common/runtimeChecking";
 import { DrawTarget } from "./drawTarget";
 
@@ -9,7 +9,7 @@ let doReglRefresh = false;
 
 
 
-export function init(drawTarget: DrawTarget<{canvas: HTMLCanvasElement}>) {
+export function init(drawTarget: DrawTarget<{ canvas: HTMLCanvasElement }>) {
 	if (typeof createREGL !== "function") {
 		throw Error("REGL was not found; Can't initialize Brass REGL without REGL.js loaded first");
 	}
@@ -37,6 +37,7 @@ export function refreshReglFast() {
 	doReglRefresh = true;
 	queueMicrotask(honorReglRefresh);
 }
+
 export function honorReglRefresh() {
 	if (!doReglRefresh)
 		return;

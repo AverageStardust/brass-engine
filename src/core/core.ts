@@ -7,7 +7,7 @@ import p5 from "p5";
 
 import { init as initInput, update as updateInput } from "../inputMapper";
 import { init as initLoader, loaded } from "../loader";
-import { init as initViewpoint, updateViewpoints } from "../camera/camera";
+import { init as initViewpoint, update as updateViewpoints } from "../camera/camera";
 import { init as initLayer } from "../layers/layers";
 import { init as initSketch, getSketch } from "./sketch";
 import { init as initPhysics, MatterWorldDefinition, update as updatePhysics } from "../physics/physics";

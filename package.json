@@ -2,14 +2,13 @@
   "name": "brass_engine",
   "version": "0.17.0dev",
   "description": "",
-  "main": "index.js",
+  "main": "app/main.js",
   "scripts": {
     "dev": "rollup --watch --config rollup.config.js --environment BUILD:development",
     "build": "rollup --config rollup.config.js --environment BUILD:production",
     "doc": "npx typedoc --options typedoc.json",
     "publish": "npm run build && npm run doc",
-    "examples": "browser-sync start --config bs-config.js",
-    "test": "node test.js"
+    "app": "browser-sync start --config bs-config.js"
   },
   "keywords": [],
   "author": "Wyatt Durbano",
@@ -17,10 +16,11 @@
   "devDependencies": {
     "@types/matter-js": "^0.17.7",
     "@types/p5": "^1.4.0",
-    "@typescript-eslint/eslint-plugin": "^5.30.5",
-    "@typescript-eslint/parser": "^5.30.5",
     "browser-sync": "^2.20.0",
     "eslint": "^8.10.0",
+    "eslint-plugin-prettier": "^4.2.0",
+    "@typescript-eslint/parser": "^5.30.5",
+    "@typescript-eslint/eslint-plugin": "^5.30.5",
     "nlfurniss-typedoc-plugin-sourcefile-url": "^2.0.0",
     "rollup": "^2.68.0",
     "rollup-plugin-sourcemaps": "^0.6.3",

@@ -1,6 +1,11 @@
 import { Vertex2 } from "../vector/vector2";
 import { refreshReglFast } from "./handleRegl";
 import { DrawTarget, getDrawTargetOf } from "./drawTarget";
+import { LayerAbstract } from "./LayerAbstract";
+
+
+
+export type CanvasLayer = LayerAbstract<{ canvas: HTMLCanvasElement }>;
 
 
 

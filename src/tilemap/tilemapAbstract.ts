@@ -94,6 +94,8 @@ export abstract class TilemapAbstract {
 	protected readonly getTileData: (x: number, y: number) => unknown;
 	private readonly isTileSolid: ((data: unknown) => boolean) | null;
 
+	identity = Symbol();
+
 	constructor(width: number, height: number, options: TilemapAbstractOptions = {}) {
 		this.width = width;
 		this.height = height;
@@ -217,6 +219,8 @@ export abstract class TilemapAbstract {
 			field.data[x + y * this.width] = value;
 		}
 
+		this.identity = Symbol();
+
 		this.clearCacheAtTile(x, y);
 		this.updateSolidAtTile(x, y);
 
@@ -328,6 +332,8 @@ export abstract class TilemapAbstract {
 				this.updateSolidAtTile(x, y);
 			}
 		}
+
+		this.identity = Symbol();
 	}
 
 	private updateSolidAtTile(x: number, y: number) {

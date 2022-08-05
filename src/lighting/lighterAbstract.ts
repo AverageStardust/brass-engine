@@ -17,11 +17,11 @@ export interface LighterAbstractOptions {
 
 
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export abstract class LighterAbstract {
 	protected resolution: number;
 
-	constructor(options: LighterAbstractOptions) {
+	constructor(options: LighterAbstractOptions = {}) {
 		this.resolution = options.resolution ?? 0.5;
 	}
 

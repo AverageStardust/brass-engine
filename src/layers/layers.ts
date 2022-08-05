@@ -6,7 +6,7 @@
 
 import p5 from "p5";
 import { getSketch } from "../core/sketch";
-import { CanvasDrawTarget, getDefaultCanvasDrawTarget } from "./canvasLayers";
+import { CanvasDrawTarget, CanvasLayer, getDefaultCanvasDrawTarget } from "./canvasLayers";
 import { DrawTarget, getDrawTarget, resize, setDrawTarget, syncDefaultDrawTargetWithSketch } from "./drawTarget";
 import { init as initRegl } from "./handleRegl";
 import { P5DrawTarget, P5Layer, getDefaultP5DrawTarget } from "./p5Layers";
@@ -51,12 +51,7 @@ function initDefaultDrawTarget(doRegl: boolean, drawTarget?: p5.Graphics | DrawT
 			throw Error("Can't make default drawTarget in Brass.init(), bad value");
 		}
 	}
-
-	if (doRegl) {
-		const drawTarget = new CanvasDrawTarget();
-		setDrawTarget("defaultCanvas", drawTarget);
-	}
-
+	
 	resize();
 
 	syncDefaultDrawTargetWithSketch();
@@ -96,7 +91,7 @@ function addDrawTargetElement(drawTarget: P5DrawTarget | CanvasDrawTarget) {
 	}
 }
 
-export function drawCanvasToP5(p5Target: P5Layer = getDefaultP5DrawTarget(), canvasTarget = getDefaultCanvasDrawTarget()) {
+export function drawCanvasToP5(p5Target: P5Layer = getDefaultP5DrawTarget(), canvasTarget: CanvasLayer = getDefaultCanvasDrawTarget()) {
 	const p5Canvas = p5Target.getMaps().canvas;
 	const canvasCanvas = canvasTarget.getMaps().canvas;
 	p5Canvas.drawingContext.drawImage(canvasCanvas, 0, 0, p5Canvas.width, p5Canvas.height);

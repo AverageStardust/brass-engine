@@ -95,7 +95,7 @@ export abstract class ViewpointAbstract {
 		this.translation.add(worldTraslation);
 	}
 
-	screenToWorld(screenCoord: Vector2, d = getDefaultP5DrawTarget()) {
+	screenToWorld(screenCoord: Vector2, d: P5Layer = getDefaultP5DrawTarget()) {
 		const coord = screenCoord.copy();
 
 		const viewOrigin = this.getViewOrigin(d);
@@ -111,7 +111,7 @@ export abstract class ViewpointAbstract {
 		return coord;
 	}
 
-	worldToScreen(worldCoord: Vector2, d = getDefaultP5DrawTarget()) {
+	worldToScreen(worldCoord: Vector2, d: P5Layer = getDefaultP5DrawTarget()) {
 		const coord = worldCoord.copy();
 
 		coord.sub(this.shakePosition);

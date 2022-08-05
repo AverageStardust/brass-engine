@@ -5,7 +5,7 @@
  */
 
 
-import { getDefaultP5DrawTarget, P5LayerMap } from "../layers/p5Layers";
+import { getDefaultP5DrawTarget, P5Layer, P5LayerMap } from "../layers/p5Layers";
 import { Vector2 } from "../vector/vector2";
 import { assertMatterWorld, getMatterWorld, getSpaceScale, setMatterWorld, setSpaceScale } from "./bodyAbstract";
 import { InternalMatterBody, MaterialBodyAbstract } from "./materialBodyAbstract";
@@ -73,7 +73,7 @@ export function update(delta: number) {
 	}
 }
 
-export function drawColliders(weight = 0.1, arrowRatio?: number,  d = getDefaultP5DrawTarget()) {
+export function drawColliders(weight = 0.1, arrowRatio?: number,  d: P5Layer = getDefaultP5DrawTarget()) {
 	const g = d.getMaps().canvas;
 	g.push();
 	g.noFill();
