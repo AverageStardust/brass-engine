@@ -12,10 +12,3 @@ ___
 ## Docs
 **All public functions and classes are found in the Brass namespace during runtime.**<br>
 [Docs Link](https://averagestardust.github.io/brass-engine/docs)
-___
-## Example Projects
-[Paintball Demo](https://averagestardust.github.io/brass-engine/examples/rainbowShooter)<br>
-[Particle and time-warping](https://averagestardust.github.io/brass-engine/examples/particleWarp)<br>
-[P5Lighter example](https://averagestardust.github.io/brass-engine/examples/darkCatacombs)<br>
-[Old tilemap example](https://averagestardust.github.io/brass-engine/examples/tilemapBullets)<br>
-[WIP WEBGL stuff](https://averagestardust.github.io/brass-engine/examples/shaderTest)<br>
