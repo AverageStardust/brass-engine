@@ -11,30 +11,11 @@ Either way you have tools like tilemap, lighting and input systems.
 ___
 ## Docs
 **All public functions and classes are found in the Brass namespace during runtime.**<br>
-[Docs Link](https://wdsteve.github.io/brass-engine/docs)
+[Docs Link](https://averagestardust.github.io/brass-engine/docs)
 ___
 ## Example Projects
-[Paintball Demo](https://wdsteve.github.io/brass-engine/examples/rainbowShooter)<br>
-[Particle and time-warping](https://wdsteve.github.io/brass-engine/examples/particleWarp)<br>
-[P5Lighter example](https://wdsteve.github.io/brass-engine/examples/darkCatacombs)<br>
-[Old tilemap example](https://wdsteve.github.io/brass-engine/examples/tilemapBullets)<br>
-[WIP WEBGL stuff](https://wdsteve.github.io/brass-engine/examples/shaderTest)<br>
-___
-## Future ideas, no promises!
-### 0.17.0
-* UI/mouse input system
-### 0.18.0
-* regl drawn tilemaps
-### Maybe?
-* extended Matter.js support
-* extended p5.js WEBGL support
-* JSON/text/binary/model loading
-* inventory ui
-* save state system
-* animation loading/handling
-### Will probably never happen
-* post-processing system
-* raytraced lighting with WEBGL2
-* behaviour trees
-* p5 asset / ui editor / in-game level editor
-* multiplayer support
+[Paintball Demo](https://averagestardust.github.io/brass-engine/examples/rainbowShooter)<br>
+[Particle and time-warping](https://averagestardust.github.io/brass-engine/examples/particleWarp)<br>
+[P5Lighter example](https://averagestardust.github.io/brass-engine/examples/darkCatacombs)<br>
+[Old tilemap example](https://averagestardust.github.io/brass-engine/examples/tilemapBullets)<br>
+[WIP WEBGL stuff](https://averagestardust.github.io/brass-engine/examples/shaderTest)<br>
